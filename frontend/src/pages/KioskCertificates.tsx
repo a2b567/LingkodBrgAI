@@ -105,6 +105,22 @@ export const KioskCertificates: React.FC = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
+  const clearAll = () => {
+    // Reset all state to initial values
+    setStep(0);
+    setCertType('Clearance');
+    setFirstName('');
+    setLastName('');
+    setPurpose('');
+    setQueueNumber('');
+    // Clear canvas if exists
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!firstName || !lastName) return alert("Please enter your full name");
     if (!purpose) return alert("Please enter a purpose");
@@ -241,8 +257,9 @@ export const KioskCertificates: React.FC = () => {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <button onClick={() => setStep(1)} className="flex-1 py-4 text-lg font-bold bg-slate-100 dark:bg-slate-800 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Back</button>
-              <button onClick={() => setStep(3)} disabled={!purpose || !firstName || !lastName} className="flex-1 py-4 text-lg font-bold bg-gov-blue-600 text-white rounded-2xl hover:bg-gov-blue-700 disabled:opacity-50 transition-colors">Continue to Sign</button>
+                <button onClick={clearAll} className="flex-1 py-4 text-lg font-bold bg-rose-500 text-white rounded-2xl hover:bg-rose-600 disabled:opacity-50 transition-colors" disabled={!firstName && !lastName && !purpose}>Clear All</button>
+                <button onClick={() => setStep(1)} className="flex-1 py-4 text-lg font-bold bg-slate-100 dark:bg-slate-800 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Back</button>
+                <button onClick={() => setStep(3)} disabled={!purpose || !firstName || !lastName} className="flex-1 py-4 text-lg font-bold bg-gov-blue-600 text-white rounded-2xl hover:bg-gov-blue-700 disabled:opacity-50 transition-colors">Continue to Sign</button>
             </div>
           </div>
         )}
