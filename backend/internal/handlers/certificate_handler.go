@@ -256,11 +256,14 @@ func (h *CertificateHandler) Reject(c *gin.Context) {
 
 func (h *CertificateHandler) PublicRequest(c *gin.Context) {
 	var req struct {
-		FirstName string  `json:"first_name" binding:"required"`
-		LastName  string  `json:"last_name" binding:"required"`
-		Type      string  `json:"type" binding:"required"`
-		Purpose   string  `json:"purpose" binding:"required"`
-		Fee       float64 `json:"fee"`
+		FirstName  string  `json:"first_name" binding:"required"`
+		LastName   string  `json:"last_name" binding:"required"`
+		Type       string  `json:"type" binding:"required"`
+		Purpose    string  `json:"purpose" binding:"required"`
+		Fee        float64 `json:"fee"`
+		IsPWD      bool    `json:"is_pwd"`
+		IsSenior   bool    `json:"is_senior"`
+		IsPregnant bool    `json:"is_pregnant"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -316,13 +319,35 @@ func (h *CertificateHandler) PublicRequest(c *gin.Context) {
 		return
 	}
 
+	// Create queue ticket
+	var ticketCount int64
+	db.Model(&models.QueueTicket{}).Where("date(created_at) = ?", time.Now().Format("2006-01-02")).Count(&ticketCount)
+	prefix := "R"
+	if req.IsPWD || req.IsSenior || req.IsPregnant {
+		prefix = "P"
+	}
+	queueNumber := fmt.Sprintf("%s-%03d", prefix, ticketCount+1)
+	queueTicket := models.QueueTicket{
+		QueueNumber: queueNumber,
+		ResidentID:  resident.ID,
+		IsPWD:      req.IsPWD,
+		IsSenior:   req.IsSenior,
+		IsPregnant: req.IsPregnant,
+		IsPriority: req.IsPWD || req.IsSenior || req.IsPregnant,
+		Status:     "Waiting",
+	}
+	if err := db.Create(&queueTicket).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create queue ticket"})
+		return
+	}
+
 	db.Create(&models.AuditLog{
 		Action:    "PUBLIC_REQUEST_DOCUMENT",
 		Details:   fmt.Sprintf("Public Kiosk Requested %s (%s) for resident %s", cert.Type, cert.DocumentNumber, resident.LastName),
 		IPAddress: c.ClientIP(),
 	})
 
-	c.JSON(http.StatusCreated, cert)
+	c.JSON(http.StatusCreated, gin.H{"certificate": cert, "queue_number": queueTicket.QueueNumber})
 }
 
 func (h *CertificateHandler) VerifyQR(c *gin.Context) {

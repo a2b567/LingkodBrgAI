@@ -46,6 +46,7 @@ export interface Household {
 }
 
 export interface Certificate {
+
   id: string;
   resident_id: string;
   resident?: Resident;
@@ -61,6 +62,19 @@ export interface Certificate {
   request_date: string;
   issue_date?: string;
   created_at: string;
+}
+
+export interface PublicCertificateRequest {
+  first_name: string;
+  last_name: string;
+  type: string;
+  purpose: string;
+  fee?: number;
+}
+
+export interface PublicCertificateResponse {
+  certificate: Certificate;
+  queue_number: string;
 }
 
 export interface Blotter {

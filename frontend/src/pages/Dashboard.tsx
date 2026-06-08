@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { 
-  Users, Home, AlertTriangle, Briefcase, Cpu, Lightbulb, UserCheck, Copy, Check
+import {
+  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, Lightbulb, UserCheck, Copy, Check, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -75,7 +75,13 @@ export const Dashboard: React.FC = () => {
   const [isGeneratingInsight, setIsGeneratingInsight] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [isChatMinimized, setIsChatMinimized] = useState(false);
 
+  // Notification state
+  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; content: string; type: string; is_read: boolean }>>([]);
+  const [showNotifPanel, setShowNotifPanel] = useState(false);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
   const streamIntervalRef = React.useRef<any>(null);
   const initialInsightFetched = React.useRef(false);
 
@@ -134,6 +140,52 @@ export const Dashboard: React.FC = () => {
     }, 20);
   };
 
+  // Add notification bell to header
+  const NotificationBell = () => (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        className="relative flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+        onClick={() => setShowNotifPanel(!showNotifPanel)}
+        aria-label="Notifications"
+      >
+        <Bell size={20} />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full border-2 border-white dark:border-gray-800">
+            {unreadCount}
+          </span>
+        )}
+      </button>
+      {showNotifPanel && (
+        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20">
+          <div className="p-3 border-b border-slate-200 dark:border-slate-700 font-semibold text-sm text-slate-700 dark:text-slate-300">
+            Notifications
+          </div>
+          <ul className="max-h-64 overflow-y-auto">
+            {notifications.length === 0 && (
+              <li className="p-3 text-sm text-slate-500 dark:text-slate-400">No notifications</li>
+            )}
+            {notifications.map(notif => (
+              <li
+                key={notif.id}
+                className={`p-3 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer ${notif.is_read ? '' : 'bg-slate-100 dark:bg-slate-700'}`}
+                onClick={() => handleMarkRead(notif.id)}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm text-slate-800 dark:text-slate-200">{notif.title}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{notif.content}</p>
+                  </div>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{notif.type}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+
   const generateInitialInsight = async (currentStats: DashboardStats) => {
     setIsGeneratingInsight(true);
     setMessages([]);
@@ -160,23 +212,48 @@ export const Dashboard: React.FC = () => {
     generateInitialInsight(stats!);
   };
 
+  // Fetch notifications on mount
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await api.notifications.list();
+        setNotifications(res);
+      } catch (err) {
+        console.error('Failed to fetch notifications', err);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  // Fetch dashboard statistics on mount
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setIsLoading(true);
         const res = await api.analytics.dashboard();
         setStats(res);
+        setIsLoading(false);
         if (!initialInsightFetched.current) {
           initialInsightFetched.current = true;
           generateInitialInsight(res);
         }
       } catch (err) {
-        // Handle fetch error
-      } finally {
+        console.error('Failed to fetch dashboard stats', err);
         setIsLoading(false);
       }
     };
     fetchStats();
   }, []);
+
+  // Mark a notification as read
+  const handleMarkRead = async (id: string) => {
+    try {
+      await api.notifications.read(id);
+      setNotifications(prev => prev.map(n => (n.id === id ? { ...n, is_read: true } : n)));
+    } catch (err) {
+      console.error('Failed to mark notification read', err);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -271,10 +348,12 @@ export const Dashboard: React.FC = () => {
           <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white">COMMUNITY DASHBOARD</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold tracking-wide">Real-time demographic statistics & analytics</p>
         </div>
+        {/* Notification bell */}
+        <NotificationBell />
       </div>
 
       {/* AI Strategic Chat Assistant Panel */}
-      <div className="bg-slate-900 dark:bg-slate-950 text-white rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col">
+      <div className={`relative w-full ${isChatMinimized ? 'h-12' : 'h-48'} bg-slate-900 dark:bg-slate-950 text-white border-t border-slate-800 shadow-2xl overflow-hidden z-20 flex flex-col`}>
         {/* Chat header */}
         <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -289,18 +368,31 @@ export const Dashboard: React.FC = () => {
               <p className="text-[10px] text-slate-300 font-medium">Barangay Lawrence Smart Operations Officer</p>
             </div>
           </div>
-          <button 
-            type="button"
-            onClick={handleResetChat} 
-            disabled={isGeneratingInsight || isSending}
-            className="text-[10px] font-bold uppercase tracking-widest px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-gov-gold-400 hover:text-gov-gold-300 rounded-full border border-gov-gold-500/30 transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-sm"
-          >
-            Reset Chat
-          </button>
+          <div className="flex items-center gap-2">
+            <button 
+              type="button"
+              onClick={handleResetChat} 
+              disabled={isGeneratingInsight || isSending || isChatMinimized}
+              className="text-[10px] font-bold uppercase tracking-widest px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-gov-gold-400 hover:text-gov-gold-300 rounded-full border border-gov-gold-500/30 transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-sm"
+            >
+              Reset Chat
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsChatMinimized(prev => !prev)}
+              className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-all duration-200 active:scale-95"
+              title={isChatMinimized ? 'Expand' : 'Minimize'}
+            >
+              {isChatMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+            </button>
+          </div>
         </div>
 
+        {/* Collapsible body */}
+        {!isChatMinimized && (
+        <>
         {/* Message history */}
-        <div className="p-5 space-y-4 max-h-[250px] overflow-y-auto min-h-[140px] flex flex-col">
+        <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto min-h-[140px] flex flex-col">
           {messages.map((msg, index) => {
             if (!msg.text || !msg.text.trim()) return null;
             return (
@@ -383,6 +475,8 @@ export const Dashboard: React.FC = () => {
             Send
           </button>
         </form>
+        </>
+        )}
       </div>
 
       {/* Numerical cards */}

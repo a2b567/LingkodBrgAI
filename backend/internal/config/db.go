@@ -68,6 +68,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		&models.Payment{},
 		&models.AuditLog{},
 		&models.AILog{},
+		&models.QueueTicket{},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("auto-migration failed: %w", err)

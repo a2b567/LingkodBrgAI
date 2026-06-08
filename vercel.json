@@ -1,0 +1,14 @@
+{ "name": "bmis",
+  "experimentalServices": {
+    "frontend": {
+      "root": "frontend",
+      "routePrefix": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "root": "backend",
+      "entrypoint": "cmd/server/main.go",
+      "routePrefix": "/_/backend"
+    }
+  }
+}

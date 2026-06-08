@@ -97,6 +97,23 @@ type Certificate struct {
 	IssueDate      *time.Time `json:"issue_date,omitempty"`
 }
 
+// QueueTicket represents a kiosk queue entry with priority handling
+type QueueTicket struct {
+    Base
+    QueueNumber string    `gorm:"not null" json:"queue_number"` // e.g., "P-001" or "R-001"
+    ResidentID  uuid.UUID `gorm:"type:uuid;not null" json:"resident_id"`
+    Resident    Resident  `gorm:"foreignKey:ResidentID" json:"resident"`
+    IsPWD      bool      `gorm:"default:false" json:"is_pwd"`
+    IsSenior   bool      `gorm:"default:false" json:"is_senior"`
+    IsPregnant bool      `gorm:"default:false" json:"is_pregnant"`
+    IsPriority bool      `gorm:"default:false" json:"is_priority"` // computed flag
+    Status     string    `gorm:"default:'Waiting'" json:"status"`
+    CreatedAt   time.Time `json:"created_at"`
+    ServedAt   *time.Time `json:"served_at,omitempty"`
+    CompletedAt *time.Time `json:"completed_at,omitempty"`
+}
+
+
 // Blotter and Incident Records
 type Blotter struct {
 	Base

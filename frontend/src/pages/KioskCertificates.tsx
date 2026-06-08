@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FileText, CheckCircle2, ArrowLeft, Signature, Loader2, Pointer } from 'lucide-react';
+// import { useNavigate } from 'react-router-dom';
+import { FileText, CheckCircle2, Signature, Loader2, Pointer } from 'lucide-react';
 import { api } from '../services/api';
 // Removed unused Resident type import
 import './KioskCertificates.css';
 export const KioskCertificates: React.FC = () => {
-  const navigate = useNavigate();
   
   // isStaff removed (not needed)
 
@@ -16,6 +15,7 @@ export const KioskCertificates: React.FC = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [queueNumber, setQueueNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -108,13 +108,15 @@ export const KioskCertificates: React.FC = () => {
     if (!purpose) return alert("Please enter a purpose");
     setIsSubmitting(true);
     try {
-      await api.certificates.publicRequest({
+      const resp = await api.certificates.publicRequest({
         first_name: firstName,
         last_name: lastName,
         type: certType,
         purpose,
         fee
-      });
+      }) as any;
+      // Store queue number for display
+      setQueueNumber(resp.queue_number || "");
       setStep(4);
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to submit request");
@@ -145,13 +147,7 @@ export const KioskCertificates: React.FC = () => {
             <p className="text-sm font-bold text-slate-500 tracking-widest uppercase">Document Request Portal</p>
           </div>
         </div>
-        <button 
-          onClick={() => navigate('/certificates')}
-          className="flex items-center gap-2 px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-2xl font-bold transition-colors"
-        >
-          <ArrowLeft size={20} />
-          Exit Kiosk
-        </button>
+        {/* Exit Kiosk button hidden */}
       </header>
 
       <main className="flex-1 max-w-4xl w-full mx-auto flex flex-col justify-center">
@@ -298,7 +294,12 @@ export const KioskCertificates: React.FC = () => {
               Your request for a <strong>{certType}</strong> has been successfully received. Please proceed to the cashier if payment is required, then wait for your name to be called.
             </p>
             <div className="pt-8">
-              <button onClick={() => { setStep(0); setPurpose(''); setFirstName(''); setLastName(''); clearCanvas(); }} className="finishButton">
+              {queueNumber && (
+                <div className="text-2xl font-bold text-gov-blue-600 dark:text-gov-blue-400 mb-4">
+                  Your Queue Number: {queueNumber}
+                </div>
+              )}
+              <button onClick={() => { setStep(0); setPurpose(''); setFirstName(''); setLastName(''); setQueueNumber(''); clearCanvas(); }} className="finishButton">
                 Finish
               </button>
             </div>
