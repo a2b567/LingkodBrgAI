@@ -4,6 +4,8 @@ import { FileText, CheckCircle2, Signature, Loader2, Pointer } from 'lucide-reac
 import { api } from '../services/api';
 // Removed unused Resident type import
 import './KioskCertificates.css';
+import logo from '../assets/logo.png';
+
 export const KioskCertificates: React.FC = () => {
   
   // isStaff removed (not needed)
@@ -141,7 +143,7 @@ export const KioskCertificates: React.FC = () => {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-8 flex flex-col">
       <header className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-tr from-gov-blue-600 to-gov-blue-800 text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-lg">B</div>
+          <img src={logo} alt="Barangay Logo" className="w-16 h-16 object-contain rounded-2xl shadow-lg" />
           <div>
             <h1 className="text-3xl font-black text-gov-blue-900 dark:text-gov-blue-300 uppercase">Self-Service Kiosk</h1>
             <p className="text-sm font-bold text-slate-500 tracking-widest uppercase">Document Request Portal</p>

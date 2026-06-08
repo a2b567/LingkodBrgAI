@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
+import logo from '../assets/logo.png';
 
 export const Landing: React.FC = () => {
   const { token, user } = useAuthStore();
@@ -103,9 +104,7 @@ export const Landing: React.FC = () => {
           
           {/* Logo Letterhead */}
           <div className="flex items-center gap-3.5 select-none">
-            <div className="w-10 h-10 bg-gradient-to-tr from-gov-blue-600 to-gov-blue-800 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-gov-blue-600/25 transition-transform hover:scale-105 duration-200">
-              B
-            </div>
+            <img src={logo} alt="Barangay Logo" className="w-10 h-10 object-contain rounded-2xl shadow-lg shadow-gov-blue-600/25 transition-transform hover:scale-105 duration-200" />
             <div className="flex flex-col justify-center">
               <span className="font-extrabold text-base leading-tight tracking-tight text-gov-blue-900 dark:text-gov-blue-300">
                 BMIS Portal

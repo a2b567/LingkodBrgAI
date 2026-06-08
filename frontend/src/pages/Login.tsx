@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, KeyRound, User as UserIcon, Loader2, Mail } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import logo from '../assets/logo.png';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -146,9 +147,7 @@ export const Login: React.FC = () => {
         
         {/* Government Crest Logo Header */}
         <div className="text-center space-y-2 mb-8">
-          <div className="w-16 h-16 bg-gradient-to-tr from-gov-blue-600 to-gov-blue-800 text-white rounded-2xl flex items-center justify-center font-bold text-2xl shadow-lg shadow-gov-blue-500/25 mx-auto">
-            B
-          </div>
+          <img src={logo} alt="Barangay Logo" className="w-20 h-20 object-contain rounded-2xl mx-auto shadow-lg shadow-gov-blue-500/25" />
           <h2 className="text-xl font-extrabold tracking-tight text-gov-blue-900 dark:text-gov-blue-300 uppercase">
             BMIS
           </h2>

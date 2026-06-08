@@ -8,6 +8,7 @@ import {
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { AIFloatingPanel } from '../components/AIFloatingPanel';
+import logo from '../assets/logo.png';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -113,9 +114,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
         
         {/* Letterhead Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-          <div className="w-9 h-9 bg-gradient-to-tr from-gov-blue-600 to-gov-blue-800 text-white rounded-xl flex items-center justify-center font-black shadow-md flex-shrink-0 transition-transform duration-300 hover:rotate-6">
-            B
-          </div>
+          <img src={logo} alt="Barangay Logo" className="w-9 h-9 object-contain rounded-xl shadow-md flex-shrink-0 transition-transform duration-300 hover:rotate-6" />
           {sidebarOpen && (
             <div className="flex flex-col justify-center">
               <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">BMIS</div>
