@@ -51,6 +51,7 @@ export const api = {
   certificates: {
     list: (params?: any) => client.get<Certificate[]>('/certificates', { params }).then(r => r.data),
     request: (data: { resident_id: string; type: string; purpose: string; fee?: number }) => client.post<Certificate>('/certificates', data).then(r => r.data),
+    publicRequest: (data: { first_name: string; last_name: string; type: string; purpose: string; fee?: number }) => client.post<Certificate>('/public/certificates/request', data).then(r => r.data),
     get: (id: string) => client.get<Certificate>(`/certificates/${id}`).then(r => r.data),
     approve: (id: string) => client.post<Certificate>(`/certificates/${id}/approve`).then(r => r.data),
     reject: (id: string) => client.post<Certificate>(`/certificates/${id}/reject`).then(r => r.data),

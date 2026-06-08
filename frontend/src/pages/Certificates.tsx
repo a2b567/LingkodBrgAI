@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Plus, Check, X, Search, ArrowDownToLine, Signature } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { FileText, Plus, Check, X, Search, ArrowDownToLine, Signature, MonitorSmartphone } from 'lucide-react';
 import { api } from '../services/api';
 import type { Certificate, Resident } from '../types';
 import { useAuthStore } from '../store/authStore';
@@ -192,21 +193,30 @@ export const Certificates: React.FC = () => {
           <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white">CERTIFICATE REGISTRY</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold tracking-wide">Request clearances, residency certificates, indigent certifications & community tax documents</p>
         </div>
-        <button
-          onClick={() => {
-            setIsModalOpen(true);
-            setTimeout(() => {
-              if (canvasRef.current) {
-                canvasRef.current.width = canvasRef.current.offsetWidth;
-                canvasRef.current.height = 120;
-              }
-            }, 100);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-gov-blue-600/20 transition-all active:scale-95"
-        >
-          <Plus size={16} />
-          Request Certificate
-        </button>
+        <div className="flex gap-2">
+          <Link
+            to="/kiosk/certificates"
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all active:scale-95"
+          >
+            <MonitorSmartphone size={16} />
+            Open Kiosk Mode
+          </Link>
+          <button
+            onClick={() => {
+              setIsModalOpen(true);
+              setTimeout(() => {
+                if (canvasRef.current) {
+                  canvasRef.current.width = canvasRef.current.offsetWidth;
+                  canvasRef.current.height = 120;
+                }
+              }, 100);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-gov-blue-600/20 transition-all active:scale-95"
+          >
+            <Plus size={16} />
+            Request Certificate
+          </button>
+        </div>
       </div>
 
       {/* Grid of Available Documents */}

@@ -14,9 +14,10 @@ import { Businesses } from './pages/Businesses';
 import { Settings } from './pages/Settings';
 import { VerifyDocument } from './pages/VerifyDocument';
 import { Landing } from './pages/Landing';
+import { KioskCertificates } from './pages/KioskCertificates';
 
 // Route Guard to protect routes and handle RBAC checks
-const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[]; layout?: 'dashboard' | 'none' }> = ({ children, allowedRoles, layout = 'dashboard' }) => {
   const { token, user, isLoading } = useAuthStore();
 
   if (isLoading) {
@@ -36,7 +37,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: strin
     return <Navigate to="/" replace />;
   }
 
-  return <DashboardLayout>{children}</DashboardLayout>;
+  return layout === 'none' ? <>{children}</> : <DashboardLayout>{children}</DashboardLayout>;
 };
 
 // Route Guard for public-only auth routes (Login/Register)
@@ -127,6 +128,11 @@ export const App: React.FC = () => {
               <Certificates />
             </ProtectedRoute>
           } 
+        />
+
+        <Route 
+          path="/kiosk/certificates" 
+          element={<KioskCertificates />} 
         />
 
         <Route 

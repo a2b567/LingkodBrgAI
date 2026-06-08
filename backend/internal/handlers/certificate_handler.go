@@ -254,6 +254,77 @@ func (h *CertificateHandler) Reject(c *gin.Context) {
 	c.JSON(http.StatusOK, cert)
 }
 
+func (h *CertificateHandler) PublicRequest(c *gin.Context) {
+	var req struct {
+		FirstName string  `json:"first_name" binding:"required"`
+		LastName  string  `json:"last_name" binding:"required"`
+		Type      string  `json:"type" binding:"required"`
+		Purpose   string  `json:"purpose" binding:"required"`
+		Fee       float64 `json:"fee"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := config.DB
+	var resident models.Resident
+	if err := db.Where("LOWER(first_name) = LOWER(?) AND LOWER(last_name) = LOWER(?)", req.FirstName, req.LastName).First(&resident).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "No matching resident record found. Please ensure your name is registered at the barangay hall."})
+		return
+	}
+
+	var count int64
+	db.Model(&models.Certificate{}).Count(&count)
+	docNo := fmt.Sprintf("DOC-2026-%04d", count+1)
+	
+	hashingSource := fmt.Sprintf("%s-%s-%s-%d", docNo, req.Type, resident.ID, time.Now().UnixNano())
+	hashBytes := sha256.Sum256([]byte(hashingSource))
+	qrHash := fmt.Sprintf("%x", hashBytes)[:24]
+
+	cert := models.Certificate{
+		ResidentID:     resident.ID,
+		Type:           req.Type,
+		DocumentNumber: docNo,
+		Status:         "Pending",
+		Purpose:        req.Purpose,
+		QRHash:         qrHash,
+		Fee:            req.Fee,
+		PaymentStatus:  "Unpaid",
+		RequestDate:    time.Now(),
+	}
+
+	if cert.Fee == 0 {
+		switch cert.Type {
+		case "Clearance":
+			cert.Fee = 150.00
+		case "Indigency":
+			cert.Fee = 0.00
+			cert.PaymentStatus = "Paid"
+		case "Residency":
+			cert.Fee = 100.00
+		case "Business":
+			cert.Fee = 300.00
+		case "Cedula":
+			cert.Fee = 50.00
+		}
+	}
+
+	if err := db.Create(&cert).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to request certificate"})
+		return
+	}
+
+	db.Create(&models.AuditLog{
+		Action:    "PUBLIC_REQUEST_DOCUMENT",
+		Details:   fmt.Sprintf("Public Kiosk Requested %s (%s) for resident %s", cert.Type, cert.DocumentNumber, resident.LastName),
+		IPAddress: c.ClientIP(),
+	})
+
+	c.JSON(http.StatusCreated, cert)
+}
+
 func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 	hash := c.Param("hash")
 

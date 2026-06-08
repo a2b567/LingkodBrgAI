@@ -50,6 +50,9 @@ func SetupRouter() *gin.Engine {
 		// Public Verification (QR Scanner landing page)
 		api.GET("/verify/document/:hash", certHandler.VerifyQR)
 
+		// Public Kiosk Request
+		api.POST("/public/certificates/request", certHandler.PublicRequest)
+
 		// WebSockets for live updates
 		api.GET("/ws", notifHandler.WebSocketEndpoint)
 	}
