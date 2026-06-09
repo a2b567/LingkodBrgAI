@@ -1,0 +1,18 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "go119"
+  },
+  "hosting": {
+    "public": "frontend/dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      { "source": "/api/**", "function": "api" },
+      { "source": "**", "destination": "/index.html" }
+    ]
+  }
+}

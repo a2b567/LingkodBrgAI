@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { User, Resident, Household, Certificate, Blotter, Business, Appointment, Notification, Payment, DashboardStats, PublicCertificateResponse } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api');
 
 const client = axios.create({
   baseURL: API_URL,

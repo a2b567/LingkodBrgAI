@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	"backend/internal/config"
 	"backend/internal/routes"
@@ -15,6 +14,11 @@ func main() {
 
 	// 1. Load configuration
 	cfg := config.LoadConfig()
+
+	// Initialize Firebase Storage (non-fatal if credentials are missing)
+	if err := config.InitFirebase(); err != nil {
+		log.Printf("Firebase init skipped (uploads will fail): %v", err)
+	}
 
 	// 2. Initialize Database (Retry inside InitDB)
 	db, err := config.InitDB(cfg)
@@ -30,10 +34,7 @@ func main() {
 	// 4. Initialize WebSocket Notification Hub
 	services.InitHub()
 
-	// Create uploads directories to prevent server write errors
-	os.MkdirAll("./uploads/photos", os.ModePerm)
-	os.MkdirAll("./uploads/certificates", os.ModePerm)
-	os.MkdirAll("./uploads/qr", os.ModePerm)
+
 
 	// 5. Setup Router
 	r := routes.SetupRouter()

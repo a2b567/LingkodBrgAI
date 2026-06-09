@@ -1,25 +1,21 @@
 package services
 
 import (
+	"bytes"
+	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
+	"backend/internal/config"
 	"backend/internal/models"
 	"github.com/jung-kurt/gofpdf"
+	"github.com/skip2/go-qrcode"
 )
 
 type PDFService struct{}
 
 func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error) {
-	uploadsDir := "./uploads/certificates"
-	if err := os.MkdirAll(uploadsDir, os.ModePerm); err != nil {
-		return "", err
-	}
-
 	filename := fmt.Sprintf("%s.pdf", cert.DocumentNumber)
-	filePath := filepath.Join(uploadsDir, filename)
 
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 20, 20)
@@ -132,9 +128,11 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 	pdf.CellFormat(0, 5, "Barangay Captain", "0", 1, "R", false, 0, "")
 
 	// Embedded Verification QR
-	qrPath := filepath.Join("./uploads/qr", fmt.Sprintf("%s.png", cert.ResidentID))
-	if _, err := os.Stat(qrPath); err == nil {
-		pdf.ImageOptions(qrPath, 15, 230, 35, 35, false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
+	frontendURL := config.GetEnvPublic("FRONTEND_URL", "http://localhost:5173")
+	qrData := fmt.Sprintf("%s/verify/resident/%s", frontendURL, cert.ResidentID)
+	if qrCode, err := qrcode.Encode(qrData, qrcode.Medium, 256); err == nil {
+		pdf.RegisterImageOptionsReader("qr", gofpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(qrCode))
+		pdf.ImageOptions("qr", 15, 230, 35, 35, false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
 	}
 
 	// Verification Footer Notice
@@ -144,12 +142,19 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 	pdf.CellFormat(0, 4, fmt.Sprintf("Document No: %s | QR Verified Hash: %s", cert.DocumentNumber, cert.QRHash), "0", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 4, "Any alteration voids this document. Scan QR code to verify authenticity.", "0", 1, "L", false, 0, "")
 
-	// Save
-	if err := pdf.OutputFileAndClose(filePath); err != nil {
+	// Save to Firebase
+	var pdfBuffer bytes.Buffer
+	if err := pdf.Output(&pdfBuffer); err != nil {
 		return "", err
 	}
 
-	return "/uploads/certificates/" + filename, nil
+	destPath := "certificates/" + filename
+	url, err := config.UploadFileToFirebase(context.Background(), destPath, &pdfBuffer, "application/pdf")
+	if err != nil {
+		return "", err
+	}
+
+	return url, nil
 }
 
 func ordinal(x int) string {

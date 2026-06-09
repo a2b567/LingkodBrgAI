@@ -1,11 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -129,14 +128,12 @@ func (h *ResidentHandler) Create(c *gin.Context) {
 	resident.QRID = "QR-RES-" + strings.ReplaceAll(uuid.New().String()[:8], "-", "")
 
 	// Generate QR Code containing the Resident details endpoint
-	qrData := fmt.Sprintf("http://localhost:5173/verify/resident/%s", resident.ID)
-	uploadsDir := "./uploads/qr"
-	os.MkdirAll(uploadsDir, os.ModePerm)
-	qrFilePath := filepath.Join(uploadsDir, fmt.Sprintf("%s.png", resident.ID))
+	frontendURL := config.GetEnvPublic("FRONTEND_URL", "http://localhost:5173")
+	qrData := fmt.Sprintf("%s/verify/resident/%s", frontendURL, resident.ID)
 	
-	if err := qrcode.WriteFile(qrData, qrcode.Medium, 256, qrFilePath); err == nil {
-		// Save absolute link or relative path to view QR
-		// We'll store it as a file path or handle serving it
+	if qrCode, err := qrcode.Encode(qrData, qrcode.Medium, 256); err == nil {
+		destPath := fmt.Sprintf("qr/%s.png", resident.ID)
+		config.UploadFileToFirebase(c.Request.Context(), destPath, bytes.NewReader(qrCode), "image/png")
 	}
 
 	if err := db.Create(&resident).Error; err != nil {
@@ -201,25 +198,15 @@ func (h *ResidentHandler) UploadPhoto(c *gin.Context) {
 	}
 	defer file.Close()
 
-	uploadsDir := "./uploads/photos"
-	os.MkdirAll(uploadsDir, os.ModePerm)
-
 	ext := filepath.Ext(header.Filename)
 	filename := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-	filePath := filepath.Join(uploadsDir, filename)
+	destPath := "photos/" + filename
 
-	out, err := os.Create(filePath)
+	url, err := config.UploadFileToFirebase(c.Request.Context(), destPath, file, header.Header.Get("Content-Type"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create target upload file"})
-		return
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, file)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error copying data stream"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not upload photo to cloud"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"photo_url": "/uploads/photos/" + filename})
+	c.JSON(http.StatusOK, gin.H{"photo_url": url})
 }

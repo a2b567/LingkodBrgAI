@@ -46,3 +46,9 @@ func getEnv(key, fallback string) string {
 	}
 	return fallback
 }
+
+// GetEnvPublic is the exported version of getEnv for use by other packages
+func GetEnvPublic(key, fallback string) string {
+	return getEnv(key, fallback)
+}
+

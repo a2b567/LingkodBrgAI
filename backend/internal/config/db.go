@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"backend/internal/models"
@@ -18,9 +19,14 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
 
+	dbPath := "bmis.db"
+	if os.Getenv("VERCEL") == "1" {
+		dbPath = "/tmp/bmis.db"
+	}
+
 	if cfg.DBHost == "sqlite" {
-		log.Println("Connecting to SQLite database (bmis.db)...")
-		db, err = gorm.Open(sqlite.Open("bmis.db"), &gorm.Config{
+		log.Printf("Connecting to SQLite database (%s)...", dbPath)
+		db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Info),
 		})
 		if err != nil {
@@ -43,8 +49,8 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		}
 
 		if err != nil {
-			log.Println("PostgreSQL connection failed. Falling back to SQLite local database (bmis.db)...")
-			db, err = gorm.Open(sqlite.Open("bmis.db"), &gorm.Config{
+			log.Printf("PostgreSQL connection failed. Falling back to SQLite local database (%s)...", dbPath)
+			db, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{
 				Logger: logger.Default.LogMode(logger.Info),
 			})
 			if err != nil {

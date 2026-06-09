@@ -353,37 +353,44 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* AI Strategic Chat Assistant Panel */}
-      <div className={`relative w-full ${isChatMinimized ? 'h-12' : 'h-48'} bg-slate-900 dark:bg-slate-950 text-white border-t border-slate-800 shadow-2xl overflow-hidden z-20 flex flex-col`}>
+      <div className={`relative w-full bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 text-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.35)] overflow-hidden z-20 flex flex-col border border-slate-700/40 transition-all duration-500 ease-in-out ${isChatMinimized ? 'max-h-[60px]' : 'max-h-[700px]'}`}>
+        {/* Decorative top gradient line */}
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gov-gold-400 to-transparent opacity-60" />
+
         {/* Chat header */}
-        <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gov-gold-500/15 rounded-xl text-gov-gold-400 animate-pulse-subtle border border-gov-gold-500/25">
-              <Cpu size={20} />
+        <div className="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between bg-slate-900/80 backdrop-blur-sm relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <div className="p-3 bg-gradient-to-br from-gov-gold-500/20 to-gov-gold-600/10 rounded-2xl text-gov-gold-400 border border-gov-gold-500/30 shadow-[0_0_20px_rgba(204,162,16,0.15)]">
+                <Cpu size={22} />
+              </div>
+              {/* Live indicator dot */}
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900 status-pulse" />
             </div>
             <div>
-              <h4 className="text-xs font-black uppercase text-gov-gold-400 tracking-widest flex items-center gap-1.5">
-                <Lightbulb size={12} />
-                AI Strategic Chat Assistant
+              <h4 className="text-sm font-black uppercase text-gov-gold-400 tracking-[0.15em] flex items-center gap-2">
+                <Lightbulb size={14} className="text-gov-gold-300" />
+                AI STRATEGIC CHAT ASSISTANT
               </h4>
-              <p className="text-[10px] text-slate-300 font-medium">Barangay Lawrence Smart Operations Officer</p>
+              <p className="text-xs text-slate-400 font-semibold mt-0.5">Barangay Lawrence Smart Operations Officer</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button 
               type="button"
               onClick={handleResetChat} 
               disabled={isGeneratingInsight || isSending || isChatMinimized}
-              className="text-[10px] font-bold uppercase tracking-widest px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-gov-gold-400 hover:text-gov-gold-300 rounded-full border border-gov-gold-500/30 transition-all duration-300 disabled:opacity-50 active:scale-95 shadow-sm"
+              className="text-[11px] font-bold uppercase tracking-widest px-4 py-2 bg-white/5 hover:bg-white/15 text-gov-gold-400 hover:text-gov-gold-300 rounded-xl border border-gov-gold-500/25 hover:border-gov-gold-400/50 transition-all duration-300 disabled:opacity-40 active:scale-95 shadow-sm backdrop-blur-sm"
             >
               Reset Chat
             </button>
             <button
               type="button"
               onClick={() => setIsChatMinimized(prev => !prev)}
-              className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-all duration-200 active:scale-95"
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white transition-all duration-200 active:scale-95 border border-slate-700/40 hover:border-slate-600/60"
               title={isChatMinimized ? 'Expand' : 'Minimize'}
             >
-              {isChatMinimized ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+              {isChatMinimized ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             </button>
           </div>
         </div>
@@ -392,38 +399,38 @@ export const Dashboard: React.FC = () => {
         {!isChatMinimized && (
         <>
         {/* Message history */}
-        <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto min-h-[140px] flex flex-col">
+        <div className="px-6 py-5 space-y-5 overflow-y-auto flex flex-col min-h-[180px] max-h-[420px] scroll-smooth">
           {messages.map((msg, index) => {
             if (!msg.text || !msg.text.trim()) return null;
             return (
               <div 
                 key={index} 
-                className={`flex gap-3 max-w-[85%] ${msg.sender === 'user' ? 'self-end flex-row-reverse' : 'self-start'} group`}
+                className={`flex gap-3 max-w-[88%] ${msg.sender === 'user' ? 'self-end flex-row-reverse' : 'self-start'} group`}
               >
                 {msg.sender === 'ai' && (
-                  <div className="w-7 h-7 rounded-lg bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[10px] font-black tracking-wide mt-0.5 shadow-sm">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black tracking-wide mt-0.5 shadow-[0_0_12px_rgba(204,162,16,0.12)]">
                     AI
                   </div>
                 )}
                 <div className="relative">
                   <div 
-                    className={`p-3 rounded-2xl text-xs leading-relaxed font-medium shadow-md ${
+                    className={`p-4 rounded-2xl text-sm leading-relaxed font-medium shadow-lg ${
                       msg.sender === 'user' 
-                        ? 'bg-gov-blue-600 text-white rounded-tr-none border border-gov-blue-500/30' 
-                        : 'bg-slate-800 text-slate-100 rounded-tl-none border border-slate-700/50'
+                        ? 'bg-gradient-to-br from-gov-blue-600 to-gov-blue-700 text-white rounded-tr-sm border border-gov-blue-500/40' 
+                        : 'bg-slate-800/90 text-slate-100 rounded-tl-sm border border-slate-700/60 backdrop-blur-sm'
                     }`}
                   >
                     {parseMarkdown(msg.text)}
                   </div>
-                  <div className={`flex items-center gap-1.5 mt-0.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`flex items-center gap-1.5 mt-1 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                     {msg.text && (
                       <button
                         onClick={() => handleCopy(msg.text, index)}
                         type="button"
-                        className="text-slate-400 hover:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"
+                        className="text-slate-500 hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded-lg hover:bg-white/5"
                         title="Copy message"
                       >
-                        {copiedIdx === index ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                        {copiedIdx === index ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
                       </button>
                     )}
                   </div>
@@ -433,44 +440,44 @@ export const Dashboard: React.FC = () => {
           })}
 
           {isGeneratingInsight && (
-            <div className="flex gap-3 max-w-[85%] self-start">
-              <div className="w-7 h-7 rounded-lg bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[10px] font-black mt-0.5 animate-pulse">
+            <div className="flex gap-3 max-w-[88%] self-start">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black mt-0.5 animate-pulse shadow-[0_0_12px_rgba(204,162,16,0.12)]">
                 AI
               </div>
-              <div className="p-3 rounded-2xl text-xs leading-relaxed font-medium bg-slate-800 text-slate-400 rounded-tl-none border border-slate-700/50 animate-pulse">
+              <div className="p-4 rounded-2xl text-sm leading-relaxed font-medium bg-slate-800/90 text-slate-400 rounded-tl-sm border border-slate-700/60 animate-pulse">
                 Analyzing statistics and compiling strategy...
               </div>
             </div>
           )}
 
           {isSending && (
-            <div className="flex gap-3 max-w-[85%] self-start">
-              <div className="w-7 h-7 rounded-lg bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[10px] font-black mt-0.5 animate-pulse">
+            <div className="flex gap-3 max-w-[88%] self-start">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black mt-0.5 animate-pulse shadow-[0_0_12px_rgba(204,162,16,0.12)]">
                 AI
               </div>
-              <div className="p-3 rounded-2xl text-xs leading-relaxed font-medium bg-slate-800 text-slate-400 rounded-tl-none border border-slate-700/50 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0ms]"></span>
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:150ms]"></span>
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:300ms]"></span>
+              <div className="p-4 rounded-2xl text-sm leading-relaxed font-medium bg-slate-800/90 text-slate-400 rounded-tl-sm border border-slate-700/60 flex items-center gap-2">
+                <span className="w-2 h-2 bg-gov-gold-400 rounded-full animate-bounce [animation-delay:0ms]"></span>
+                <span className="w-2 h-2 bg-gov-gold-400 rounded-full animate-bounce [animation-delay:150ms]"></span>
+                <span className="w-2 h-2 bg-gov-gold-400 rounded-full animate-bounce [animation-delay:300ms]"></span>
               </div>
             </div>
           )}
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-800 bg-slate-950/40 flex gap-2">
+        <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-slate-700/50 bg-slate-950/60 backdrop-blur-sm flex gap-3">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="Ask about active incidents, poverty levels, business reports, or next steps..."
             disabled={isGeneratingInsight || isSending}
-            className="flex-1 px-4 py-2.5 bg-slate-800/80 border border-slate-700 focus:border-gov-gold-400/60 rounded-xl text-xs text-white focus:outline-none placeholder-slate-400 disabled:opacity-50 transition-all"
+            className="flex-1 px-5 py-3 bg-slate-800/70 border border-slate-600/50 focus:border-gov-gold-400/60 rounded-2xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-gov-gold-400/20 placeholder-slate-500 disabled:opacity-40 transition-all duration-300 shadow-inner"
           />
           <button
             type="submit"
             disabled={isGeneratingInsight || isSending || !inputValue.trim()}
-            className="px-4 py-2.5 bg-gov-gold-500 hover:bg-gov-gold-400 text-gov-blue-950 font-bold text-xs rounded-xl shadow-md transition-all duration-200 disabled:opacity-50 active:scale-95 hover:shadow-[0_0_12px_rgba(204,162,16,0.35)]"
+            className="px-6 py-3 bg-gradient-to-r from-gov-gold-500 to-gov-gold-400 hover:from-gov-gold-400 hover:to-gov-gold-300 text-gov-blue-950 font-extrabold text-sm rounded-2xl shadow-lg transition-all duration-300 disabled:opacity-40 active:scale-95 hover:shadow-[0_0_20px_rgba(204,162,16,0.4)]"
           >
             Send
           </button>

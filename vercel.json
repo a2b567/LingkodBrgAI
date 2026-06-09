@@ -1,14 +1,17 @@
-{ "name": "bmis",
-  "experimentalServices": {
-    "frontend": {
-      "root": "frontend",
-      "routePrefix": "/",
-      "framework": "vite"
+{
+  "framework": "vite",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.go"
     },
-    "backend": {
-      "root": "backend",
-      "entrypoint": "cmd/server/main.go",
-      "routePrefix": "/_/backend"
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
-  }
+  ]
 }
+
+
