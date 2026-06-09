@@ -117,7 +117,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           <img src={logo} alt="Barangay Logo" className="w-9 h-9 object-contain rounded-xl shadow-md flex-shrink-0 transition-transform duration-300 hover:rotate-6" />
           {sidebarOpen && (
             <div className="flex flex-col justify-center">
-              <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">BMIS</div>
+              <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">LingkodBrgAI</div>
               <div className="text-[9px] text-slate-400 dark:text-slate-500 font-extrabold tracking-widest uppercase leading-tight">Barangay Info Sys</div>
             </div>
           )}
@@ -204,7 +204,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
               <Menu size={20} />
             </button>
             <div className="hidden sm:block text-xs font-bold text-slate-500 dark:text-slate-400">
-              BMIS Laguna • Government Portal
+              LingkodBrgAI Laguna • Government Portal
             </div>
           </div>
 

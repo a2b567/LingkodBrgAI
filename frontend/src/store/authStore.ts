@@ -13,21 +13,21 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: localStorage.getItem('bmis_token'),
+  token: localStorage.getItem('lingkodbrgai_token'),
   isLoading: true,
 
   login: (token, user) => {
-    localStorage.setItem('bmis_token', token);
+    localStorage.setItem('lingkodbrgai_token', token);
     set({ token, user, isLoading: false });
   },
 
   logout: () => {
-    localStorage.removeItem('bmis_token');
+    localStorage.removeItem('lingkodbrgai_token');
     set({ token: null, user: null, isLoading: false });
   },
 
   initialize: async () => {
-    const token = localStorage.getItem('bmis_token');
+    const token = localStorage.getItem('lingkodbrgai_token');
     if (!token) {
       set({ user: null, token: null, isLoading: false });
       return;
@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user, token, isLoading: false });
     } catch (error) {
       // Token is invalid/expired
-      localStorage.removeItem('bmis_token');
+      localStorage.removeItem('lingkodbrgai_token');
       set({ user: null, token: null, isLoading: false });
     }
   },

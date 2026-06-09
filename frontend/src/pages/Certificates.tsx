@@ -230,7 +230,7 @@ export const Certificates: React.FC = () => {
         ].map((item, idx) => (
           <div key={idx} className={`bg-white dark:bg-slate-900 p-4 rounded-2xl border-l-4 ${item.color} border border-slate-200/50 dark:border-slate-800/50 shadow-sm flex flex-col justify-between`}>
             <div>
-              <span className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-slate-400 block tracking-wider">BMIS Document</span>
+              <span className="text-[10px] font-extrabold uppercase text-slate-500 dark:text-slate-400 block tracking-wider">LingkodBrgAI Document</span>
               <h4 className="font-bold text-xs mt-1 text-black dark:text-slate-200">{item.title}</h4>
               <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-normal">{item.desc}</p>
             </div>

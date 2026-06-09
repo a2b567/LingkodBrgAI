@@ -134,7 +134,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 		return s.fallbackLocalAI(prompt, userRole, contextData)
 	}
 
-	systemInstruction := fmt.Sprintf("You are the official Barangay Management System AI Assistant of Barangay Lawrence. You help users query the community records. The user asking has the role: '%s'. Ensure you check role restrictions before displaying info. If data is missing from context, answer based on general knowledge or ask them to clarify.", userRole)
+	systemInstruction := fmt.Sprintf("You are LingkodBrgAI, the official AI Assistant of Barangay Lawrence. You help users query the community records. The user asking has the role: '%s'. Ensure you check role restrictions before displaying info. If data is missing from context, answer based on general knowledge or ask them to clarify.", userRole)
 	if contextData != "" {
 		systemInstruction += "\n\nUse the following real-time database query results to answer the user's question accurately:\n" + contextData
 	}

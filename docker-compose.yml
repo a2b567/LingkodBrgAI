@@ -3,12 +3,12 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: bmis-db
+    container_name: lingkodbrgai-db
     restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=bmis
+      - POSTGRES_DB=lingkodbrgai
     ports:
       - "5432:5432"
     volumes:
@@ -18,7 +18,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: bmis-backend
+    container_name: lingkodbrgai-backend
     restart: always
     depends_on:
       - db
@@ -27,7 +27,7 @@ services:
       - DB_HOST=db
       - DB_USER=postgres
       - DB_PASSWORD=postgres
-      - DB_NAME=bmis
+      - DB_NAME=lingkodbrgai
       - DB_PORT=5432
       - DB_SSLMODE=disable
       - JWT_SECRET=super_secret_barangay_key_2026
@@ -42,7 +42,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: bmis-frontend
+    container_name: lingkodbrgai-frontend
     restart: always
     depends_on:
       - backend

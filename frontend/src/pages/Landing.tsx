@@ -107,7 +107,7 @@ export const Landing: React.FC = () => {
             <img src={logo} alt="Barangay Logo" className="w-10 h-10 object-contain rounded-2xl shadow-lg shadow-gov-blue-600/25 transition-transform hover:scale-105 duration-200" />
             <div className="flex flex-col justify-center">
               <span className="font-extrabold text-base leading-tight tracking-tight text-gov-blue-900 dark:text-gov-blue-300">
-                BMIS Portal
+                LingkodBrgAI Portal
               </span>
               <p className="text-[9px] text-slate-400 dark:text-slate-500 font-black tracking-widest uppercase leading-tight">
                 Laguna Government LGU
@@ -237,7 +237,7 @@ export const Landing: React.FC = () => {
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 </div>
                 <div className="text-[9px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase">
-                  BMIS SECURE SYSTEM
+                  LINGKODBRG AI SECURE SYSTEM
                 </div>
                 <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full status-pulse"></span>
               </div>
@@ -430,7 +430,7 @@ export const Landing: React.FC = () => {
               A Highly Connected, Active Digital Barangay
             </h3>
             <p className="text-xs text-slate-350 leading-relaxed font-semibold">
-              Laguna BMIS actively monitors processing metrics and transaction statistics, improving resolution speeds and public transparent governance for thousands of residents.
+              LingkodBrgAI actively monitors processing metrics and transaction statistics, improving resolution speeds and public transparent governance for thousands of residents.
             </p>
             <div className="pt-2">
               <button
@@ -600,7 +600,7 @@ export const Landing: React.FC = () => {
             Secure Digital QR Code Verification
           </h3>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto font-medium leading-relaxed">
-            Every administrative clearance and residency certificate issued by BMIS features an immutable, secure cryptographic hash printed as a scannable verification landing QR code.
+            Every administrative clearance and residency certificate issued by LingkodBrgAI features an immutable, secure cryptographic hash printed as a scannable verification landing QR code.
           </p>
         </div>
 
@@ -732,7 +732,7 @@ export const Landing: React.FC = () => {
                 Online Portal Official Launch
               </h4>
               <p className="text-[11px] text-slate-500 dark:text-slate-450 leading-relaxed font-semibold">
-                We have officially launched the new Barangay Management Information System (BMIS)! Citizens can now create their electronic profiles, secure residency clearances, file blotter reports, and arrange lobby appointments completely online.
+                We have officially launched the new LingkodBrgAI Barangay Management Information System! Citizens can now create their electronic profiles, secure residency clearances, file blotter reports, and arrange lobby appointments completely online.
               </p>
             </div>
             <div className="pt-6 border-t border-slate-200/30 dark:border-slate-800/30 mt-6 flex items-center gap-3">
@@ -782,7 +782,7 @@ export const Landing: React.FC = () => {
                 B
               </div>
               <div>
-                <h4 className="font-extrabold text-sm text-gov-blue-900 dark:text-gov-blue-300">Laguna BMIS</h4>
+                <h4 className="font-extrabold text-sm text-gov-blue-900 dark:text-gov-blue-300">LingkodBrgAI</h4>
                 <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Local Government Unit Portal</p>
               </div>
             </div>

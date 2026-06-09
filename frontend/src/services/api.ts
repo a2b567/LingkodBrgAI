@@ -12,7 +12,7 @@ const client = axios.create({
 
 // Interceptor to inject JWT Token from LocalStorage
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('bmis_token');
+  const token = localStorage.getItem('lingkodbrgai_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

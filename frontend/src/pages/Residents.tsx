@@ -71,7 +71,7 @@ export const Residents: React.FC = () => {
   };
 
   const handleExport = () => {
-    const token = localStorage.getItem('bmis_token');
+    const token = localStorage.getItem('lingkodbrgai_token');
     // Direct link to download csv
     const url = `http://localhost:8080/api/residents?export=csv&search=${search}&voter_status=${voterStatus}&residency_status=${residencyStatus}`;
     

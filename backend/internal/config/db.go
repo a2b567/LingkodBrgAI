@@ -19,9 +19,9 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
 
-	dbPath := "bmis.db"
+	dbPath := "lingkodbrgai.db"
 	if os.Getenv("VERCEL") == "1" {
-		dbPath = "/tmp/bmis.db"
+		dbPath = "/tmp/lingkodbrgai.db"
 	}
 
 	if cfg.DBHost == "sqlite" {

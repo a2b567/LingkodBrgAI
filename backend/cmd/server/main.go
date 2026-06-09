@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	log.Println("Starting Barangay Management Information System (BMIS) Backend...")
+	log.Println("Starting LingkodBrgAI — Barangay Management Information System Backend...")
 
 	// 1. Load configuration
 	cfg := config.LoadConfig()

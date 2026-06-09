@@ -31,7 +31,7 @@ func LoadConfig() *Config {
 		DBHost:       getEnv("DB_HOST", "localhost"),
 		DBUser:       getEnv("DB_USER", "postgres"),
 		DBPassword:   getEnv("DB_PASSWORD", "postgres"),
-		DBName:       getEnv("DB_NAME", "bmis"),
+		DBName:       getEnv("DB_NAME", "lingkodbrgai"),
 		DBPort:       getEnv("DB_PORT", "5432"),
 		DBSSLMode:    getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:    getEnv("JWT_SECRET", "super_secret_barangay_key_2026"),

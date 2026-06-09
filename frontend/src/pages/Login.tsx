@@ -149,10 +149,10 @@ export const Login: React.FC = () => {
         <div className="text-center space-y-2 mb-8">
           <img src={logo} alt="Barangay Logo" className="w-20 h-20 object-contain rounded-2xl mx-auto shadow-lg shadow-gov-blue-500/25" />
           <h2 className="text-xl font-extrabold tracking-tight text-gov-blue-900 dark:text-gov-blue-300 uppercase">
-            BMIS
+            LingkodBrgAI
           </h2>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            Barangay Management Information System (BMIS)
+            Barangay Management Information System
           </p>
         </div>
 
