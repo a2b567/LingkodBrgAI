@@ -15,6 +15,8 @@ import { Settings } from './pages/Settings';
 import { VerifyDocument } from './pages/VerifyDocument';
 import { Landing } from './pages/Landing';
 import { KioskCertificates } from './pages/KioskCertificates';
+import { QueueSchedule } from './pages/QueueSchedule';
+import { QueueMonitor } from './pages/QueueMonitor';
 
 // Route Guard to protect routes and handle RBAC checks
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[]; layout?: 'dashboard' | 'none' }> = ({ children, allowedRoles, layout = 'dashboard' }) => {
@@ -131,8 +133,22 @@ export const App: React.FC = () => {
         />
 
         <Route 
+          path="/queue-schedule" 
+          element={
+            <ProtectedRoute>
+              <QueueSchedule />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
           path="/kiosk/certificates" 
           element={<KioskCertificates />} 
+        />
+
+        <Route 
+          path="/kiosk/queue" 
+          element={<QueueMonitor />} 
         />
 
         <Route 

@@ -38,11 +38,11 @@
 }
 
 .dark .glass-panel {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.85);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
 }
 
 /* Glass Card with Hover Effects */
@@ -57,11 +57,11 @@
 }
 
 .dark .glass-card {
-  background: rgba(15, 23, 42, 0.7);
+  background: rgba(15, 23, 42, 0.85);
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
 }
 
 .glass-card:hover {
@@ -71,8 +71,82 @@
 }
 
 .dark .glass-card:hover {
-  border-color: rgba(37, 71, 113, 0.4);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border-color: rgba(93, 156, 236, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Dynamic High Contrast Dark Mode Legibility Rules */
+.dark {
+  color-scheme: dark;
+}
+
+.dark .text-slate-400 {
+  color: #cbd5e1 !important; /* slate-300 contrast */
+}
+
+.dark .text-slate-500 {
+  color: #cbd5e1 !important; /* slate-300 contrast */
+}
+
+.dark .text-slate-600 {
+  color: #94a3b8 !important; /* slate-400 contrast */
+}
+
+.dark .text-slate-700 {
+  color: #e2e8f0 !important; /* slate-200 contrast */
+}
+
+.dark .text-slate-800 {
+  color: #f1f5f9 !important; /* slate-100 contrast */
+}
+
+.dark .text-slate-900 {
+  color: #f8fafc !important; /* slate-50 contrast */
+}
+
+.dark .text-gov-blue-300 {
+  color: #93c5fd !important;
+}
+
+.dark .text-gov-blue-400 {
+  color: #bfdbfe !important;
+}
+
+/* Dark Mode Inputs, Selects & Placeholders */
+.dark input, 
+.dark select, 
+.dark textarea {
+  color: #f8fafc !important;
+  background-color: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+}
+
+.dark input::placeholder, 
+.dark textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.9 !important;
+}
+
+.dark select option {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+}
+
+/* Dark Mode Table Headers & Cells */
+.dark th {
+  color: #cbd5e1 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark td {
+  color: #f1f5f9 !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Dark Mode Labels */
+.dark label {
+  color: #e2e8f0 !important;
+  font-weight: 700;
 }
 
 /* Gradient Background Glows */

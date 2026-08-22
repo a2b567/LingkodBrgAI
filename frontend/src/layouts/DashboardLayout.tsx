@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, Users, Home, FileText, AlertOctagon, 
-  Briefcase, Calendar, Settings, LogOut, Sun, Moon, 
-  Menu, X, ShieldAlert
+import {
+  LayoutDashboard, Users, Home, FileText, AlertOctagon,
+  Briefcase, Calendar, Settings, LogOut, Sun, Moon,
+  Menu, X, ShieldAlert, ListOrdered
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
@@ -55,7 +55,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   // WebSocket Live announcements
   useEffect(() => {
     const ws = new WebSocket('ws://localhost:8080/api/ws');
-    
+
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
@@ -82,12 +82,13 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Households', path: '/households', icon: <Home size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Certificates', path: '/certificates', icon: <FileText size={20} />, roles: ['all'] },
     { name: 'Appointments', path: '/appointments', icon: <Calendar size={20} />, roles: ['all'] },
+    { name: 'Certificates Schedule', path: '/queue-schedule', icon: <ListOrdered size={20} />, roles: ['all'] },
     { name: 'Blotter Records', path: '/blotter', icon: <AlertOctagon size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Staff'] },
     { name: 'Businesses', path: '/businesses', icon: <Briefcase size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff'] },
     { name: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: ['all'] },
   ];
 
-  const allowedItems = navItems.filter(item => 
+  const allowedItems = navItems.filter(item =>
     item.roles.includes('all') || (user && (user.role === 'Super Admin' || item.roles.includes(user.role)))
   );
 
@@ -99,25 +100,24 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Mobile Sidebar Overlay */}
       {isMobile && sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-950/40 dark:bg-slate-950/60 backdrop-blur-[2px] z-30 transition-opacity duration-300"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Side Navigation Bar */}
-      <aside className={`fixed top-0 bottom-0 left-0 z-40 bg-white/80 dark:bg-slate-900/80 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col glass-panel ${
-        sidebarOpen 
-          ? 'translate-x-0 w-64' 
+      <aside className={`fixed top-0 bottom-0 left-0 z-40 bg-white/80 dark:bg-slate-900/80 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 flex flex-col glass-panel ${sidebarOpen
+          ? 'translate-x-0 w-64'
           : '-translate-x-full md:translate-x-0 md:w-20'
-      }`}>
-        
+        }`}>
+
         {/* Letterhead Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
           <img src={logo} alt="Barangay Logo" className="w-9 h-9 object-contain rounded-xl shadow-md flex-shrink-0 transition-transform duration-300 hover:rotate-6" />
           {sidebarOpen && (
             <div className="flex flex-col justify-center">
-              <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">LingkodBrgAI</div>
+              <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">LingkodBrgyAI</div>
               <div className="text-[9px] text-slate-400 dark:text-slate-500 font-extrabold tracking-widest uppercase leading-tight">Barangay Info Sys</div>
             </div>
           )}
@@ -148,11 +148,10 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
               <Link
                 key={idx}
                 to={item.path}
-                className={`flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-200 hover:translate-x-0.5 ${
-                  isActive 
-                    ? 'bg-gradient-to-r from-gov-blue-600 to-gov-blue-700 text-white shadow-lg shadow-gov-blue-650/20' 
+                className={`flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-xs font-bold tracking-wide transition-all duration-200 hover:translate-x-0.5 ${isActive
+                    ? 'bg-gradient-to-r from-gov-blue-600 to-gov-blue-700 text-white shadow-lg shadow-gov-blue-650/20'
                     : 'text-slate-500 hover:bg-slate-100/80 dark:text-slate-400 dark:hover:bg-slate-800/40 hover:text-slate-900 dark:hover:text-slate-150'
-                }`}
+                  }`}
               >
                 <div className={`flex-shrink-0 transition-transform duration-300 ${isActive ? 'scale-105' : 'group-hover:scale-105'}`}>{item.icon}</div>
                 {sidebarOpen && <span className="truncate">{item.name}</span>}
@@ -170,7 +169,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
             {sidebarOpen && <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>}
           </button>
-          
+
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3.5 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-500 hover:bg-rose-500/10 dark:hover:bg-rose-950/20 transition-colors"
@@ -188,11 +187,10 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Content Area */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${
-        sidebarOpen 
-          ? 'pl-0 md:pl-64' 
+      <div className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${sidebarOpen
+          ? 'pl-0 md:pl-64'
           : 'pl-0 md:pl-20'
-      }`}>
+        }`}>
         {/* Top Header navbar */}
         <header className="h-16 bg-white/70 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sm:px-6 sticky top-0 backdrop-blur-md z-30">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -204,7 +202,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
               <Menu size={20} />
             </button>
             <div className="hidden sm:block text-xs font-bold text-slate-500 dark:text-slate-400">
-              LingkodBrgAI Laguna • Government Portal
+              LingkodBrgyAI Laguna • Government Portal
             </div>
           </div>
 
@@ -237,7 +235,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             <h5 className="font-bold text-xs">{liveAnnouncement.title}</h5>
             <p className="text-[11px] text-slate-200 leading-normal">{liveAnnouncement.content}</p>
           </div>
-          <button 
+          <button
             onClick={() => setLiveAnnouncement(null)}
             className="text-slate-300 hover:text-white absolute top-3 right-3"
             title="Close announcement"

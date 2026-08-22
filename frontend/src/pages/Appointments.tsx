@@ -120,8 +120,8 @@ export const Appointments: React.FC = () => {
     <div className="space-y-6 relative z-10">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white">APPOINTMENTS & QUEUE</h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold tracking-wide">Book community visits, document pickups, or mediations, powered by crowd congestion forecasting</p>
+          <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white uppercase">APPOINTMENTS & QUEUE</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Book community visits, document pickups, or mediations, powered by crowd congestion forecasting</p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
@@ -133,12 +133,12 @@ export const Appointments: React.FC = () => {
       </div>
 
       {/* Congestion Checker Panel */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-        <h4 className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 tracking-widest flex items-center gap-2 mb-4">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm">
+        <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 tracking-widest flex items-center gap-2 mb-4">
           <TrendingUp size={16} className="text-gov-blue-500" />
           Congestion Risk & Smart Load Balancing
         </h4>
-        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-normal mb-4">
+        <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-normal mb-4">
           Below is the projected daily queue levels based on current reservation volumes. We recommend booking on **Low Congestion** days for immediate service.
         </p>
 
