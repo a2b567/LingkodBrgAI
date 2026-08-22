@@ -345,8 +345,8 @@ export const Dashboard: React.FC = () => {
       {/* Title Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white">COMMUNITY DASHBOARD</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold tracking-wide">Real-time demographic statistics & analytics</p>
+          <h2 className="text-2xl font-extrabold tracking-normal text-slate-900 dark:text-white uppercase">COMMUNITY DASHBOARD</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Real-time demographic statistics & analytics</p>
         </div>
         {/* Notification bell */}
         <NotificationBell />
@@ -491,9 +491,9 @@ export const Dashboard: React.FC = () => {
         {statCards.map((card, idx) => (
           <div key={idx} className="glass-card p-5 flex items-center justify-between relative overflow-hidden group">
             <div className="space-y-1 z-10">
-              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">{card.title}</span>
-              <h3 className="text-3xl font-black tracking-tight text-slate-800 dark:text-white transition-colors">{card.val}</h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{card.desc}</p>
+              <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 uppercase tracking-widest block">{card.title}</span>
+              <h3 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white transition-colors">{card.val}</h3>
+              <p className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold">{card.desc}</p>
             </div>
             <div className={`p-4 rounded-2xl ${card.bg} z-10 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-inner`}>
               {card.icon}
@@ -508,7 +508,7 @@ export const Dashboard: React.FC = () => {
         
         {/* Age demographics (Bar Chart) */}
         <div className="lg:col-span-2 glass-card p-6 flex flex-col">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-6">Population Age Demographics</h4>
+          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Population Age Demographics</h4>
           <div className="h-64 flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={ageData}>
@@ -547,7 +547,7 @@ export const Dashboard: React.FC = () => {
 
         {/* Gender Demographics (Pie Chart) */}
         <div className="glass-card p-6 flex flex-col">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-6">Gender Demographics</h4>
+          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Gender Demographics</h4>
           <div className="h-56 flex-grow relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -570,8 +570,8 @@ export const Dashboard: React.FC = () => {
             
             {/* Center indicators */}
             <div className="absolute top-[48%] left-0 right-0 transform -translate-y-1/2 text-center pointer-events-none">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-extrabold block">TOTAL</span>
-              <span className="text-2xl font-black text-black dark:text-white">
+              <span className="text-[10px] text-slate-600 dark:text-slate-300 uppercase tracking-widest font-extrabold block">TOTAL</span>
+              <span className="text-2xl font-black text-slate-900 dark:text-white">
                 {genderData.reduce((a, b) => a + b.value, 0)}
               </span>
             </div>
@@ -582,7 +582,7 @@ export const Dashboard: React.FC = () => {
             {genderData.map((g, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <span className={`w-3 h-3 rounded-full ${g.name === 'Male' ? 'bg-[#3b6fa8]' : 'bg-[#ec4899]'}`}></span>
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{g.name} ({g.value})</span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{g.name} ({g.value})</span>
               </div>
             ))}
           </div>
@@ -594,7 +594,7 @@ export const Dashboard: React.FC = () => {
         
         {/* Monthly certificate revenues */}
         <div className="lg:col-span-2 glass-card p-6 flex flex-col">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-6">Certificate & Permit Revenues (PHP)</h4>
+          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Certificate & Permit Revenues (PHP)</h4>
           <div className="h-64 flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats.revenue_history}>
@@ -616,39 +616,39 @@ export const Dashboard: React.FC = () => {
 
         {/* Demographic distribution details card */}
         <div className="glass-card p-6 flex flex-col justify-between">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-500 dark:text-slate-400 mb-4">Voter and Health Registry</h4>
+          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-4">Voter and Health Registry</h4>
           
           <div className="space-y-3.5 my-auto">
             <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Registered Voters</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Registered Voters</span>
               <span className="text-xs font-extrabold bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 px-2.5 py-0.5 rounded-full border border-gov-blue-500/20">
                 {stats.voters_count} residents
               </span>
             </div>
 
             <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Senior Citizens (60+)</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Senior Citizens (60+)</span>
               <span className="text-xs font-extrabold bg-gov-gold-500/10 text-gov-gold-600 dark:text-gov-gold-400 px-2.5 py-0.5 rounded-full border border-gov-gold-500/20">
                 {stats.senior_citizens} seniors
               </span>
             </div>
 
             <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Solo Parents</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Solo Parents</span>
               <span className="text-xs font-extrabold bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-500/20">
                 {stats.solo_parents} parents
               </span>
             </div>
 
             <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">PWD Registry</span>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">PWD Registry</span>
               <span className="text-xs font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
                 {stats.pwd_residents} PWDs
               </span>
             </div>
           </div>
           
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold text-center border-t border-slate-200/55 dark:border-slate-800/55 pt-3.5 flex items-center justify-center gap-1">
+          <div className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold text-center border-t border-slate-200/55 dark:border-slate-800/55 pt-3.5 flex items-center justify-center gap-1">
             <UserCheck size={12} className="text-gov-blue-500" />
             Demographics data synced and audit logs active
           </div>
