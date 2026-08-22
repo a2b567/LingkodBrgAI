@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Home, Plus, Search, Edit2, Trash2, 
-  MapPin, Loader2, Sparkles, UserPlus, XCircle
+  MapPin, Loader2, Sparkles, UserPlus, XCircle, Users, ShieldAlert, TrendingUp
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Household, Resident } from '../types';
@@ -132,14 +132,20 @@ export const Households: React.FC = () => {
     }
   };
 
+  // Compute overview stats from loaded data
+  const totalHouseholds = households.length;
+  const indigentCount = households.filter(h => h.poverty_level === 'Indigent').length;
+  const totalMembers = households.reduce((sum, h) => sum + (h.members?.length || 0), 0);
+  const nonPoorCount = households.filter(h => h.poverty_level === 'Non-Poor').length;
+
   return (
     <div className="space-y-6 relative z-10">
       
       {/* Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white">HOUSEHOLD PROFILES</h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold tracking-wide">Group residents by family units and track poverty indexes</p>
+          <h2 className="text-2xl font-extrabold tracking-normal text-slate-900 dark:text-white uppercase">HOUSEHOLD PROFILES</h2>
+          <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Group residents by family units and track poverty indexes</p>
         </div>
         <button 
           onClick={handleOpenAdd}
@@ -150,16 +156,56 @@ export const Households: React.FC = () => {
         </button>
       </div>
 
+      {/* Overview Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gov-blue-500/10 text-gov-blue-500 flex items-center justify-center flex-shrink-0">
+            <Home size={20} />
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">TOTAL HOUSEHOLDS</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{totalHouseholds}</span>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center flex-shrink-0">
+            <ShieldAlert size={20} />
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">INDIGENT</span>
+            <span className="text-2xl font-black text-rose-500">{indigentCount}</span>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center flex-shrink-0">
+            <Users size={20} />
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">TOTAL MEMBERS</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{totalMembers}</span>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gov-gold-500/10 text-gov-gold-500 flex items-center justify-center flex-shrink-0">
+            <TrendingUp size={20} />
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">NON-POOR</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{nonPoorCount}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Query Filters */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="relative w-full md:w-80">
-          <Search size={16} className="absolute left-3 top-3 text-slate-500 dark:text-slate-400" />
+          <Search size={16} className="absolute left-3 top-3 text-slate-500 dark:text-slate-300" />
           <input
             type="text"
             placeholder="Search address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-10 pr-4 py-2 text-xs focus:outline-none"
+            className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-2 text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
           />
         </div>
 
@@ -167,7 +213,7 @@ export const Households: React.FC = () => {
           value={poverty} 
           onChange={(e) => setPoverty(e.target.value)}
           title="Filter by poverty level"
-          className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-3 py-2 text-xs focus:outline-none w-full md:w-auto"
+          className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 text-xs focus:outline-none w-full md:w-auto text-slate-800 dark:text-white"
         >
           <option value="">All Poverty Levels</option>
           <option value="Non-Poor">Non-Poor</option>
@@ -191,7 +237,7 @@ export const Households: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {households.map((h) => (
-            <div key={h.id} className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div key={h.id} className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 rounded-3xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
               
               {/* Header */}
               <div className="space-y-1">
@@ -200,17 +246,17 @@ export const Households: React.FC = () => {
                     {h.household_number}
                   </span>
                   <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleOpenEdit(h)} title="Edit Household" className="p-1 text-slate-500 hover:text-gov-blue-600 transition-colors"><Edit2 size={12} /></button>
-                    <button onClick={() => handleDelete(h.id)} title="Delete Household" className="p-1 text-slate-500 hover:text-rose-500 transition-colors"><Trash2 size={12} /></button>
+                    <button onClick={() => handleOpenEdit(h)} title="Edit Household" className="p-1 text-slate-500 hover:text-gov-blue-600 dark:text-slate-400 dark:hover:text-gov-blue-400 transition-colors"><Edit2 size={12} /></button>
+                    <button onClick={() => handleDelete(h.id)} title="Delete Household" className="p-1 text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition-colors"><Trash2 size={12} /></button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs font-black text-slate-700 dark:text-white mt-3">
+                <div className="flex items-center gap-1.5 text-xs font-black text-slate-800 dark:text-white mt-3">
                   <Home size={14} className="text-gov-blue-500" />
                   Head: {h.head ? `${h.head.first_name} ${h.head.last_name}` : 'No assigned head'}
                 </div>
 
-                <p className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-1 font-medium">
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-medium">
                   <MapPin size={12} />
                   {h.address}
                 </p>
@@ -218,12 +264,12 @@ export const Households: React.FC = () => {
 
               {/* Members listing */}
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest block mb-2">FAMILY MEMBERS ({h.members?.length || 0})</span>
+                <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest block mb-2">FAMILY MEMBERS ({h.members?.length || 0})</span>
                 {h.members && h.members.length > 0 ? (
                   <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1">
                     {h.members.map((m) => (
-                      <div key={m.id} className="flex items-center justify-between text-[11px] font-medium bg-slate-50 dark:bg-slate-950/40 px-2 py-1 rounded-lg">
-                        <span className="truncate">{m.first_name} {m.last_name}</span>
+                      <div key={m.id} className="flex items-center justify-between text-[11px] font-medium bg-slate-50 dark:bg-slate-950/60 px-2 py-1 rounded-lg">
+                        <span className="truncate text-slate-700 dark:text-slate-200">{m.first_name} {m.last_name}</span>
                         {m.is_household_head && (
                           <span className="text-[8px] bg-gov-gold-100 dark:bg-gov-gold-950/50 text-gov-gold-700 dark:text-gov-gold-300 font-bold px-1 rounded uppercase">Head</span>
                         )}
@@ -231,7 +277,7 @@ export const Households: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">No members assigned to this household.</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-300 italic">No members assigned to this household.</p>
                 )}
               </div>
 
@@ -242,7 +288,9 @@ export const Households: React.FC = () => {
                     ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400' 
                     : h.poverty_level === 'Poor'
                     ? 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400'
-                    : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600'
+                    : h.poverty_level === 'Low Income'
+                    ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400'
+                    : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400'
                 }`}>
                   <Sparkles size={10} />
                   {h.poverty_level}
@@ -250,7 +298,7 @@ export const Households: React.FC = () => {
 
                 <button 
                   onClick={() => handleOpenAssign(h)}
-                  className="flex items-center gap-1 text-[10px] font-bold text-gov-blue-600 hover:text-gov-blue-800 dark:text-gov-blue-400 transition-colors"
+                  className="flex items-center gap-1 text-[10px] font-bold text-gov-blue-600 hover:text-gov-blue-800 dark:text-gov-blue-400 dark:hover:text-gov-blue-300 transition-colors"
                 >
                   <UserPlus size={12} />
                   Assign Resident
@@ -264,24 +312,25 @@ export const Households: React.FC = () => {
 
       {/* Create / Edit Household Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden glass-panel">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-gov-blue-800 dark:text-gov-blue-300 uppercase">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 rounded-3xl shadow-2xl overflow-hidden glass-panel">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <h3 className="font-black text-xs text-gov-blue-700 dark:text-gov-blue-300 uppercase tracking-widest flex items-center gap-2">
+                <Home size={16} className="text-gov-blue-500" />
                 {editingId ? 'Modify Household Profile' : 'Create Household Profile'}
               </h3>
-              <button onClick={() => setShowModal(false)} title="Close Modal" className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"><XCircle size={18} /></button>
+              <button onClick={() => setShowModal(false)} title="Close Modal" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><XCircle size={18} /></button>
             </div>
 
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Household Code</label>
-                <input type="text" readOnly title="Household Code" value={form.household_number} className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold text-slate-500" />
+                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-200 uppercase block">Household Code</label>
+                <input type="text" readOnly title="Household Code" value={form.household_number} className="w-full bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 dark:text-slate-400" />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Poverty Index Level</label>
-                <select value={form.poverty_level} title="Poverty Index Level" onChange={(e) => setForm({...form, poverty_level: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-200 uppercase block">Poverty Index Level</label>
+                <select value={form.poverty_level} title="Poverty Index Level" onChange={(e) => setForm({...form, poverty_level: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none text-slate-800 dark:text-white">
                   <option value="Non-Poor">Non-Poor</option>
                   <option value="Low Income">Low Income</option>
                   <option value="Poor">Poor</option>
@@ -290,13 +339,13 @@ export const Households: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Barangay Address</label>
-                <input type="text" required placeholder="Street No., Zone Location" title="Barangay Address" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-200 uppercase block">Barangay Address</label>
+                <input type="text" required placeholder="Street No., Zone Location" title="Barangay Address" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder:text-slate-400" />
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">Cancel</button>
-                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md">{isSaving ? 'Saving...' : 'Save Profile'}</button>
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors">Cancel</button>
+                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50 transition-colors">{isSaving ? 'Saving...' : 'Save Profile'}</button>
               </div>
             </form>
           </div>
@@ -305,22 +354,25 @@ export const Households: React.FC = () => {
 
       {/* Assign Member Modal */}
       {showAssignModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden glass-panel">
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-gov-blue-800 dark:text-gov-blue-300 uppercase">Assign Citizen to Family Group</h3>
-              <button onClick={() => setShowAssignModal(false)} title="Close Modal" className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"><XCircle size={18} /></button>
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 rounded-3xl shadow-2xl overflow-hidden glass-panel">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
+              <h3 className="font-black text-xs text-gov-blue-700 dark:text-gov-blue-300 uppercase tracking-widest flex items-center gap-2">
+                <UserPlus size={16} className="text-gov-blue-500" />
+                Assign Citizen to Family Group
+              </h3>
+              <button onClick={() => setShowAssignModal(false)} title="Close Modal" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><XCircle size={18} /></button>
             </div>
 
             <form onSubmit={handleSaveAssign} className="p-6 space-y-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Select Resident</label>
+                <label className="text-[10px] font-bold text-slate-600 dark:text-slate-200 uppercase block">Select Resident</label>
                 <select 
                   required 
                   value={assignForm.resident_id} 
                   title="Select Resident"
                   onChange={(e) => setAssignForm({...assignForm, resident_id: e.target.value})}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                  className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
                 >
                   <option value="">-- Choose Resident --</option>
                   {residents.map((r) => (
@@ -331,7 +383,7 @@ export const Households: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
+              <div className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-950/60 rounded-xl border border-slate-200/60 dark:border-slate-800/80">
                 <input 
                   type="checkbox" 
                   id="is_head" 
@@ -339,14 +391,14 @@ export const Households: React.FC = () => {
                   onChange={(e) => setAssignForm({...assignForm, is_head: e.target.checked})} 
                   className="rounded border-slate-300 text-gov-blue-600 focus:ring-gov-blue-500" 
                 />
-                <label htmlFor="is_head" className="text-xs font-bold text-slate-600 dark:text-slate-300 cursor-pointer">
+                <label htmlFor="is_head" className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
                   Designate as Household Head
                 </label>
               </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowAssignModal(false)} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">Cancel</button>
-                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md">Assign Member</button>
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-3">
+                <button type="button" onClick={() => setShowAssignModal(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors">Cancel</button>
+                <button type="submit" disabled={isSaving} className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50 transition-colors">Assign Member</button>
               </div>
             </form>
           </div>
