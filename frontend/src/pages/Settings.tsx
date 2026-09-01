@@ -188,7 +188,7 @@ export const Settings: React.FC = () => {
   return (
     <div className="space-y-6 relative z-10 max-w-5xl">
       <div>
-        <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white">ACCOUNT SETTINGS</h2>
+        <h2 className="text-2xl font-extrabold tracking-normal text-slate-900 dark:text-white">ACCOUNT SETTINGS</h2>
         <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Manage user profile preferences, display modes, and security configurations</p>
       </div>
 
@@ -203,7 +203,7 @@ export const Settings: React.FC = () => {
               {user?.username.slice(0, 2)}
             </div>
             
-            <h4 className="font-extrabold text-sm text-black dark:text-white">{user?.username}</h4>
+            <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{user?.username}</h4>
             <span className="text-[10px] text-slate-500 dark:text-slate-300 font-bold tracking-wide">{user?.email}</span>
             
             <div className="mt-3.5 bg-gov-blue-50 dark:bg-gov-blue-950/60 text-gov-blue-700 dark:text-gov-blue-300 border border-gov-blue-100 dark:border-gov-blue-800 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-xl">
@@ -260,7 +260,7 @@ export const Settings: React.FC = () => {
 
             <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200/40 dark:border-slate-800/80 rounded-2xl">
               <div>
-                <span className="text-xs font-bold block text-black dark:text-white">Display System Theme</span>
+                <span className="text-xs font-bold block text-slate-900 dark:text-white">Display System Theme</span>
                 <span className="text-[10px] text-slate-600 dark:text-slate-300 leading-normal">Toggle dark mode overlay layout.</span>
               </div>
               <button
