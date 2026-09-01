@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
   Briefcase, Calendar, Settings, LogOut, Sun, Moon,
-  Menu, X, ShieldAlert, ListOrdered
+  Menu, X, ShieldAlert, ListOrdered, Activity
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
@@ -77,12 +77,13 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   }, []);
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Health Worker', 'Staff'] },
+    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff'] },
     { name: 'Residents', path: '/residents', icon: <Users size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Households', path: '/households', icon: <Home size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
-    { name: 'Certificates', path: '/certificates', icon: <FileText size={20} />, roles: ['all'] },
+    { name: 'Health Records', path: '/health-records', icon: <Activity size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff'] },
+    { name: 'Certificates', path: '/certificates', icon: <FileText size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
     { name: 'Appointments', path: '/appointments', icon: <Calendar size={20} />, roles: ['all'] },
-    { name: 'Certificates Schedule', path: '/queue-schedule', icon: <ListOrdered size={20} />, roles: ['all'] },
+    { name: 'Certificates Schedule', path: '/queue-schedule', icon: <ListOrdered size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
     { name: 'Blotter Records', path: '/blotter', icon: <AlertOctagon size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Staff'] },
     { name: 'Businesses', path: '/businesses', icon: <Briefcase size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff'] },
     { name: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: ['all'] },
@@ -93,7 +94,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-black dark:text-slate-200 transition-colors duration-300">
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
       {/* Dynamic Background Glows */}
       <div className="ambient-glow glow-blue top-10 left-10"></div>
       <div className="ambient-glow glow-gold bottom-10 right-10"></div>

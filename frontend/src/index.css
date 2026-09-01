@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
-@variant dark (&:where(.dark, .dark *));
+@variant dark (.dark &);
 
 @layer base {
   body {
@@ -80,36 +80,63 @@
   color-scheme: dark;
 }
 
-.dark .text-slate-400 {
-  color: #cbd5e1 !important; /* slate-300 contrast */
+.dark body {
+  background-color: #020617;
+  color: #f8fafc;
 }
 
-.dark .text-slate-500 {
-  color: #cbd5e1 !important; /* slate-300 contrast */
+/* Guaranteed Dark Mode Surface Backgrounds */
+.dark .bg-white {
+  background-color: #0f172a !important;
 }
 
-.dark .text-slate-600 {
-  color: #94a3b8 !important; /* slate-400 contrast */
+.dark .bg-white\/95,
+.dark .bg-white\/90,
+.dark .bg-white\/80,
+.dark .bg-white\/70,
+.dark .bg-white\/60,
+.dark .bg-white\/50,
+.dark .bg-white\/40 {
+  background-color: rgba(15, 23, 42, 0.85) !important;
 }
 
-.dark .text-slate-700 {
-  color: #e2e8f0 !important; /* slate-200 contrast */
+.dark .bg-slate-50 {
+  background-color: #020617 !important;
 }
 
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/80 {
+  background-color: rgba(2, 6, 23, 0.6) !important;
+}
+
+.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+.dark .bg-slate-100\/50,
+.dark .bg-slate-100\/80 {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+
+/* Guaranteed High Contrast Text in Dark Mode */
+.dark .text-slate-900,
+.dark .text-gov-blue-900,
+.dark .text-gov-blue-950,
 .dark .text-slate-800 {
-  color: #f1f5f9 !important; /* slate-100 contrast */
+  color: #f8fafc !important;
 }
 
-.dark .text-slate-900 {
-  color: #f8fafc !important; /* slate-50 contrast */
+.dark .text-slate-700,
+.dark .text-slate-650,
+.dark .text-slate-600 {
+  color: #e2e8f0 !important;
 }
 
-.dark .text-gov-blue-300 {
-  color: #93c5fd !important;
-}
-
-.dark .text-gov-blue-400 {
-  color: #bfdbfe !important;
+.dark .text-slate-550,
+.dark .text-slate-500,
+.dark .text-slate-450,
+.dark .text-slate-400 {
+  color: #cbd5e1 !important;
 }
 
 /* Dark Mode Inputs, Selects & Placeholders */

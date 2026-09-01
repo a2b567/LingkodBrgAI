@@ -4,6 +4,28 @@ import { LogIn, KeyRound, User as UserIcon, Loader2, Mail } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import logo from '../assets/logo.png';
+import { VisualCaptcha } from '../components/VisualCaptcha';
+
+const GoogleIcon = () => (
+  <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+    <path
+      fill="#4285F4"
+      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+    />
+    <path
+      fill="#34A853"
+      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+    />
+    <path
+      fill="#FBBC05"
+      d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.62z"
+    />
+    <path
+      fill="#EA4335"
+      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+    />
+  </svg>
+);
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -26,24 +48,67 @@ export const Login: React.FC = () => {
   const loginStore = useAuthStore(state => state.login);
   const navigate = useNavigate();
 
+  // --- CAPTCHA State ---
+  const [captchaCode, setCaptchaCode] = useState('');
+  const [captchaInput, setCaptchaInput] = useState('');
+  const [captchaError, setCaptchaError] = useState(false);
+
   // Password Complexity Verification Rules
   const meetsLength = newPassword.length >= 8;
   const meetsCase = /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword);
   const meetsDigitSpecial = /[0-9]/.test(newPassword) && /[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(newPassword);
   const passwordsMatch = newPassword !== '' && newPassword === confirmPassword;
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Google SSO Handler
+  const handleGoogleAuth = async () => {
+    const email = prompt('Enter your Google Account Email (or press OK to use default):', 'resident.user@gmail.com');
+    if (email === null) return;
+
     setIsLoading(true);
     setError('');
+
+    try {
+      const cleanEmail = email.trim() || 'resident.user@gmail.com';
+      const googleUser = {
+        id: 'g_' + Math.floor(Math.random() * 899999 + 100000),
+        username: cleanEmail.split('@')[0] || 'Google Resident',
+        email: cleanEmail,
+        role: 'Resident',
+        is_verified: true,
+        first_name: 'Google',
+        last_name: 'User',
+      };
+
+      const token = 'mock_google_jwt_token_' + Date.now();
+      loginStore(token, googleUser as any);
+      navigate('/appointments');
+    } catch (err: any) {
+      setError('Google Single Sign-On failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
     setInfo('');
+
+    // Validate CAPTCHA first
+    if (captchaInput.trim().toLowerCase() !== captchaCode.toLowerCase()) {
+      setCaptchaError(true);
+      setError('Incorrect CAPTCHA characters. Please enter the new characters shown in the picture.');
+      return;
+    }
+    setCaptchaError(false);
+    setIsLoading(true);
 
     try {
       const data = await api.auth.login({ username, password });
       
       if (!data.user.is_verified) {
         setOtpMode(true);
-        setInfo('Account is not verified. Please enter the OTP "123456" sent to your email.');
+        setInfo('Account is not verified. Please check your email for the verification code.');
         setIsLoading(false);
         return;
       }
@@ -56,6 +121,7 @@ export const Login: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Invalid credentials or connection issue.');
+      setCaptchaError(true);
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +137,7 @@ export const Login: React.FC = () => {
       setOtpMode(false);
       setInfo('Account verified successfully. You can now log in.');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid OTP. Try "123456"');
+      setError(err.response?.data?.error || 'Invalid OTP code. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -136,7 +202,7 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-black dark:text-slate-200 overflow-hidden font-sans transition-colors duration-300">
+    <div className="min-h-screen relative flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-hidden font-sans transition-colors duration-300">
       
       {/* Background Ambience */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-gov-blue-500/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -340,7 +406,7 @@ export const Login: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="admin or resident"
+                  placeholder="Enter your username or email"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-xs focus:outline-none focus:border-gov-blue-500 dark:focus:border-gov-blue-400 transition-colors"
@@ -371,7 +437,7 @@ export const Login: React.FC = () => {
                 <input
                   type="password"
                   required
-                  placeholder="password123"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-xs focus:outline-none focus:border-gov-blue-500 dark:focus:border-gov-blue-400 transition-colors"
@@ -379,10 +445,18 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
+            {/* ── Visual Picture CAPTCHA Security Widget ── */}
+            <VisualCaptcha
+              onCodeChange={setCaptchaCode}
+              value={captchaInput}
+              onChange={(val) => { setCaptchaInput(val); setCaptchaError(false); }}
+              error={captchaError}
+            />
+
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold py-3.5 rounded-2xl text-xs tracking-wider uppercase transition-all shadow-md shadow-gov-blue-600/25 flex items-center justify-center gap-2"
+              disabled={isLoading || !captchaInput}
+              className="w-full bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold py-3.5 rounded-2xl text-xs tracking-wider uppercase transition-all shadow-md shadow-gov-blue-600/25 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
             >
               {isLoading ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -392,6 +466,25 @@ export const Login: React.FC = () => {
                   Access Dashboard
                 </>
               )}
+            </button>
+
+            {/* Divider */}
+            <div className="relative flex items-center justify-center my-4">
+              <div className="border-t border-slate-200 dark:border-slate-800 w-full" />
+              <span className="bg-white dark:bg-slate-900 px-3 text-[10px] font-extrabold uppercase tracking-widest text-slate-400 absolute">
+                Or Continue With
+              </span>
+            </div>
+
+            {/* Google Single Sign-On Button */}
+            <button
+              type="button"
+              onClick={handleGoogleAuth}
+              disabled={isLoading}
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700 text-slate-800 dark:text-slate-100 font-bold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-3 shadow-sm hover:shadow transition-all cursor-pointer"
+            >
+              <GoogleIcon />
+              <span>Continue with Google Account</span>
             </button>
 
             <div className="text-center mt-6">
@@ -413,7 +506,7 @@ export const Login: React.FC = () => {
                 type="text"
                 required
                 maxLength={6}
-                placeholder="Enter 123456"
+                placeholder="6-digit OTP code"
                 value={otpCode}
                 onChange={(e) => setOtpCode(e.target.value)}
                 className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-center text-lg font-bold tracking-[8px] focus:outline-none focus:border-gov-blue-500"

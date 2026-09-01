@@ -17,6 +17,7 @@ import { Landing } from './pages/Landing';
 import { KioskCertificates } from './pages/KioskCertificates';
 import { QueueSchedule } from './pages/QueueSchedule';
 import { QueueMonitor } from './pages/QueueMonitor';
+import { HealthRecords } from './pages/HealthRecords';
 
 // Route Guard to protect routes and handle RBAC checks
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[]; layout?: 'dashboard' | 'none' }> = ({ children, allowedRoles, layout = 'dashboard' }) => {
@@ -119,6 +120,15 @@ export const App: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff']}>
               <Households />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/health-records" 
+          element={
+            <ProtectedRoute allowedRoles={['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff']}>
+              <HealthRecords />
             </ProtectedRoute>
           } 
         />

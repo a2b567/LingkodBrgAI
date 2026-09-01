@@ -182,22 +182,26 @@ export const Residents: React.FC = () => {
     <div className="space-y-6 relative z-10">
       
       {/* Header titles */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white">RESIDENT REGISTRY</h2>
-          <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold tracking-wide">Manage, update, and search citizen profiles</p>
+      <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md">
+        <div className="space-y-1">
+          <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight uppercase">
+            Resident Registry
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+            Manage, update, and search official citizen profiles
+          </p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 text-xs font-bold rounded-2xl border border-slate-200 dark:border-slate-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 transition-colors"
           >
-            <FileSpreadsheet size={16} className="text-emerald-600" />
+            <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
             Export CSV
           </button>
           <button 
             onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold rounded-2xl shadow-md shadow-gov-blue-600/25 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white text-xs font-bold rounded-2xl shadow-md shadow-gov-blue-600/25 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             <Plus size={16} />
             Add Resident

@@ -142,14 +142,18 @@ export const Households: React.FC = () => {
     <div className="space-y-6 relative z-10">
       
       {/* Title */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-normal text-slate-900 dark:text-white uppercase">HOUSEHOLD PROFILES</h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Group residents by family units and track poverty indexes</p>
+      <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md">
+        <div className="space-y-1">
+          <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight uppercase">
+            Household Profiles
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+            Group residents by family units, track socio-economic statuses, and manage household heads
+          </p>
         </div>
         <button 
           onClick={handleOpenAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold rounded-2xl shadow-md transition-colors"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white text-xs font-bold rounded-2xl shadow-md shadow-gov-blue-600/25 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
         >
           <Plus size={16} />
           Create Household

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Lock, Moon, Sun, Shield, QrCode, Check, UserCheck, Megaphone, Plus, Trash2, X, Globe } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Lock, Moon, Sun, Shield, QrCode, Check, UserCheck, Megaphone, Plus, Trash2, X, Globe, ImagePlus, Trash } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { api } from '../services/api';
@@ -7,6 +7,7 @@ import { api } from '../services/api';
 export const Settings: React.FC = () => {
   const { user } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
+  const isStaff = user && user.role !== 'Resident';
 
   // Profile Update States
   const [username, setUsername] = useState(user?.username || '');
@@ -29,8 +30,71 @@ export const Settings: React.FC = () => {
   const [businessHours, setBusinessHours] = useState(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
   const [landingSuccessMsg, setLandingSuccessMsg] = useState('');
 
-  // Announcements State
-  const [announcements, setAnnouncements] = useState<Array<{ id: string; title: string; content: string; date: string }>>([]);
+  // Hero Background Image
+  const [heroBgPreview, setHeroBgPreview] = useState<string | null>(localStorage.getItem('brgy_hero_bg') || null);
+  const heroBgInputRef = useRef<HTMLInputElement>(null);
+
+  const handleHeroBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      localStorage.setItem('brgy_hero_bg', dataUrl);
+      setHeroBgPreview(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveHeroBg = () => {
+    localStorage.removeItem('brgy_hero_bg');
+    setHeroBgPreview(null);
+    if (heroBgInputRef.current) heroBgInputRef.current.value = '';
+  };
+
+  // Default initial announcements
+  const defaultAnnouncements = [
+    {
+      id: '1',
+      title: 'Annual Dental & Medical Mission',
+      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the Lawrence Barangay Covered Court. Pediatric consults, dental extraction services, and free basic wellness check-ups are open for all residents.',
+      category: 'Health Advisory',
+      badge: 'Active',
+      author: 'Barangay Health Council',
+      initials: 'HW',
+      date: 'Issued 2 hours ago'
+    },
+    {
+      id: '2',
+      title: 'Online Portal Official Launch',
+      content: 'We have officially launched the new LingkodBrgAI Barangay Management Information System! Citizens can now create their electronic profiles, secure residency clearances, file blotter reports, and arrange lobby appointments completely online.',
+      category: 'LGU Announcement',
+      badge: 'General',
+      author: 'Office of the Captain',
+      initials: 'BC',
+      date: 'Issued 1 day ago'
+    },
+    {
+      id: '3',
+      title: 'Livelihood & Business Clearance Seminar',
+      content: 'In partnership with the Department of Trade and Industry (DTI), the barangay will host a livelihood capacity-building seminar on micro-entrepreneurship and fast-tracking local commercial business permits. Registration is free.',
+      category: 'Livelihood Advisory',
+      badge: 'Seminar',
+      author: 'Barangay Secretary Office',
+      initials: 'BS',
+      date: 'Issued 3 days ago'
+    }
+  ];
+
+  // Announcements State initialized from localStorage
+  const [announcements, setAnnouncements] = useState<Array<{ id: string; title: string; content: string; date: string; category?: string; badge?: string; author?: string; initials?: string }>>(() => {
+    try {
+      const saved = localStorage.getItem('lingkod_landing_announcements');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    localStorage.setItem('lingkod_landing_announcements', JSON.stringify(defaultAnnouncements));
+    return defaultAnnouncements;
+  });
   const [isAnnouncementModalOpen, setIsAnnouncementModalOpen] = useState(false);
   const [annTitle, setAnnTitle] = useState('');
   const [annContent, setAnnContent] = useState('');
@@ -89,36 +153,34 @@ export const Settings: React.FC = () => {
     if (!annTitle || !annContent) return;
     setIsBroadcasting(true);
 
+    const newAnn = {
+      id: Date.now().toString(),
+      title: annTitle,
+      content: annContent,
+      category: 'LGU Announcement',
+      badge: 'Active',
+      author: user?.role ? `Office of the ${user.role.replace('Barangay ', '')}` : 'Office of the Captain',
+      initials: user?.role === 'Secretary' ? 'BS' : 'BC',
+      date: `Issued ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+    };
+
     try {
       await api.notifications.broadcastAnnouncement({ title: annTitle, content: annContent });
-      const newAnn = {
-        id: Date.now().toString(),
-        title: annTitle,
-        content: annContent,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      };
-      setAnnouncements(prev => [newAnn, ...prev]);
-      setAnnTitle('');
-      setAnnContent('');
-      setIsAnnouncementModalOpen(false);
-    } catch (err: any) {
-      const newAnn = {
-        id: Date.now().toString(),
-        title: annTitle,
-        content: annContent,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      };
-      setAnnouncements(prev => [newAnn, ...prev]);
-      setAnnTitle('');
-      setAnnContent('');
-      setIsAnnouncementModalOpen(false);
-    } finally {
-      setIsBroadcasting(false);
-    }
+    } catch (err: any) {}
+
+    const updated = [newAnn, ...announcements];
+    setAnnouncements(updated);
+    localStorage.setItem('lingkod_landing_announcements', JSON.stringify(updated));
+    setAnnTitle('');
+    setAnnContent('');
+    setIsAnnouncementModalOpen(false);
+    setIsBroadcasting(false);
   };
 
   const handleDeleteAnnouncement = (id: string) => {
-    setAnnouncements(prev => prev.filter(a => a.id !== id));
+    const updated = announcements.filter(a => a.id !== id);
+    setAnnouncements(updated);
+    localStorage.setItem('lingkod_landing_announcements', JSON.stringify(updated));
   };
 
   const res = user?.resident;
@@ -338,187 +400,267 @@ export const Settings: React.FC = () => {
             </form>
           </div>
 
-          {/* Card 4: LANDING PAGE CONFIGURATION */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm space-y-6">
-            <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 tracking-widest flex items-center gap-2">
-              <Globe size={16} className="text-gov-blue-600 dark:text-gov-blue-400" />
-              LANDING PAGE CONFIGURATION
-            </h4>
+          {/* Card 4: LANDING PAGE CONFIGURATION (Officers / Staff Only) */}
+          {isStaff && (
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm space-y-6">
+              <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 tracking-widest flex items-center gap-2">
+                <Globe size={16} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                LANDING PAGE CONFIGURATION
+              </h4>
 
-            {landingSuccessMsg && (
-              <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/60 dark:text-emerald-400 text-xs font-semibold rounded-2xl flex items-center gap-2">
-                <Check size={16} />
-                {landingSuccessMsg}
-              </div>
-            )}
-
-            {/* Footer Contact Info */}
-            <div className="space-y-4">
-              <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
-                CONTACT INFORMATION (FOOTER)
-              </span>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">ADDRESS</label>
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">HOTLINE</label>
-                  <input
-                    type="text"
-                    value={hotline}
-                    onChange={(e) => setHotline(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">EMAIL</label>
-                  <input
-                    type="email"
-                    value={landingEmail}
-                    onChange={(e) => setLandingEmail(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">BUSINESS HOURS</label>
-                  <input
-                    type="text"
-                    value={businessHours}
-                    onChange={(e) => setBusinessHours(e.target.value)}
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-1">
-                <button
-                  type="button"
-                  onClick={handleLandingSave}
-                  className="px-4 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
-                >
-                  Save Contact Settings
-                </button>
-              </div>
-            </div>
-
-            {/* Public Announcements Section */}
-            <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                  PUBLIC ANNOUNCEMENTS
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsAnnouncementModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-[10px] transition-colors"
-                >
-                  <Plus size={14} />
-                  Add Announcement
-                </button>
-              </div>
-
-              {announcements.length === 0 ? (
-                <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-950/30">
-                  No announcements added yet. Click the button above to add one.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {announcements.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl flex items-start justify-between gap-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Megaphone size={14} className="text-gov-gold-400" />
-                          <h5 className="font-bold text-xs text-slate-800 dark:text-slate-200">{item.title}</h5>
-                        </div>
-                        <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">{item.content}</p>
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-1">{item.date}</span>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteAnnouncement(item.id)}
-                        className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
-                        title="Delete Announcement"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </div>
-                  ))}
+              {landingSuccessMsg && (
+                <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/60 dark:text-emerald-400 text-xs font-semibold rounded-2xl flex items-center gap-2">
+                  <Check size={16} />
+                  {landingSuccessMsg}
                 </div>
               )}
+
+              {/* Hero Background Upload */}
+              <div className="space-y-3 pb-4 border-b border-slate-100 dark:border-slate-800/80">
+                <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
+                  HERO BACKGROUND IMAGE
+                </span>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                  Upload a photo to display as the landing page background. A dark overlay will be applied for readability.
+                </p>
+
+                {heroBgPreview ? (
+                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
+                    <img src={heroBgPreview} alt="Hero Background Preview" className="w-full h-36 object-cover" />
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        type="button"
+                        onClick={handleRemoveHeroBg}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs transition-colors shadow-lg"
+                      >
+                        <Trash size={14} />
+                        Remove Image
+                      </button>
+                    </div>
+                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                      Current Background
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => heroBgInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 hover:border-gov-blue-400 dark:hover:border-gov-blue-500 hover:text-gov-blue-500 dark:hover:text-gov-blue-400 transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-950/20"
+                  >
+                    <ImagePlus size={28} />
+                    <span className="text-xs font-bold">Click to upload background image</span>
+                    <span className="text-[10px]">JPG, PNG, WEBP — Max 5MB recommended</span>
+                  </button>
+                )}
+
+                <input
+                  ref={heroBgInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleHeroBgUpload}
+                  className="hidden"
+                />
+
+                {!heroBgPreview && (
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+                    No background image set — default gradient is used.
+                  </p>
+                )}
+              </div>
+
+              {/* Footer Contact Info */}
+              <div className="space-y-4">
+                <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
+                  CONTACT INFORMATION (FOOTER)
+                </span>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">ADDRESS</label>
+                    <input
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">HOTLINE</label>
+                    <input
+                      type="text"
+                      value={hotline}
+                      onChange={(e) => setHotline(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">EMAIL</label>
+                    <input
+                      type="email"
+                      value={landingEmail}
+                      onChange={(e) => setLandingEmail(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">BUSINESS HOURS</label>
+                    <input
+                      type="text"
+                      value={businessHours}
+                      onChange={(e) => setBusinessHours(e.target.value)}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="button"
+                    onClick={handleLandingSave}
+                    className="px-4 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
+                  >
+                    Save Contact Settings
+                  </button>
+                </div>
+              </div>
+
+              {/* Public Announcements Section */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                    PUBLIC ANNOUNCEMENTS
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsAnnouncementModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-[10px] transition-colors"
+                  >
+                    <Plus size={14} />
+                    Add Announcement
+                  </button>
+                </div>
+
+                {announcements.length === 0 ? (
+                  <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-950/30">
+                    No announcements added yet. Click the button above to add one.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl flex items-start justify-between gap-3"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <Megaphone size={14} className="text-gov-gold-400" />
+                            <h5 className="font-bold text-xs text-slate-800 dark:text-slate-200">{item.title}</h5>
+                          </div>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">{item.content}</p>
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-1">{item.date}</span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteAnnouncement(item.id)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
+                          title="Delete Announcement"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       </div>
 
       {/* Add Announcement Modal */}
       {isAnnouncementModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 rounded-3xl max-w-md w-full shadow-2xl p-6 glass-panel relative overflow-hidden animate-scale-up">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-black text-black dark:text-white uppercase tracking-widest flex items-center gap-2">
-                <Megaphone className="text-gov-gold-400" size={18} />
-                Create Public Announcement
-              </h3>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl max-w-md w-full shadow-2xl p-7 relative">
+            
+            {/* Modal Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-400/30 flex items-center justify-center">
+                  <Megaphone className="text-amber-500" size={18} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
+                    Create Announcement
+                  </h3>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
+                    Publish to Landing Page
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setIsAnnouncementModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 transition-colors"
               >
-                <X size={16} />
+                <X size={14} />
               </button>
             </div>
 
             <form onSubmit={handleAddAnnouncement} className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">Announcement Title</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
+                  Announcement Title <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={annTitle}
                   onChange={(e) => setAnnTitle(e.target.value)}
                   required
                   placeholder="e.g. Scheduled Power Interruption, Free Health Clinic..."
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder:text-slate-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gov-blue-500/40 focus:border-gov-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">Content Details</label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
+                  Content Details <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   value={annContent}
                   onChange={(e) => setAnnContent(e.target.value)}
                   required
-                  rows={3}
+                  rows={4}
                   placeholder="Provide complete information for residents..."
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder:text-slate-500 resize-none"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gov-blue-500/40 focus:border-gov-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
                 />
               </div>
 
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsAnnouncementModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isBroadcasting}
-                  className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
-                  {isBroadcasting ? 'Broadcasting...' : 'Broadcast Announcement'}
+                  {isBroadcasting ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      </svg>
+                      Broadcasting...
+                    </>
+                  ) : (
+                    'Broadcast Announcement'
+                  )}
                 </button>
               </div>
             </form>

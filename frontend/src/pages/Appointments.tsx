@@ -118,14 +118,19 @@ export const Appointments: React.FC = () => {
 
   return (
     <div className="space-y-6 relative z-10">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-extrabold tracking-normal text-black dark:text-white uppercase">APPOINTMENTS & QUEUE</h2>
-          <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Book community visits, document pickups, or mediations, powered by crowd congestion forecasting</p>
+      {/* Header Title & Actions */}
+      <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md">
+        <div className="space-y-1">
+          <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight uppercase">
+            Appointments & Queue
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+            Book community visits, document pickups, or mediations, powered by crowd congestion forecasting
+          </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-gov-blue-600/20 transition-all active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white rounded-2xl font-bold text-xs shadow-md shadow-gov-blue-600/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
         >
           <Plus size={16} />
           Book Appointment
