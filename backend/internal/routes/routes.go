@@ -2,7 +2,6 @@ package routes
 
 import (
 	"net/http"
-	"time"
 
 	"backend/internal/handlers"
 	"backend/internal/middleware"
@@ -12,11 +11,12 @@ import (
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 
-	// Apply CORS
+	// 1. TLS & Security Headers (HSTS, CSP, X-Frame-Options, CORS)
+	r.Use(middleware.SecurityHeadersMiddleware())
 	r.Use(middleware.CORSMiddleware())
 
-	// Global Rate Limiting: Max 120 requests per minute per IP
-	r.Use(middleware.RateLimitMiddleware(120, time.Minute))
+	// 2. Async Non-Blocking Audit Logging for legal compliance
+	r.Use(middleware.AsyncAuditLogger())
 
 	// Serve Static files for uploads (photos, certificates, etc.)
 	r.Static("/uploads", "./uploads")
@@ -43,7 +43,7 @@ func SetupRouter() *gin.Engine {
 
 		// Auth (Strict Rate Limiting: Max 10 requests per minute for login/register/reset)
 		auth := api.Group("/auth")
-		auth.Use(middleware.RateLimitMiddleware(10, time.Minute))
+		auth.Use(middleware.KioskPublicRateLimiter())
 		{
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/register", authHandler.Register)
@@ -55,16 +55,18 @@ func SetupRouter() *gin.Engine {
 		// Public Verification (QR Scanner landing page)
 		api.GET("/verify/document/:hash", certHandler.VerifyQR)
 
-		// Public Kiosk Request
-		api.POST("/public/certificates/request", certHandler.PublicRequest)
+		// Public Kiosk Request (Rate limited for public lobby kiosks)
+		api.POST("/public/certificates/request", middleware.KioskPublicRateLimiter(), certHandler.PublicRequest)
 
 		// WebSockets for live updates
 		api.GET("/ws", notifHandler.WebSocketEndpoint)
 	}
 
-	// Protected Routes (Required Authenticated User)
+	// Protected Routes (Strict JWT Authorization Required: Header 'Authorization: Bearer <token>' ONLY)
 	protected := api.Group("")
-	protected.Use(middleware.AuthMiddleware())
+	protected.Use(middleware.StrictAuthMiddleware())
+	protected.Use(middleware.AuthenticatedUserRateLimiter())
+	protected.Use(middleware.IdempotencyMiddleware())
 	{
 		// Auth profile info
 		protected.GET("/auth/me", authHandler.GetMe)
@@ -74,7 +76,7 @@ func SetupRouter() *gin.Engine {
 		protected.PATCH("/notifications/:id/read", notifHandler.Read)
 
 		// AI Chat panel (Rate limited to 15 messages per minute to preserve AI quota)
-		protected.POST("/ai/chat", middleware.RateLimitMiddleware(15, time.Minute), aiHandler.Chat)
+		protected.POST("/ai/chat", middleware.KioskPublicRateLimiter(), aiHandler.Chat)
 
 		// Appointments (Residents & Staff)
 		protected.GET("/appointments", appHandler.List)

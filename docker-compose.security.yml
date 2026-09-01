@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Redis - High-performance Sliding Window Rate Limiting & Idempotency Store
+  redis:
+    image: redis:7-alpine
+    container_name: lingkodbrgy_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel notice --requirepass "LingkodRedisSecret2026!"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "LingkodRedisSecret2026!", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # HashiCorp Vault - GovTech Production Secrets & KMS Management (Dev Instance)
+  vault:
+    image: hashicorp/vault:1.15
+    container_name: lingkodbrgy_vault
+    restart: always
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "lingkod-govtech-root-token-2026"
+      VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  redis_data:
+    driver: local
