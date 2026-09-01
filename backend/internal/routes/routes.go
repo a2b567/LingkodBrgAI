@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"time"
 
 	"backend/internal/handlers"
 	"backend/internal/middleware"
@@ -13,6 +14,9 @@ func SetupRouter() *gin.Engine {
 
 	// Apply CORS
 	r.Use(middleware.CORSMiddleware())
+
+	// Global Rate Limiting: Max 120 requests per minute per IP
+	r.Use(middleware.RateLimitMiddleware(120, time.Minute))
 
 	// Serve Static files for uploads (photos, certificates, etc.)
 	r.Static("/uploads", "./uploads")
@@ -37,8 +41,9 @@ func SetupRouter() *gin.Engine {
 			c.JSON(http.StatusOK, gin.H{"message": "pong"})
 		})
 
-		// Auth
+		// Auth (Strict Rate Limiting: Max 10 requests per minute for login/register/reset)
 		auth := api.Group("/auth")
+		auth.Use(middleware.RateLimitMiddleware(10, time.Minute))
 		{
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/register", authHandler.Register)
@@ -68,8 +73,8 @@ func SetupRouter() *gin.Engine {
 		protected.GET("/notifications", notifHandler.List)
 		protected.PATCH("/notifications/:id/read", notifHandler.Read)
 
-		// AI Chat panel
-		protected.POST("/ai/chat", aiHandler.Chat)
+		// AI Chat panel (Rate limited to 15 messages per minute to preserve AI quota)
+		protected.POST("/ai/chat", middleware.RateLimitMiddleware(15, time.Minute), aiHandler.Chat)
 
 		// Appointments (Residents & Staff)
 		protected.GET("/appointments", appHandler.List)
