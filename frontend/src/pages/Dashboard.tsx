@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
-  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles
+  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -84,10 +84,12 @@ export const Dashboard: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
   const streamIntervalRef = React.useRef<any>(null);
   const initialInsightFetched = React.useRef(false);
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const messagesContainerRef = React.useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -271,6 +273,7 @@ export const Dashboard: React.FC = () => {
 
     const userText = inputValue;
     setInputValue('');
+    setIsChatMinimized(false); // auto-expand panel when user sends a message
     
     // Add user message to history
     const updatedMessages: { sender: 'ai' | 'user'; text: string }[] = [...messages, { sender: 'user', text: userText }];
@@ -363,7 +366,10 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* AI Strategic Chat Assistant Panel */}
-      <div className={`relative w-full bg-slate-900/95 text-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.35)] overflow-hidden z-20 flex flex-col border border-slate-700/60 transition-all duration-300 ease-in-out ${isChatMinimized ? 'shadow-lg' : 'max-h-[700px]'}`}>
+      <div 
+        style={!isChatMinimized ? { height: '600px' } : {}}
+        className="relative w-full bg-slate-900/95 text-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.35)] overflow-hidden z-20 flex flex-col border border-slate-700/60 transition-all duration-300 ease-in-out"
+      >
         {/* Decorative top gradient line */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gov-gold-400 to-transparent opacity-75" />
 
@@ -414,10 +420,10 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Collapsible body */}
-        {!isChatMinimized && (
-        <>
+        {isChatMinimized ? null : (
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* Message history */}
-        <div className="px-6 py-5 space-y-5 overflow-y-auto flex flex-col min-h-[180px] max-h-[420px] scroll-smooth">
+        <div ref={messagesContainerRef} className="px-6 py-5 space-y-5 overflow-y-auto flex flex-col flex-1 min-h-0 scroll-smooth bg-slate-950/20 shadow-inner">
           {messages.map((msg, index) => {
             if (!msg.text || !msg.text.trim()) return null;
             return (
@@ -480,29 +486,35 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} className="h-1" />
+          <div className="h-1" />
         </div>
+        </div>
+        )}
 
-        {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-slate-700/50 bg-slate-950/60 backdrop-blur-sm flex gap-3">
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask about active incidents, poverty levels, business reports, or next steps..."
-            disabled={isGeneratingInsight || isSending}
-            className="flex-1 px-5 py-3 bg-slate-800/70 border border-slate-600/50 focus:border-gov-gold-400/60 rounded-2xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-gov-gold-400/20 placeholder-slate-500 disabled:opacity-40 transition-all duration-300 shadow-inner"
-          />
+        {/* Input Bar - always visible even when minimized */}
+        <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-md flex gap-3 items-center flex-shrink-0">
+          <div className="relative flex-1 group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Sparkles size={16} className="text-gov-gold-500/60 group-focus-within:text-gov-gold-400 transition-colors" />
+            </div>
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder="Ask about active incidents, poverty levels, business reports..."
+              disabled={isGeneratingInsight || isSending}
+              className="w-full pl-11 pr-5 py-3.5 bg-slate-950/50 border border-slate-700/60 focus:border-gov-gold-500/50 rounded-2xl text-sm text-white focus:outline-none focus:ring-4 focus:ring-gov-gold-500/10 placeholder-slate-500 disabled:opacity-40 transition-all duration-300 shadow-inner"
+            />
+          </div>
           <button
             type="submit"
             disabled={isGeneratingInsight || isSending || !inputValue.trim()}
-            className="px-6 py-3 bg-gradient-to-r from-gov-gold-500 to-gov-gold-400 hover:from-gov-gold-400 hover:to-gov-gold-300 text-gov-blue-950 font-extrabold text-sm rounded-2xl shadow-lg transition-all duration-300 disabled:opacity-40 active:scale-95 hover:shadow-[0_0_20px_rgba(204,162,16,0.4)]"
+            className="px-6 py-3.5 bg-gradient-to-r from-gov-gold-500 to-gov-gold-400 hover:from-gov-gold-400 hover:to-gov-gold-300 text-gov-blue-950 font-extrabold text-sm rounded-2xl shadow-lg transition-all duration-300 disabled:opacity-40 active:scale-95 hover:shadow-[0_0_20px_rgba(204,162,16,0.4)] flex items-center gap-2"
           >
+            <Send size={16} strokeWidth={2.5} />
             Send
           </button>
         </form>
-        </>
-        )}
       </div>
 
       {/* Numerical cards */}

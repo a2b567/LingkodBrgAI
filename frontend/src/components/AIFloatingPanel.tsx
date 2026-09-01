@@ -282,7 +282,7 @@ export const AIFloatingPanel: React.FC = () => {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 scroll-smooth">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 scroll-smooth">
             {history.map((msg, i) => (
               <div
                 key={i}
@@ -335,7 +335,7 @@ export const AIFloatingPanel: React.FC = () => {
 
             {isTyping && (
               <div className="flex gap-2 mr-auto max-w-[85%]">
-                <div className="p-2 rounded-2xl w-8 h-8 bg-gov-blue-900 text-gov-gold-400 border border-gov-blue-800 flex items-center justify-center">
+                <div className="p-2 rounded-2xl w-8 h-8 bg-gov-blue-900 text-gov-gold-400 border border-gov-blue-800 flex items-center justify-center flex-shrink-0">
                   <Bot size={15} />
                 </div>
                 <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
@@ -350,13 +350,13 @@ export const AIFloatingPanel: React.FC = () => {
           </div>
 
           {/* Quick Suggestions */}
-          <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+          <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex-shrink-0">
             <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
               {suggestions.map((s, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleSuggestion(s)}
-                  className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-gov-blue-50 dark:hover:bg-gov-blue-950 text-[10px] text-slate-700 dark:text-slate-300 hover:text-gov-blue-700 dark:hover:text-gov-blue-300 font-bold rounded-full border border-slate-200 dark:border-slate-700 whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer"
+                  className="px-2.5 py-1 bg-white dark:bg-slate-800 hover:bg-gov-blue-50 dark:hover:bg-gov-blue-950 text-[10px] text-slate-700 dark:text-slate-300 hover:text-gov-blue-700 dark:hover:text-gov-blue-300 font-bold rounded-full border border-slate-200 dark:border-slate-700 whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer flex-shrink-0"
                 >
                   <Sparkles size={10} className="text-gov-gold-500" />
                   {s}
@@ -366,7 +366,7 @@ export const AIFloatingPanel: React.FC = () => {
           </div>
 
           {/* Footer Input & Speech Recognition Controls */}
-          <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
+          <div className="p-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 flex-shrink-0">
             
             {/* Microphone STT Button */}
             <button
