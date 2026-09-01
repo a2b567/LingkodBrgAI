@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Clock, AlertTriangle, Check, X, TrendingUp, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Calendar as CalendarIcon, Clock, AlertTriangle, Check, X, TrendingUp, Plus, Monitor, Users, CheckCircle2, PhoneCall } from 'lucide-react';
 import { api } from '../services/api';
 import type { Appointment, Resident } from '../types';
 import { useAuthStore } from '../store/authStore';
@@ -11,6 +11,7 @@ export const Appointments: React.FC = () => {
   const [residents, setResidents] = useState<Resident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCallingNext, setIsCallingNext] = useState(false);
 
   // Form inputs
   const [selectedResidentId, setSelectedResidentId] = useState('');
@@ -30,7 +31,17 @@ export const Appointments: React.FC = () => {
     '03:00 PM - 04:00 PM',
   ];
 
-  const fetchAppointments = async () => {
+  // Queue Management derived state from live appointments
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayAppointments = appointments.filter(a =>
+    a.appointment_date.split('T')[0] === todayStr
+  );
+  const waitingQueue = todayAppointments.filter(a => a.status === 'Confirmed')
+    .sort((a, b) => (a.queue_number ?? 0) - (b.queue_number ?? 0));
+  const nowServing = waitingQueue[0] ?? null;
+  const doneCount = todayAppointments.filter(a => a.status === 'Completed').length;
+
+  const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await api.appointments.list();
@@ -40,7 +51,7 @@ export const Appointments: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   const fetchCongestion = async () => {
     try {
@@ -66,7 +77,7 @@ export const Appointments: React.FC = () => {
     fetchAppointments();
     fetchCongestion();
     fetchResidents();
-  }, []);
+  }, [fetchAppointments]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +119,20 @@ export const Appointments: React.FC = () => {
     }
   };
 
+  // Call Next: marks current "Now Serving" as Completed, queue auto-advances
+  const handleCallNext = async () => {
+    if (!nowServing) return;
+    setIsCallingNext(true);
+    try {
+      await api.appointments.updateStatus(nowServing.id, 'Completed');
+      await fetchAppointments();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to call next");
+    } finally {
+      setIsCallingNext(false);
+    }
+  };
+
   // Get risk status for select dates
   const getRiskForDate = (dateStr: string) => {
     if (!dateStr) return null;
@@ -136,6 +161,115 @@ export const Appointments: React.FC = () => {
           Book Appointment
         </button>
       </div>
+
+      {/* Queue Management Panel — Staff Only */}
+      {isStaff && (
+        <div className="bg-slate-900 dark:bg-slate-950 rounded-3xl border border-slate-700/60 shadow-lg overflow-hidden">
+          {/* Queue Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/60">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-teal-500/20 flex items-center justify-center">
+                <Monitor size={18} className="text-teal-400" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-white uppercase tracking-widest">Queue Management</p>
+                <p className="text-[10px] text-slate-400">Call next resident &amp; manage service window</p>
+              </div>
+            </div>
+            {/* Stats Bar */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <Clock size={12} className="text-amber-400" />
+                <span className="text-[10px] font-black text-amber-400">{waitingQueue.length}</span>
+                <span className="text-[9px] font-bold text-amber-500/70 uppercase tracking-wider">Waiting</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                <PhoneCall size={12} className="text-teal-400" />
+                <span className="text-[10px] font-black text-teal-400">{nowServing ? 1 : 0}</span>
+                <span className="text-[9px] font-bold text-teal-500/70 uppercase tracking-wider">Serving</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <CheckCircle2 size={12} className="text-emerald-400" />
+                <span className="text-[10px] font-black text-emerald-400">{doneCount}</span>
+                <span className="text-[9px] font-bold text-emerald-500/70 uppercase tracking-wider">Done</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Queue Body */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+            {/* NOW SERVING */}
+            <div className="p-6 bg-gradient-to-br from-teal-600 to-teal-800 border-r border-teal-700/40">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-teal-200 mb-3">Now Serving</p>
+              {nowServing ? (
+                <div>
+                  <p className="text-xl font-black text-white leading-tight">
+                    {nowServing.resident
+                      ? `${nowServing.resident.first_name} ${nowServing.resident.last_name}`
+                      : `Queue #${nowServing.queue_number}`}
+                  </p>
+                  <p className="text-xs text-teal-200 mt-1 font-medium">{nowServing.purpose}</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-[10px] font-black bg-teal-500/30 text-teal-100 px-2 py-0.5 rounded-lg">
+                      #{nowServing.queue_number}
+                    </span>
+                    <span className="text-[10px] text-teal-200/70 font-medium">{nowServing.time_slot}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-lg font-black text-teal-100/60 leading-snug">
+                  No one is being served right now
+                </p>
+              )}
+            </div>
+
+            {/* WAITING QUEUE + CALL NEXT */}
+            <div className="p-6 bg-slate-800/60 dark:bg-slate-900/80">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Waiting Queue</p>
+                <button
+                  onClick={handleCallNext}
+                  disabled={isCallingNext || waitingQueue.length === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-black text-[11px] uppercase tracking-wide transition-all active:scale-95"
+                >
+                  <PhoneCall size={13} />
+                  {isCallingNext ? 'Calling...' : 'Call Next'}
+                </button>
+              </div>
+
+              {waitingQueue.length === 0 ? (
+                <div className="flex items-center justify-center h-20 text-center">
+                  <p className="text-xs font-bold text-slate-500">Queue is empty — no residents waiting</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {waitingQueue.slice(1, 6).map((app, idx) => (
+                    <div key={app.id} className="flex items-center gap-3 p-2.5 bg-slate-700/40 rounded-xl">
+                      <span className="w-6 h-6 rounded-lg bg-slate-600 flex items-center justify-center text-[10px] font-black text-slate-300">
+                        {idx + 2}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-white truncate">
+                          {app.resident
+                            ? `${app.resident.first_name} ${app.resident.last_name}`
+                            : `Queue #${app.queue_number}`}
+                        </p>
+                        <p className="text-[10px] text-slate-400 truncate">{app.purpose}</p>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-400 shrink-0">#{app.queue_number}</span>
+                    </div>
+                  ))}
+                  {waitingQueue.length > 6 && (
+                    <p className="text-center text-[10px] text-slate-500 font-bold pt-1">
+                      +{waitingQueue.length - 6} more in queue
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Congestion Checker Panel */}
       <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm">

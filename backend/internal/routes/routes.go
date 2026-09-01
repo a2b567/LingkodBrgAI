@@ -18,6 +18,16 @@ func SetupRouter() *gin.Engine {
 	// 2. Async Non-Blocking Audit Logging for legal compliance
 	r.Use(middleware.AsyncAuditLogger())
 
+	// Root health landing route
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"system":  "LingkodBrgyAI — Smart Governance API",
+			"status":  "online",
+			"version": "2.0.0",
+			"health":  "/api/ping",
+		})
+	})
+
 	// Serve Static files for uploads (photos, certificates, etc.)
 	r.Static("/uploads", "./uploads")
 
