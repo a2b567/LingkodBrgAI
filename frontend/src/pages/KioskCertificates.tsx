@@ -392,16 +392,6 @@ export const KioskCertificates: React.FC = () => {
                 </button>
               ))}
             </div>
-
-            <div className="pt-4 flex justify-center">
-              <button
-                onClick={() => setStep(0)}
-                className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-2xl border border-slate-700/80 transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <RotateCcw size={14} />
-                {lang === 'tl' ? 'Bumalik sa Simula' : 'Back to Welcome Screen'}
-              </button>
-            </div>
           </div>
         )}
 
