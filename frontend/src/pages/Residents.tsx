@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, Plus, Search, Edit2, Trash2, FileSpreadsheet, QrCode,
-  XCircle, UserX, UserCheck, Loader2, Upload
+  XCircle, UserX, UserCheck, Loader2, Upload, CheckCircle2, Sparkles, Save
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Resident } from '../types';
@@ -381,35 +381,50 @@ export const Residents: React.FC = () => {
 
       {/* Editor Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden glass-panel">
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl sm:max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden glass-panel relative">
+            <div className="h-1 bg-gradient-to-r from-gov-blue-600 via-gov-gold-400 to-indigo-600" />
             
             {/* Title */}
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="font-bold text-sm text-gov-blue-800 dark:text-gov-blue-300 uppercase">
-                {editingId ? 'Edit Resident Profile' : 'Register New Resident'}
-              </h3>
-              <button onClick={() => setShowModal(false)} title="Close Modal" className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200">
-                <XCircle size={20} />
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 rounded-xl border border-gov-blue-500/20">
+                  <Users size={18} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-gov-blue-900 dark:text-gov-blue-300 uppercase tracking-wide">
+                    {editingId ? 'Edit Resident Profile' : 'Register New Resident'}
+                  </h3>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                    Barangay Lawrence Resident Database Entry
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowModal(false)} 
+                title="Close Modal" 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-xl transition-colors cursor-pointer"
+              >
+                <XCircle size={22} />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[500px] overflow-y-auto">
+            <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-thin">
               
               {/* Profile photo uploader */}
-              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/40 dark:border-slate-800/40">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/40 dark:border-slate-800/80">
+                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-inner">
                   {photoUrl ? (
                     <img src={`http://localhost:8080${photoUrl}`} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <Users size={24} className="text-slate-500 dark:text-slate-400" />
+                    <Users size={24} className="text-slate-400 dark:text-slate-500" />
                   )}
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Profile Photo</label>
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold rounded-lg cursor-pointer hover:bg-slate-50">
-                    <Upload size={12} />
+                  <label className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/80 transition-all text-slate-700 dark:text-slate-200 shadow-sm">
+                    <Upload size={12} className="text-gov-blue-500" />
                     Upload Image
                     <input 
                       type="file" 
@@ -427,34 +442,34 @@ export const Residents: React.FC = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">First Name</label>
-                  <input type="text" required title="First Name" placeholder="First Name" value={form.first_name} onChange={(e) => setForm({...form, first_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">First Name *</label>
+                  <input type="text" required title="First Name" placeholder="First Name" value={form.first_name} onChange={(e) => setForm({...form, first_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Middle Name</label>
-                  <input type="text" title="Middle Name" placeholder="Middle Name" value={form.middle_name} onChange={(e) => setForm({...form, middle_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                  <input type="text" title="Middle Name" placeholder="Middle Name" value={form.middle_name} onChange={(e) => setForm({...form, middle_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Last Name</label>
-                  <input type="text" required title="Last Name" placeholder="Last Name" value={form.last_name} onChange={(e) => setForm({...form, last_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Last Name *</label>
+                  <input type="text" required title="Last Name" placeholder="Last Name" value={form.last_name} onChange={(e) => setForm({...form, last_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Birthdate</label>
-                  <input type="date" required title="Birthdate" placeholder="Birthdate" value={form.birthdate} onChange={(e) => setForm({...form, birthdate: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Birthdate *</label>
+                  <input type="date" required title="Birthdate" placeholder="Birthdate" value={form.birthdate} onChange={(e) => setForm({...form, birthdate: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Gender</label>
-                  <select value={form.gender} title="Gender" onChange={(e) => setForm({...form, gender: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                  <select value={form.gender} title="Gender" onChange={(e) => setForm({...form, gender: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Civil Status</label>
-                  <select value={form.civil_status} title="Civil Status" onChange={(e) => setForm({...form, civil_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                  <select value={form.civil_status} title="Civil Status" onChange={(e) => setForm({...form, civil_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
                     <option value="Single">Single</option>
                     <option value="Married">Married</option>
                     <option value="Widowed">Widowed</option>
@@ -466,34 +481,34 @@ export const Residents: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Contact Number</label>
-                  <input type="text" title="Contact Number" placeholder="Contact Number" value={form.contact_number} onChange={(e) => setForm({...form, contact_number: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                  <input type="text" title="Contact Number" placeholder="09123456789" value={form.contact_number} onChange={(e) => setForm({...form, contact_number: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Email</label>
-                  <input type="email" title="Email" placeholder="Email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                  <input type="email" title="Email" placeholder="resident@email.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Occupation</label>
-                  <input type="text" title="Occupation" placeholder="Occupation" value={form.occupation} onChange={(e) => setForm({...form, occupation: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                  <input type="text" title="Occupation" placeholder="Occupation" value={form.occupation} onChange={(e) => setForm({...form, occupation: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Address</label>
-                <input type="text" required title="Address" placeholder="Address" value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none" />
+                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Address *</label>
+                <input type="text" required title="Address" placeholder="Street, Purok, Zone..." value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Voter Status</label>
-                  <select value={form.voter_status} title="Voter Status" onChange={(e) => setForm({...form, voter_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                  <select value={form.voter_status} title="Voter Status" onChange={(e) => setForm({...form, voter_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
                     <option value="Registered">Registered</option>
                     <option value="Not Registered">Not Registered</option>
                   </select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Residency Status</label>
-                  <select value={form.residency_status} title="Residency Status" onChange={(e) => setForm({...form, residency_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs focus:outline-none">
+                  <select value={form.residency_status} title="Residency Status" onChange={(e) => setForm({...form, residency_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
                     <option value="Permanent">Permanent</option>
                     <option value="Temporary">Temporary</option>
                   </select>
@@ -501,48 +516,98 @@ export const Residents: React.FC = () => {
               </div>
 
               {/* HEALTH & PRIORITY CATEGORY */}
-              <div className="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 space-y-3">
-                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
-                  HEALTH & PRIORITY CATEGORY
-                </label>
-                <div className="flex flex-wrap gap-5 items-center">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-gov-blue-500 transition-colors select-none">
+              <div className="p-4 bg-slate-50 dark:bg-slate-950/70 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-3 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-gov-gold-600 dark:text-gov-gold-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-gov-gold-500" />
+                    HEALTH & PRIORITY CATEGORY
+                  </label>
+                  <span className="text-[9px] text-slate-400 font-semibold">Optional category tag</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Pregnant Option */}
+                  <label 
+                    className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-between select-none ${
+                      form.is_pregnant 
+                        ? 'bg-pink-500/10 dark:bg-pink-500/15 border-pink-500/60 text-pink-700 dark:text-pink-200 shadow-sm ring-1 ring-pink-500/30' 
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">🤰</span>
+                      <div>
+                        <div className="text-xs font-extrabold text-slate-900 dark:text-white">Pregnant</div>
+                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">Nagdadalang-tao</div>
+                      </div>
+                    </div>
                     <input
                       type="checkbox"
                       checked={form.is_pregnant}
                       onChange={(e) => setForm({ ...form, is_pregnant: e.target.checked })}
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-gov-blue-600 focus:ring-gov-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                      className="sr-only"
                     />
-                    <span className="flex items-center gap-1">
-                      <span>🤰</span>
-                      <span>Pregnant (Nagdadalang-tao)</span>
-                    </span>
+                    <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors ${
+                      form.is_pregnant ? 'bg-pink-500 border-pink-400 text-white' : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950'
+                    }`}>
+                      {form.is_pregnant && <CheckCircle2 size={12} />}
+                    </div>
                   </label>
 
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-gov-blue-500 transition-colors select-none">
+                  {/* Senior Citizen Option */}
+                  <label 
+                    className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-between select-none ${
+                      form.is_senior 
+                        ? 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/60 text-amber-700 dark:text-amber-200 shadow-sm ring-1 ring-amber-500/30' 
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">👴</span>
+                      <div>
+                        <div className="text-xs font-extrabold text-slate-900 dark:text-white">Senior Citizen</div>
+                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">60+ Years Old</div>
+                      </div>
+                    </div>
                     <input
                       type="checkbox"
                       checked={form.is_senior}
                       onChange={(e) => setForm({ ...form, is_senior: e.target.checked })}
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-gov-blue-600 focus:ring-gov-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                      className="sr-only"
                     />
-                    <span className="flex items-center gap-1">
-                      <span>👴</span>
-                      <span>Senior Citizen (60+)</span>
-                    </span>
+                    <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors ${
+                      form.is_senior ? 'bg-amber-500 border-amber-400 text-white' : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950'
+                    }`}>
+                      {form.is_senior && <CheckCircle2 size={12} />}
+                    </div>
                   </label>
 
-                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-gov-blue-500 transition-colors select-none">
+                  {/* PWD Option */}
+                  <label 
+                    className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-between select-none ${
+                      form.is_pwd 
+                        ? 'bg-blue-500/10 dark:bg-blue-500/15 border-blue-500/60 text-blue-700 dark:text-blue-200 shadow-sm ring-1 ring-blue-500/30' 
+                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[9px] font-black">♿</span>
+                      <div>
+                        <div className="text-xs font-extrabold text-slate-900 dark:text-white">PWD</div>
+                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">With Disability</div>
+                      </div>
+                    </div>
                     <input
                       type="checkbox"
                       checked={form.is_pwd}
                       onChange={(e) => setForm({ ...form, is_pwd: e.target.checked })}
-                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-gov-blue-600 focus:ring-gov-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                      className="sr-only"
                     />
-                    <span className="flex items-center gap-1.5">
-                      <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] font-black">♿</span>
-                      <span>Person with Disability (PWD)</span>
-                    </span>
+                    <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors ${
+                      form.is_pwd ? 'bg-blue-500 border-blue-400 text-white' : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950'
+                    }`}>
+                      {form.is_pwd && <CheckCircle2 size={12} />}
+                    </div>
                   </label>
                 </div>
               </div>
@@ -551,16 +616,17 @@ export const Residents: React.FC = () => {
                 <button 
                   type="button" 
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 rounded-xl text-xs font-bold"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer text-slate-700 dark:text-slate-300"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={isSaving}
-                  className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md"
+                  className="px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-indigo-600 hover:from-gov-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-extrabold shadow-lg shadow-gov-blue-600/25 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
                 >
-                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : 'Save Resident'}
+                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Save Resident
                 </button>
               </div>
             </form>
