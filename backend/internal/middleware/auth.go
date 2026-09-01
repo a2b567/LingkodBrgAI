@@ -42,20 +42,34 @@ func GenerateJWT(userID uuid.UUID, username, role string, residentID *uuid.UUID)
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+		tokenString := ""
+
+		if authHeader != "" {
+			parts := strings.Split(authHeader, " ")
+			if len(parts) == 2 && parts[0] == "Bearer" {
+				tokenString = parts[1]
+			}
+		}
+
+		// Fallback to URL query parameter if Authorization header is missing (e.g. for CSV/PDF downloads)
+		if tokenString == "" {
+			if qToken := c.Query("token"); qToken != "" {
+				tokenString = qToken
+			} else if qAuth := c.Query("Authorization"); qAuth != "" {
+				parts := strings.Split(qAuth, " ")
+				if len(parts) == 2 && parts[0] == "Bearer" {
+					tokenString = parts[1]
+				} else {
+					tokenString = qAuth
+				}
+			}
+		}
+
+		if tokenString == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
 			return
 		}
-
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header must be Bearer token"})
-			c.Abort()
-			return
-		}
-
-		tokenString := parts[1]
 		claims := &JWTClaims{}
 
 		cfg := config.LoadConfig()
