@@ -36,6 +36,9 @@ export const Residents: React.FC = () => {
     citizenship: 'Filipino',
     residency_status: 'Permanent',
     voter_status: 'Not Registered',
+    is_pregnant: false,
+    is_senior: false,
+    is_pwd: false,
   });
 
   // QR Modal States
@@ -103,6 +106,9 @@ export const Residents: React.FC = () => {
       citizenship: res.citizenship,
       residency_status: res.residency_status,
       voter_status: res.voter_status,
+      is_pregnant: !!res.is_pregnant,
+      is_senior: !!res.is_senior,
+      is_pwd: !!res.is_pwd,
     });
     setPhotoUrl(res.profile_photo || '');
     setShowModal(true);
@@ -125,6 +131,9 @@ export const Residents: React.FC = () => {
       citizenship: 'Filipino',
       residency_status: 'Permanent',
       voter_status: 'Not Registered',
+      is_pregnant: false,
+      is_senior: false,
+      is_pwd: false,
     });
     setPhotoUrl('');
     setShowModal(true);
@@ -286,7 +295,12 @@ export const Residents: React.FC = () => {
                           )}
                         </div>
                         <div>
-                          <p className="font-bold">{r.last_name}, {r.first_name} {r.middle_name || ''}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-bold">{r.last_name}, {r.first_name} {r.middle_name || ''}</p>
+                            {r.is_pregnant && <span title="Pregnant" className="text-[10px]">🤰</span>}
+                            {r.is_senior && <span title="Senior Citizen" className="text-[10px]">👴</span>}
+                            {r.is_pwd && <span title="Person with Disability" className="text-[9px] bg-blue-600 text-white px-1 rounded font-bold">♿ PWD</span>}
+                          </div>
                           <span className="text-[10px] text-slate-500 dark:text-slate-400">{r.email || 'No email'}</span>
                         </div>
                       </div>
@@ -483,6 +497,53 @@ export const Residents: React.FC = () => {
                     <option value="Permanent">Permanent</option>
                     <option value="Temporary">Temporary</option>
                   </select>
+                </div>
+              </div>
+
+              {/* HEALTH & PRIORITY CATEGORY */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 space-y-3">
+                <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest block">
+                  HEALTH & PRIORITY CATEGORY
+                </label>
+                <div className="flex flex-wrap gap-5 items-center">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-gov-blue-500 transition-colors select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.is_pregnant}
+                      onChange={(e) => setForm({ ...form, is_pregnant: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-gov-blue-600 focus:ring-gov-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                    />
+                    <span className="flex items-center gap-1">
+                      <span>🤰</span>
+                      <span>Pregnant (Nagdadalang-tao)</span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-gov-blue-500 transition-colors select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.is_senior}
+                      onChange={(e) => setForm({ ...form, is_senior: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-gov-blue-600 focus:ring-gov-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                    />
+                    <span className="flex items-center gap-1">
+                      <span>👴</span>
+                      <span>Senior Citizen (60+)</span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-gov-blue-500 transition-colors select-none">
+                    <input
+                      type="checkbox"
+                      checked={form.is_pwd}
+                      onChange={(e) => setForm({ ...form, is_pwd: e.target.checked })}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 text-gov-blue-600 focus:ring-gov-blue-500 bg-white dark:bg-slate-900 cursor-pointer"
+                    />
+                    <span className="flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded text-[10px] font-black">♿</span>
+                      <span>Person with Disability (PWD)</span>
+                    </span>
+                  </label>
                 </div>
               </div>
 

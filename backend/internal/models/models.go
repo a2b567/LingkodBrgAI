@@ -56,6 +56,9 @@ type Resident struct {
 	Citizenship     string     `gorm:"default:'Filipino'" json:"citizenship"`
 	ResidencyStatus string     `gorm:"default:'Permanent'" json:"residency_status"` // Permanent, Temporary
 	VoterStatus     string     `gorm:"default:'Not Registered'" json:"voter_status"` // Registered, Not Registered
+	IsPregnant      bool       `gorm:"default:false" json:"is_pregnant"`
+	IsSenior        bool       `gorm:"default:false" json:"is_senior"`
+	IsPWD           bool       `gorm:"default:false" json:"is_pwd"`
 	ProfilePhoto    string     `json:"profile_photo"`
 	HouseholdID     *uuid.UUID `gorm:"type:uuid" json:"household_id,omitempty"`
 	IsHouseholdHead bool       `gorm:"default:false" json:"is_household_head"`

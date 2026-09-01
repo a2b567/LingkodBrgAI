@@ -25,6 +25,9 @@ export interface Resident {
   citizenship: string;
   residency_status: string;
   voter_status: string;
+  is_pregnant?: boolean;
+  is_senior?: boolean;
+  is_pwd?: boolean;
   profile_photo?: string;
   household_id?: string;
   is_household_head: boolean;
