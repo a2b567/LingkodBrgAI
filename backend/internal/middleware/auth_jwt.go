@@ -123,7 +123,7 @@ func StrictAuthMiddleware() gin.HandlerFunc {
 
 		// 7. IMPOSSIBLE TRAVEL ANOMALY DETECTION
 		if claims.Latitude != 0 || claims.Longitude != 0 {
-			if checkImpossibleTravel(c, ctx, claims, clientIP) {
+			if checkImpossibleTravel(ctx, claims, clientIP) {
 				// Block token in Redis
 				if claims.ID != "" && rediscache.IsAvailable() {
 					rClient.Set(ctx, fmt.Sprintf("blocklist:jti:%s", claims.ID), "impossible_travel", 24*time.Hour)
@@ -151,7 +151,7 @@ func StrictAuthMiddleware() gin.HandlerFunc {
 }
 
 // checkImpossibleTravel evaluates distance (>500km) and time (<2h) between last login and current request.
-func checkImpossibleTravel(c *gin.Context, ctx context.Context, claims *StrictJWTClaims, currentIP string) bool {
+func checkImpossibleTravel(ctx context.Context, claims *StrictJWTClaims, currentIP string) bool {
 	rClient := rediscache.GetClient()
 	if !rediscache.IsAvailable() {
 		return false
