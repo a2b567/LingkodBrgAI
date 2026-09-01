@@ -458,11 +458,49 @@ export const Residents: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Birthdate *</label>
-                  <input type="date" required title="Birthdate" placeholder="Birthdate" value={form.birthdate} onChange={(e) => setForm({...form, birthdate: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  <input 
+                    type="date" 
+                    required 
+                    title="Birthdate" 
+                    placeholder="Birthdate" 
+                    value={form.birthdate} 
+                    onChange={(e) => {
+                      const bdate = e.target.value;
+                      let isSeniorAuto = form.is_senior;
+                      let isPregnantAuto = form.is_pregnant;
+                      if (bdate) {
+                        const birthYear = new Date(bdate).getFullYear();
+                        const currentYear = new Date().getFullYear();
+                        if (currentYear - birthYear >= 60) {
+                          isSeniorAuto = true;
+                          isPregnantAuto = false;
+                        }
+                      }
+                      setForm({
+                        ...form,
+                        birthdate: bdate,
+                        is_senior: isSeniorAuto,
+                        is_pregnant: isPregnantAuto
+                      });
+                    }} 
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" 
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Gender</label>
-                  <select value={form.gender} title="Gender" onChange={(e) => setForm({...form, gender: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
+                  <select 
+                    value={form.gender} 
+                    title="Gender" 
+                    onChange={(e) => {
+                      const g = e.target.value;
+                      setForm({
+                        ...form,
+                        gender: g,
+                        is_pregnant: g === 'Male' ? false : form.is_pregnant
+                      });
+                    }} 
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white"
+                  >
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                   </select>
@@ -528,29 +566,46 @@ export const Residents: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Pregnant Option */}
                   <label 
-                    className={`p-3 rounded-xl border transition-all duration-200 cursor-pointer flex items-center justify-between select-none ${
-                      form.is_pregnant 
-                        ? 'bg-pink-500/10 dark:bg-pink-500/15 border-pink-500/60 text-pink-700 dark:text-pink-200 shadow-sm ring-1 ring-pink-500/30' 
-                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700'
+                    className={`p-3 rounded-xl border transition-all duration-200 flex items-center justify-between select-none ${
+                      (form.gender === 'Male' || form.is_senior)
+                        ? 'opacity-40 bg-slate-100 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-400 cursor-not-allowed'
+                        : form.is_pregnant 
+                          ? 'bg-pink-500/10 dark:bg-pink-500/15 border-pink-500/60 text-pink-700 dark:text-pink-200 shadow-sm ring-1 ring-pink-500/30 cursor-pointer' 
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center gap-2.5">
                       <span className="text-lg">🤰</span>
                       <div>
-                        <div className="text-xs font-extrabold text-slate-900 dark:text-white">Pregnant</div>
-                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">Nagdadalang-tao</div>
+                        <div className="text-xs font-extrabold text-slate-900 dark:text-white flex items-center gap-1">
+                          Pregnant
+                          {(form.gender === 'Male' || form.is_senior) && (
+                            <span className="text-[8px] px-1 bg-slate-200 dark:bg-slate-800 text-slate-500 rounded">N/A</span>
+                          )}
+                        </div>
+                        <div className="text-[9px] text-slate-500 dark:text-slate-400 font-medium">
+                          {form.gender === 'Male' ? 'Female only' : form.is_senior ? 'N/A for Senior' : 'Nagdadalang-tao'}
+                        </div>
                       </div>
                     </div>
                     <input
                       type="checkbox"
-                      checked={form.is_pregnant}
-                      onChange={(e) => setForm({ ...form, is_pregnant: e.target.checked })}
+                      disabled={form.gender === 'Male' || form.is_senior}
+                      checked={form.is_pregnant && form.gender !== 'Male' && !form.is_senior}
+                      onChange={(e) => {
+                        if (form.gender === 'Male' || form.is_senior) return;
+                        setForm({ 
+                          ...form, 
+                          is_pregnant: e.target.checked,
+                          is_senior: e.target.checked ? false : form.is_senior
+                        });
+                      }}
                       className="sr-only"
                     />
                     <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors ${
-                      form.is_pregnant ? 'bg-pink-500 border-pink-400 text-white' : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950'
+                      form.is_pregnant && form.gender !== 'Male' && !form.is_senior ? 'bg-pink-500 border-pink-400 text-white' : 'border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950'
                     }`}>
-                      {form.is_pregnant && <CheckCircle2 size={12} />}
+                      {form.is_pregnant && form.gender !== 'Male' && !form.is_senior && <CheckCircle2 size={12} />}
                     </div>
                   </label>
 
@@ -572,7 +627,15 @@ export const Residents: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={form.is_senior}
-                      onChange={(e) => setForm({ ...form, is_senior: e.target.checked })}
+                      onChange={(e) => {
+                        const isSeniorChecked = e.target.checked;
+                        setForm({ 
+                          ...form, 
+                          is_senior: isSeniorChecked,
+                          // If senior is checked, automatically uncheck pregnant
+                          is_pregnant: isSeniorChecked ? false : form.is_pregnant
+                        });
+                      }}
                       className="sr-only"
                     />
                     <div className={`w-4 h-4 rounded-md flex items-center justify-center border transition-colors ${
