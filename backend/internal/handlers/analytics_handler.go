@@ -57,8 +57,8 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 	seniorThreshold := time.Now().AddDate(-60, 0, 0)
 	db.Model(&models.Resident{}).Where("birthdate <= ?", seniorThreshold).Count(&stats.SeniorCount)
 
-	// Since we don't have PWD boolean column in Resident, we check mock condition or civil status (for mock purposes, we set PWD to 2 for seeding/demo)
-	stats.PWDsCount = 1 // Mock static value
+	// PWD count
+	stats.PWDsCount = 0
 
 	// Gender Ratio
 	var maleCount, femaleCount int64
@@ -81,16 +81,15 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 	db.Model(&models.Resident{}).Where("birthdate <= ?", adultThreshold).Count(&stats.AgeDemographics.Seniors)
 
 	// Monthly Revenue stats
-	// Sum amount grouped by Month
+	// Sum amount grouped by Month (compatible with SQLite strftime)
 	var paymentMonths []struct {
 		Month string
 		Total float64
 	}
-	// Select formatted date string and sum
 	db.Model(&models.Payment{}).
-		Select("TO_CHAR(transaction_date, 'YYYY-MM') as month, SUM(amount) as total").
+		Select("strftime('%Y-%m', transaction_date) as month, SUM(amount) as total").
 		Where("status = ?", "Paid").
-		Group("TO_CHAR(transaction_date, 'YYYY-MM')").
+		Group("strftime('%Y-%m', transaction_date)").
 		Order("month asc").
 		Scan(&paymentMonths)
 
@@ -107,14 +106,17 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 		})
 	}
 
-	// Default mockup revenue if empty database
+	// PWD count
+	stats.PWDsCount = 0
+
+	// Default revenue structure if database payments are empty (all 0.00)
 	if len(stats.RevenueHistory) == 0 {
 		stats.RevenueHistory = []RevenueMonth{
-			{Month: "Jan", Amount: 2450.00},
-			{Month: "Feb", Amount: 3100.00},
-			{Month: "Mar", Amount: 1800.00},
-			{Month: "Apr", Amount: 4200.00},
-			{Month: "May", Amount: 3800.00},
+			{Month: "Jan", Amount: 0.00},
+			{Month: "Feb", Amount: 0.00},
+			{Month: "Mar", Amount: 0.00},
+			{Month: "Apr", Amount: 0.00},
+			{Month: "May", Amount: 0.00},
 		}
 	}
 

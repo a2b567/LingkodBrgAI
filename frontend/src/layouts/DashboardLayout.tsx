@@ -3,12 +3,13 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
   Briefcase, Calendar, Settings, LogOut, Sun, Moon,
-  Menu, X, ShieldAlert, ListOrdered, Activity
+  Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { AIFloatingPanel } from '../components/AIFloatingPanel';
-import logo from '../assets/logo.png';
+import { api } from '../services/api';
+import type { Notification } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -20,12 +21,57 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [liveAnnouncement, setLiveAnnouncement] = useState<{ title: string; content: string } | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [popupToast, setPopupToast] = useState<{ title: string; content: string; type?: string } | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await api.notifications.list();
+      if (user?.role === 'Resident') {
+        const filtered = (data || []).filter(n => 
+          n.type === 'Announcement' || n.type === 'Certificate' || n.type === 'Account' || n.type === 'General'
+        );
+        setNotifications(filtered);
+      } else {
+        setNotifications(data || []);
+      }
+    } catch (err) {
+      console.error("Failed fetching notifications", err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+    }
+  }, [user]);
+
+  const handleMarkRead = async (id: string) => {
+    try {
+      await api.notifications.read(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await Promise.all(notifications.filter(n => !n.is_read).map(n => api.notifications.read(n.id)));
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Screen size detection for responsiveness
@@ -52,27 +98,59 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [location.pathname, isMobile]);
 
-  // WebSocket Live announcements
+  // WebSocket Live announcements & real-time notifications
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:8080/api/ws');
+    const wsUrl = window.location.protocol === 'https:'
+      ? `wss://${window.location.host}/api/ws`
+      : 'ws://localhost:8080/api/ws';
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.title && data.content) {
-          setLiveAnnouncement({ title: data.title, content: data.content });
-          // Auto-hide alert after 8 seconds
-          setTimeout(() => {
-            setLiveAnnouncement(null);
-          }, 8000);
-        }
-      } catch (err) {
-        // Handle message parse error
-      }
-    };
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.title && data.content) {
+            // Residents ONLY receive Announcements & personal notifications, NOT staff Kiosk alerts!
+            if (user?.role === 'Resident' && (data.type === 'Document' || (data.title && data.title.includes('Kiosk')))) {
+              return;
+            }
+
+            const newNotif: Notification = {
+              id: Date.now().toString(),
+              title: data.title,
+              content: data.content,
+              type: data.type || 'Announcement',
+              is_read: false,
+              created_at: new Date().toISOString()
+            };
+
+            setNotifications(prev => [newNotif, ...prev]);
+            setLiveAnnouncement({ title: data.title, content: data.content });
+
+            // Popup Toast Notification
+            setPopupToast({
+              title: data.title,
+              content: data.content,
+              type: data.type || 'Announcement'
+            });
+
+            // Auto-hide popup toast after 7 seconds
+            setTimeout(() => {
+              setPopupToast(null);
+            }, 7000);
+
+            setTimeout(() => {
+              setLiveAnnouncement(null);
+            }, 8000);
+          }
+        } catch (err) {}
+      };
+    } catch (e) {}
 
     return () => {
-      ws.close();
+      if (ws) ws.close();
     };
   }, []);
 
@@ -115,7 +193,9 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Letterhead Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-          <img src={logo} alt="Barangay Logo" className="w-9 h-9 object-contain rounded-xl shadow-md flex-shrink-0 transition-transform duration-300 hover:rotate-6" />
+          <div className="w-9 h-9 bg-gradient-to-tr from-gov-blue-700 to-indigo-800 rounded-xl flex items-center justify-center text-white shadow-md flex-shrink-0">
+            <ShieldAlert size={20} className="text-gov-gold-400" />
+          </div>
           {sidebarOpen && (
             <div className="flex flex-col justify-center">
               <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">LingkodBrgyAI</div>
@@ -207,8 +287,93 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             </div>
           </div>
 
-          {/* Quick Stats Header info */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Header Right Actions: Notification Bell + Quick Stats info */}
+          <div className="flex items-center gap-3 sm:gap-4 relative">
+            
+            {/* Global Notification Bell & Dropdown Panel (Works for Resident & Staff) */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowNotifDropdown(prev => !prev)}
+                className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Notifications"
+              >
+                <Bell size={20} />
+              </button>
+
+              {/* Notification Dropdown Panel */}
+              {showNotifDropdown && (
+                <div className="absolute right-0 mt-3 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 overflow-hidden glass-panel">
+                  <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell size={16} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                      <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">Notifications</h4>
+                      {unreadCount > 0 && (
+                        <span className="text-[10px] font-black bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2 py-0.5 rounded-full border border-rose-500/20">
+                          {unreadCount} new
+                        </span>
+                      )}
+                    </div>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllRead}
+                        className="text-[10px] font-bold text-gov-blue-600 dark:text-gov-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        <CheckCheck size={12} />
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                    {notifications.length === 0 ? (
+                      <div className="p-6 text-center text-slate-400 dark:text-slate-500 space-y-1">
+                        <Bell size={24} className="mx-auto opacity-40 mb-2" />
+                        <p className="text-xs font-bold">No notifications</p>
+                        <p className="text-[10px]">Announcements and updates will appear here</p>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div
+                          key={n.id}
+                          onClick={() => handleMarkRead(n.id)}
+                          className={`p-3.5 flex items-start gap-3 transition-colors cursor-pointer ${
+                            n.is_read 
+                              ? 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60' 
+                              : 'bg-gov-blue-50/50 dark:bg-gov-blue-950/30 hover:bg-gov-blue-50 dark:hover:bg-gov-blue-950/50'
+                          }`}
+                        >
+                          <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                            n.type === 'Alert' || n.type === 'Emergency'
+                              ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                              : 'bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 border border-gov-blue-500/20'
+                          }`}>
+                            {n.type === 'Alert' || n.type === 'Emergency' ? <AlertTriangle size={15} /> : <Megaphone size={15} />}
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-0.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className={`text-xs truncate ${!n.is_read ? 'font-extrabold text-slate-900 dark:text-white' : 'font-semibold text-slate-700 dark:text-slate-300'}`}>
+                                {n.title}
+                              </p>
+                              {!n.is_read && (
+                                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
+                              {n.content}
+                            </p>
+                            <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold pt-0.5">
+                              {n.created_at ? new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <span className="flex items-center gap-2 text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full status-pulse"></span>
               Live Sync
@@ -216,7 +381,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-800"></div>
             <div className="hidden sm:block text-right">
               <p className="text-xs font-bold">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</p>
-              <p className="text-[10px] text-slate-550 dark:text-slate-400 font-bold uppercase tracking-wide">Laguna, PH</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wide">Laguna, PH</p>
             </div>
           </div>
         </header>
@@ -226,6 +391,32 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Floating Pop-up Toast Notification (Top-Right Corner) */}
+      {popupToast && (
+        <div className="fixed top-5 right-5 z-50 max-w-sm w-full bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-gov-gold-400/80 flex items-start gap-3.5 animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="p-2.5 bg-gov-gold-500/20 text-gov-gold-400 rounded-xl border border-gov-gold-400/40 shrink-0">
+            <Megaphone size={20} className="animate-pulse" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-1">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[9px] font-black uppercase tracking-widest text-gov-gold-400">
+                NEW ANNOUNCEMENT
+              </span>
+              <span className="text-[9px] font-bold text-slate-400">Just now</span>
+            </div>
+            <h5 className="font-extrabold text-xs text-white leading-snug truncate">{popupToast.title}</h5>
+            <p className="text-[11px] text-slate-300 leading-relaxed font-medium line-clamp-3">{popupToast.content}</p>
+          </div>
+          <button
+            onClick={() => setPopupToast(null)}
+            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
+            title="Dismiss notification"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* Real-time WebSocket announcement notification banner */}
       {liveAnnouncement && (
@@ -238,7 +429,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           </div>
           <button
             onClick={() => setLiveAnnouncement(null)}
-            className="text-slate-300 hover:text-white absolute top-3 right-3"
+            className="text-slate-300 hover:text-white absolute top-3 right-3 cursor-pointer"
             title="Close announcement"
           >
             <X size={14} />

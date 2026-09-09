@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, Moon, Sun, Shield, QrCode, Check, UserCheck, Megaphone, Plus, Trash2, X, Globe, ImagePlus, Trash } from 'lucide-react';
+import { Lock, Moon, Sun, Shield, QrCode, Check, UserCheck, Megaphone, Plus, Trash2, X, Globe, ImagePlus, Trash, CreditCard, Save } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { api } from '../services/api';
@@ -100,6 +100,17 @@ export const Settings: React.FC = () => {
   const [annContent, setAnnContent] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
+  // Certificate Fee Management
+  const defaultCertFees = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+  const [certFees, setCertFees] = useState<Record<string, number>>(() => {
+    try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
+  });
+  const [certFeeSuccessMsg, setCertFeeSuccessMsg] = useState('');
+  const [isFeePasswordModalOpen, setIsFeePasswordModalOpen] = useState(false);
+  const [feePassword, setFeePassword] = useState('');
+  const [feePasswordError, setFeePasswordError] = useState('');
+  const [isSavingFees, setIsSavingFees] = useState(false);
+
   useEffect(() => {
     if (user) {
       setUsername(user.username);
@@ -183,6 +194,32 @@ export const Settings: React.FC = () => {
     localStorage.setItem('lingkod_landing_announcements', JSON.stringify(updated));
   };
 
+  const handleCertFeeSave = () => {
+    setFeePassword('');
+    setFeePasswordError('');
+    setIsFeePasswordModalOpen(true);
+  };
+
+  const confirmCertFeeSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feePassword || feePassword.trim() === '') {
+      setFeePasswordError('Current password is required to save fee changes.');
+      return;
+    }
+
+    setIsSavingFees(true);
+    setFeePasswordError('');
+
+    setTimeout(() => {
+      localStorage.setItem('cert_fees', JSON.stringify(certFees));
+      setIsSavingFees(false);
+      setIsFeePasswordModalOpen(false);
+      setCertFeeSuccessMsg('Certificate fees updated successfully.');
+      setFeePassword('');
+      setTimeout(() => setCertFeeSuccessMsg(''), 3000);
+    }, 600);
+  };
+
   const res = user?.resident;
 
   return (
@@ -233,14 +270,14 @@ export const Settings: React.FC = () => {
               <span className="text-[9px] font-mono text-slate-300 mt-0.5">{res.qr_id}</span>
               
               {/* Fake QR Image placeholder with nice style */}
-              <div className="w-28 h-28 bg-white p-2.5 rounded-2xl border border-gov-gold-400/20 mt-4">
+              <div className="w-28 h-28 bg-white p-2 rounded-2xl border border-gov-gold-400/20 mt-4 flex items-center justify-center">
                 <img 
-                  src={`http://localhost:8080/uploads/qr/${res.id}.png`} 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(res.qr_id || `QR-RES-${res.id}`)}`} 
                   alt="Resident QR Code" 
                   onError={(e) => {
-                    e.currentTarget.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://localhost:5173/verify/resident/" + res.id;
+                    e.currentTarget.src = `http://localhost:8080/uploads/qr/${res.id}.png`;
                   }}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full object-contain rounded-lg"
                 />
               </div>
               <span className="text-[8px] text-slate-300 mt-2.5 text-center leading-normal">Show QR Code during verification inspections.</span>
@@ -667,6 +704,143 @@ export const Settings: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Current Password Security Verification Modal for Certificate Fees */}
+      {isFeePasswordModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gov-gold-500/10 rounded-xl text-gov-gold-600 dark:text-gov-gold-400 border border-gov-gold-500/20">
+                  <Lock size={18} />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Security Verification</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Enter your current password to save fee changes</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsFeePasswordModalOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={confirmCertFeeSave} className="space-y-4 pt-1">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
+                  Current Account Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={feePassword}
+                  onChange={(e) => {
+                    setFeePassword(e.target.value);
+                    setFeePasswordError('');
+                  }}
+                  required
+                  autoFocus
+                  placeholder="Enter current password..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gov-gold-500/40 focus:border-gov-gold-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                />
+                {feePasswordError && (
+                  <p className="text-xs font-bold text-red-500 mt-1.5">{feePasswordError}</p>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsFeePasswordModalOpen(false)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingFees}
+                  className="px-5 py-2.5 bg-gov-gold-500 hover:bg-gov-gold-600 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+                >
+                  {isSavingFees ? (
+                    <>
+                      <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      </svg>
+                      Verifying...
+                    </>
+                  ) : (
+                    'Confirm & Save Fees'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Certificate Fee Management (Staff Only) */}
+      {isStaff && (
+        <div className="glass-card p-6 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gov-gold-500/10 rounded-xl text-gov-gold-600 dark:text-gov-gold-400 border border-gov-gold-500/20">
+              <CreditCard size={18} />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Certificate Fee Management</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Set the official processing fee for each document type. Changes apply to all issuance channels.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { key: 'Clearance',   label: 'Barangay Clearance',       color: 'border-l-gov-blue-500' },
+              { key: 'Indigency',   label: 'Certificate of Indigency',  color: 'border-l-emerald-500' },
+              { key: 'Residency',   label: 'Certificate of Residency',  color: 'border-l-gov-gold-500' },
+              { key: 'Business',    label: 'Business Clearance',        color: 'border-l-indigo-500' },
+              { key: 'Cedula',      label: 'Cedula (CTC)',              color: 'border-l-rose-500' },
+              { key: 'Barangay ID', label: 'Barangay ID Card',          color: 'border-l-teal-500' },
+            ].map(({ key, label, color }) => (
+              <div key={key} className={`bg-white dark:bg-slate-800/60 rounded-2xl border-l-4 ${color} border border-slate-200 dark:border-slate-700/60 p-4 space-y-2`}>
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 block">{label}</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-extrabold text-slate-700 dark:text-slate-300">₱</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={certFees[key] ?? 0}
+                    onChange={(e) => setCertFees(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
+                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-extrabold text-slate-900 dark:text-white focus:outline-none focus:border-gov-gold-400 dark:focus:border-gov-gold-500 transition-colors"
+                  />
+                </div>
+                {certFees[key] === 0 && (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Free document</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {certFeeSuccessMsg && (
+            <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-4 py-2.5 rounded-xl">
+              <Check size={14} /> {certFeeSuccessMsg}
+            </div>
+          )}
+
+          <div className="flex justify-end pt-1">
+            <button
+              onClick={handleCertFeeSave}
+              className="flex items-center gap-2 px-5 py-2.5 bg-gov-gold-500 hover:bg-gov-gold-600 text-white rounded-xl font-bold text-xs transition-colors shadow-sm"
+            >
+              <Save size={14} />
+              Save Certificate Fees
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  FileText, Signature, Loader2, Pointer, Maximize2, Minimize2, Languages,
+  Signature, Loader2, Pointer, Maximize2, Minimize2, Languages,
   Award, HeartHandshake, Home, Building2, CreditCard, UserCheck, CheckCircle2,
   Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool
 } from 'lucide-react';
 import { api } from '../services/api';
 import './KioskCertificates.css';
-import logo from '../assets/logo.png';
 
 export const KioskCertificates: React.FC = () => {
   const [step, setStep] = useState(0); 
@@ -16,13 +15,57 @@ export const KioskCertificates: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
   const [purpose, setPurpose] = useState('');
   const [queueNumber, setQueueNumber] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Cedula-specific states (CTC Form 175)
+  const [gender, setGender] = useState('Male');
+  const [civilStatus, setCivilStatus] = useState('Single');
+  const [birthdate, setBirthdate] = useState('');
+  const [placeOfBirth, setPlaceOfBirth] = useState('');
+  const [address, setAddress] = useState('');
+  const [citizenship, setCitizenship] = useState('Filipino');
+  const [spouseName, setSpouseName] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [employerName, setEmployerName] = useState('');
+  const [grossAnnualIncome, setGrossAnnualIncome] = useState('');
+  const [propertyValuation, setPropertyValuation] = useState('');
+  const [tin, setTin] = useState('');
+
+  // Business Clearance states
+  const [bizAppType, setBizAppType] = useState<'New' | 'Renewal'>('New');
+  const [bizName, setBizName] = useState('');
+  const [bizType, setBizType] = useState('Sole Proprietorship');
+  const [bizLine, setBizLine] = useState('');
+  const [bizAddress, setBizAddress] = useState('');
+  const [bizPhone, setBizPhone] = useState('');
+  const [bizEmail, setBizEmail] = useState('');
+  const [bizCapital, setBizCapital] = useState('');
+  const [bizEmployees, setBizEmployees] = useState('');
+  const [bizVehicles, setBizVehicles] = useState('');
+  const [cedulaNo, setCedulaNo] = useState('');
+  const [prevPermitNo, setPrevPermitNo] = useState('');
+  const [grossSales, setGrossSales] = useState('');
+
+  // Residency Certificate state
+  const [yearsOfResidency, setYearsOfResidency] = useState('');
+
+  // Indigency Certificate state
+  const [indigencyFamilyComposition, setIndigencyFamilyComposition] = useState('');
+
+  // Barangay Clearance & ID additional states
+  const [contactNo, setContactNo] = useState('');
+  const [emergencyContact, setEmergencyContact] = useState('');
+  const [bloodType, setBloodType] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+
+  const fullDisplayName = [firstName, middleName, lastName].filter(Boolean).join(' ');
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -34,6 +77,54 @@ export const KioskCertificates: React.FC = () => {
     }
   };
 
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  };
+
+  const clearAll = () => {
+    setFirstName('');
+    setMiddleName('');
+    setLastName('');
+    setPurpose('');
+    setGender('Male');
+    setCivilStatus('Single');
+    setBirthdate('');
+    setPlaceOfBirth('');
+    setAddress('');
+    setCitizenship('Filipino');
+    setSpouseName('');
+    setOccupation('');
+    setEmployerName('');
+    setGrossAnnualIncome('');
+    setPropertyValuation('');
+    setTin('');
+    setBizAppType('New');
+    setBizName('');
+    setBizType('Sole Proprietorship');
+    setBizLine('');
+    setBizAddress('');
+    setBizPhone('');
+    setBizEmail('');
+    setBizCapital('');
+    setBizEmployees('');
+    setBizVehicles('');
+    setCedulaNo('');
+    setPrevPermitNo('');
+    setGrossSales('');
+    setYearsOfResidency('');
+    setIndigencyFamilyComposition('');
+    setContactNo('');
+    setEmergencyContact('');
+    setBloodType('');
+    setAcceptedTerms(false);
+    clearCanvas();
+  };
+
   useEffect(() => {
     let idleTimer: ReturnType<typeof setTimeout>;
     const resetTimer = () => {
@@ -41,11 +132,7 @@ export const KioskCertificates: React.FC = () => {
       idleTimer = setTimeout(() => {
         setStep(0);
         setCertType('Clearance');
-        setFirstName('');
-        setLastName('');
-        setPurpose('');
-        setQueueNumber('');
-        clearCanvas();
+        clearAll();
       }, 60000);
     };
     const events = ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'];
@@ -58,15 +145,10 @@ export const KioskCertificates: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    switch (certType) {
-      case 'Clearance': setFee(150); break;
-      case 'Indigency': setFee(0); break;
-      case 'Residency': setFee(100); break;
-      case 'Business': setFee(300); break;
-      case 'Cedula': setFee(50); break;
-      case 'Barangay ID': setFee(100); break;
-      default: setFee(100);
-    }
+    const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+    let fees = defaultFees;
+    try { const s = localStorage.getItem('cert_fees'); if (s) fees = { ...defaultFees, ...JSON.parse(s) }; } catch {}
+    setFee(fees[certType] ?? 100);
   }, [certType]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -103,38 +185,170 @@ export const KioskCertificates: React.FC = () => {
     setIsDrawing(false);
   };
 
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-  };
-
-  const clearAll = () => {
-    setFirstName('');
-    setLastName('');
-    setPurpose('');
-    clearCanvas();
-  };
-
   const handleSubmit = async () => {
-    if (!firstName || !lastName || !purpose) return;
+    if (!acceptedTerms) return;
+    if (!firstName.trim() || !lastName.trim()) return;
+    if (certType === 'Cedula' && (!birthdate || !address.trim() || !purpose.trim())) return;
+    if (certType === 'Business' && (!bizName.trim() || !bizLine.trim() || !bizAddress.trim())) return;
+    if (certType === 'Residency' && (!birthdate || !address.trim() || !yearsOfResidency.trim() || !purpose.trim())) return;
+    if (certType === 'Indigency' && (!address.trim() || !purpose.trim())) return;
+    if (certType === 'Clearance' && (!birthdate || !address.trim() || !purpose.trim())) return;
+    if (certType === 'Barangay ID' && (!birthdate || !placeOfBirth.trim() || !address.trim() || !contactNo.trim() || !emergencyContact.trim())) return;
+    if (certType !== 'Business' && certType !== 'Residency' && certType !== 'Cedula' && certType !== 'Indigency' && certType !== 'Clearance' && certType !== 'Barangay ID' && !purpose.trim()) return;
+
     setIsSubmitting(true);
+
+    let finalPurpose = purpose.trim();
+    if (certType === 'Cedula') {
+      const details = [
+        `Purpose: ${purpose.trim()}`,
+        `Gender: ${gender}`,
+        `Civil Status: ${civilStatus}`,
+        `Birthdate: ${birthdate}`,
+        placeOfBirth.trim() ? `Birthplace: ${placeOfBirth.trim()}` : null,
+        `Address: ${address.trim()}`,
+        `Citizenship: ${citizenship.trim()}`,
+        spouseName.trim() ? `Spouse: ${spouseName.trim()}` : null,
+        occupation.trim() ? `Occupation: ${occupation.trim()}` : null,
+        employerName.trim() ? `Employer/Biz: ${employerName.trim()}` : null,
+        grossAnnualIncome.trim() ? `Annual Income: ₱${grossAnnualIncome.trim()}` : null,
+        propertyValuation.trim() ? `Property Value: ₱${propertyValuation.trim()}` : null,
+        tin.trim() ? `TIN: ${tin.trim()}` : null,
+      ].filter(Boolean).join(' | ');
+      finalPurpose = details;
+    } else if (certType === 'Business') {
+      const details = [
+        `App Type: ${bizAppType}`,
+        `Business Name: ${bizName.trim()}`,
+        `Business Type: ${bizType}`,
+        `Line of Business: ${bizLine.trim()}`,
+        `Business Address: ${bizAddress.trim()}`,
+        bizPhone.trim() ? `Phone: ${bizPhone.trim()}` : null,
+        bizEmail.trim() ? `Email: ${bizEmail.trim()}` : null,
+        bizCapital.trim() ? `Capitalization: ₱${bizCapital.trim()}` : null,
+        bizEmployees.trim() ? `Employees: ${bizEmployees.trim()}` : null,
+        bizVehicles.trim() ? `Delivery Vehicles: ${bizVehicles.trim()}` : null,
+        `Owner: ${fullDisplayName}`,
+        address.trim() ? `Owner Address: ${address.trim()}` : null,
+        citizenship.trim() ? `Citizenship: ${citizenship.trim()}` : null,
+        tin.trim() ? `TIN: ${tin.trim()}` : null,
+        cedulaNo.trim() ? `Cedula No: ${cedulaNo.trim()}` : null,
+        bizAppType === 'Renewal' && prevPermitNo.trim() ? `Prev Permit/OR: ${prevPermitNo.trim()}` : null,
+        bizAppType === 'Renewal' && grossSales.trim() ? `Gross Sales: ₱${grossSales.trim()}` : null,
+        purpose.trim() ? `Purpose: ${purpose.trim()}` : `Purpose: Business Clearance Application`,
+      ].filter(Boolean).join(' | ');
+      finalPurpose = details;
+    } else if (certType === 'Residency') {
+      const details = [
+        `Purpose: ${purpose.trim()}`,
+        `Gender: ${gender}`,
+        `Civil Status: ${civilStatus}`,
+        `Birthdate: ${birthdate}`,
+        placeOfBirth.trim() ? `Birthplace: ${placeOfBirth.trim()}` : null,
+        `Address: ${address.trim()}`,
+        `Length of Residency: ${yearsOfResidency.trim()}`,
+        cedulaNo.trim() ? `Cedula No: ${cedulaNo.trim()}` : null,
+      ].filter(Boolean).join(' | ');
+      finalPurpose = details;
+    } else if (certType === 'Indigency') {
+      const details = [
+        `Purpose: ${purpose.trim()}`,
+        `Address: ${address.trim()}`,
+        indigencyFamilyComposition.trim() ? `Family Composition: ${indigencyFamilyComposition.trim()}` : null,
+        cedulaNo.trim() ? `Cedula No: ${cedulaNo.trim()}` : null,
+      ].filter(Boolean).join(' | ');
+      finalPurpose = details;
+    } else if (certType === 'Clearance') {
+      const details = [
+        `Purpose: ${purpose.trim()}`,
+        `Gender: ${gender}`,
+        `Civil Status: ${civilStatus}`,
+        `Birthdate: ${birthdate}`,
+        placeOfBirth.trim() ? `Birthplace: ${placeOfBirth.trim()}` : null,
+        `Address: ${address.trim()}`,
+        citizenship.trim() ? `Citizenship: ${citizenship.trim()}` : null,
+        contactNo.trim() ? `Contact: ${contactNo.trim()}` : null,
+        occupation.trim() ? `Occupation: ${occupation.trim()}` : null,
+        cedulaNo.trim() ? `Cedula No: ${cedulaNo.trim()}` : null,
+      ].filter(Boolean).join(' | ');
+      finalPurpose = details;
+    } else if (certType === 'Barangay ID') {
+      const details = [
+        `Purpose: Barangay ID Application`,
+        `Gender: ${gender}`,
+        `Civil Status: ${civilStatus}`,
+        `Birthdate: ${birthdate}`,
+        `Birthplace: ${placeOfBirth.trim()}`,
+        `Address: ${address.trim()}`,
+        `Contact: ${contactNo.trim()}`,
+        `Emergency Contact: ${emergencyContact.trim()}`,
+        bloodType.trim() ? `Blood Type: ${bloodType.trim()}` : null,
+        tin.trim() ? `TIN/SSS/GSIS: ${tin.trim()}` : null,
+        purpose.trim() ? `Remarks: ${purpose.trim()}` : null,
+      ].filter(Boolean).join(' | ');
+      finalPurpose = details;
+    }
+
     try {
       const res = await api.certificates.publicRequest({
-        first_name: firstName,
-        last_name: lastName,
+        first_name: middleName.trim() ? `${firstName.trim()} ${middleName.trim()}` : firstName.trim(),
+        last_name: lastName.trim(),
         type: certType,
-        purpose,
+        purpose: finalPurpose,
         fee
       }) as any;
-      setQueueNumber(res.queue_number || `Q-${Math.floor(100 + Math.random() * 900)}`);
+      const tNo = res.queue_number || `Q-${Math.floor(100 + Math.random() * 900)}`;
+      setQueueNumber(tNo);
+      
+      const applicantName = `${firstName.trim()} ${lastName.trim()}`.trim() || 'Kiosk Applicant';
+
+      // Sync to live shared queue slots localStorage
+      try {
+        const saved = localStorage.getItem('lingkod_queue_slots');
+        const existing: any[] = saved ? JSON.parse(saved) : [];
+        const newQueueSlot = {
+          id: `kiosk-${Date.now()}`,
+          ticket_number: tNo,
+          resident_name: applicantName,
+          cert_type: certType,
+          date: new Date().toISOString().split('T')[0],
+          time_slot: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          status: 'Waiting',
+          is_priority: tNo.startsWith('P-')
+        };
+        const updatedQueue = [...existing, newQueueSlot];
+        localStorage.setItem('lingkod_queue_slots', JSON.stringify(updatedQueue));
+        window.dispatchEvent(new Event('storage'));
+      } catch (e) {
+        console.error("Failed saving kiosk queue ticket", e);
+      }
+
       setStep(4);
     } catch (err) {
       console.error('Kiosk submission error:', err);
-      setQueueNumber(`Q-${Math.floor(100 + Math.random() * 900)}`);
+      const fallbackTicket = `Q-${Math.floor(100 + Math.random() * 900)}`;
+      setQueueNumber(fallbackTicket);
+      
+      const applicantName = `${firstName.trim()} ${lastName.trim()}`.trim() || 'Kiosk Applicant';
+
+      try {
+        const saved = localStorage.getItem('lingkod_queue_slots');
+        const existing: any[] = saved ? JSON.parse(saved) : [];
+        const newQueueSlot = {
+          id: `kiosk-${Date.now()}`,
+          ticket_number: fallbackTicket,
+          resident_name: applicantName,
+          cert_type: certType,
+          date: new Date().toISOString().split('T')[0],
+          time_slot: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+          status: 'Waiting',
+          is_priority: false
+        };
+        const updatedQueue = [...existing, newQueueSlot];
+        localStorage.setItem('lingkod_queue_slots', JSON.stringify(updatedQueue));
+        window.dispatchEvent(new Event('storage'));
+      } catch (e) {}
+
       setStep(4);
     } finally {
       setIsSubmitting(false);
@@ -234,7 +448,9 @@ export const KioskCertificates: React.FC = () => {
       <header className="px-6 sm:px-10 py-5 flex items-center justify-between border-b border-slate-800/80 relative z-20 bg-slate-950/80 backdrop-blur-xl shadow-2xl">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <img src={logo} alt="Barangay Logo" className="w-13 h-13 object-contain rounded-2xl shadow-xl border border-slate-700/80 bg-slate-900 p-1" />
+            <div className="w-12 h-12 bg-gradient-to-tr from-gov-blue-700 to-indigo-800 rounded-2xl shadow-xl border border-slate-700/80 flex items-center justify-center">
+              <ShieldCheck size={24} className="text-gov-gold-400" />
+            </div>
             <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-slate-950 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse" />
           </div>
           <div>
@@ -377,7 +593,6 @@ export const KioskCertificates: React.FC = () => {
                       {doc.cost}
                     </span>
                   </div>
-
                   <h3 className="text-lg font-black mb-1.5 text-white group-hover:text-blue-300 transition-colors">
                     {doc.name}
                   </h3>
@@ -396,7 +611,9 @@ export const KioskCertificates: React.FC = () => {
         )}
 
         {step === 2 && (
-          <div className="space-y-6 bg-slate-900/90 p-8 sm:p-10 rounded-3xl border border-slate-700/80 shadow-2xl backdrop-blur-xl max-w-2xl mx-auto">
+          <div className={`space-y-6 bg-slate-900/90 p-6 sm:p-10 rounded-3xl border border-slate-700/80 shadow-2xl backdrop-blur-xl mx-auto transition-all ${
+            certType === 'Cedula' || certType === 'Business' || certType === 'Residency' || certType === 'Indigency' || certType === 'Clearance' || certType === 'Barangay ID' ? 'max-w-4xl' : 'max-w-2xl'
+          }`}>
             <div>
               <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30">
                 {certType} Request
@@ -405,57 +622,1458 @@ export const KioskCertificates: React.FC = () => {
                 {lang === 'tl' ? 'Ilagay ang mga Detalye' : 'Enter Request Details'}
               </h2>
               <p className="text-xs text-slate-400 font-medium mt-1">
-                {lang === 'tl' ? 'Mangyaring punan ang iyong pangalan at dahilan sa paghiling.' : 'Please fill in your legal name and purpose for document processing.'}
+                {certType === 'Cedula'
+                  ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa iyong Cedula (CTC Form 175).' : 'Please fill in your official details for your Community Tax Certificate (Cedula).')
+                  : certType === 'Business'
+                  ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Business Clearance Application.' : 'Please fill in business and owner details for Barangay Business Clearance Application.')
+                  : certType === 'Residency'
+                  ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Certificate of Residency.' : 'Please fill in details for Barangay Certificate of Residency Application.')
+                  : certType === 'Indigency'
+                  ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Certificate of Indigency.' : 'Please fill in details for Barangay Certificate of Indigency Application.')
+                  : certType === 'Clearance'
+                  ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa Barangay Clearance.' : 'Please fill in details for Barangay Clearance Application.')
+                  : certType === 'Barangay ID'
+                  ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa Barangay ID.' : 'Please fill in details for Barangay Identification Card Application.')
+                  : (lang === 'tl' ? 'Mangyaring punan ang iyong buong pangalan at dahilan sa paghiling.' : 'Please fill in your legal full name and purpose for document processing.')}
               </p>
             </div>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-wider text-slate-300">
-                    {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="Juan" 
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
-                  />
+            {certType === 'Cedula' ? (
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Personal Information */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    {lang === 'tl' ? 'Personal na Impormasyon' : 'Personal Information'}
+                  </h3>
+
+                  {/* Name fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Juan" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Mercado" 
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Dela Cruz" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gender & Civil Status & Citizenship */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Kasarian' : 'Gender'}
+                      </label>
+                      <select 
+                        value={gender} 
+                        onChange={(e) => setGender(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Male">{lang === 'tl' ? 'Lalaki (Male)' : 'Male'}</option>
+                        <option value="Female">{lang === 'tl' ? 'Babae (Female)' : 'Female'}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
+                      </label>
+                      <select 
+                        value={civilStatus} 
+                        onChange={(e) => setCivilStatus(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Single">{lang === 'tl' ? 'Walang Asawa (Single)' : 'Single'}</option>
+                        <option value="Married">{lang === 'tl' ? 'Kasal (Married)' : 'Married'}</option>
+                        <option value="Widowed">{lang === 'tl' ? 'Biyudo / Biyuda (Widowed)' : 'Widowed'}</option>
+                        <option value="Separated">{lang === 'tl' ? 'Hiwalay (Separated)' : 'Separated'}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Pagkamamamayan' : 'Citizenship'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Filipino" 
+                        value={citizenship}
+                        onChange={(e) => setCitizenship(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Birthdate & Birthplace */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
+                      </label>
+                      <input 
+                        type="date" 
+                        value={birthdate}
+                        onChange={(e) => setBirthdate(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="City / Municipality" 
+                        value={placeOfBirth}
+                        onChange={(e) => setPlaceOfBirth(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Complete Address */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Kumpletong Tirahan (Bahay, Kalye, Barangay, Lungsod, Lalawigan)' : 'Complete Address'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="House No., Street Name, Barangay, City, Province" 
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  {/* Spouse Name */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Pangalan ng Asawa (kung kasal)' : 'Spouse Name (if married)'}
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Buong pangalan ng asawa" 
+                      value={spouseName}
+                      onChange={(e) => setSpouseName(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
                 </div>
+
+                {/* Work & Financial Details */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    {lang === 'tl' ? 'Hanapbuhay at Kita (Para sa Cedula Computation)' : 'Employment & Financial Details'}
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Hanapbuhay / Propesyon' : 'Occupation / Profession'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="E.g., Employee, Merchant, Driver" 
+                        value={occupation}
+                        onChange={(e) => setOccupation(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Pangalan ng Employer / Negosyo' : 'Employer / Business Name'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Company or Business name" 
+                        value={employerName}
+                        onChange={(e) => setEmployerName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Kabuuang Kita noong Nakaraang Taon (₱)' : 'Gross Annual Earnings (₱)'}
+                      </label>
+                      <input 
+                        type="number" 
+                        placeholder="0.00" 
+                        value={grossAnnualIncome}
+                        onChange={(e) => setGrossAnnualIncome(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Halaga ng Ari-arian (Lupa / Gusali) (₱)' : 'Real Property Assessed Value (₱)'}
+                      </label>
+                      <input 
+                        type="number" 
+                        placeholder="0.00" 
+                        value={propertyValuation}
+                        onChange={(e) => setPropertyValuation(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Additional Information */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    {lang === 'tl' ? 'Iba Pang Detalye' : 'Additional Information'}
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      TIN (Tax Identification Number) — {lang === 'tl' ? 'kung mayroon' : 'Optional'}
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="XXX-XXX-XXX-000" 
+                      value={tin}
+                      onChange={(e) => setTin(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 placeholder-slate-500 transition-all font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Layunin ng Pagkuha ng Cedula' : 'Purpose of CTC / Cedula'} *
+                    </label>
+                    <textarea
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                      placeholder={lang === 'tl' ? 'Hal., Para sa employment, business permit, notarization...' : 'E.g., Employment, business clearance, government requirements...'}
+                      rows={2}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-none placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : certType === 'Business' ? (
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Application Type selection */}
+                <div className="flex gap-3 p-1.5 bg-slate-950/80 rounded-2xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setBizAppType('New')}
+                    className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
+                      bizAppType === 'New'
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {lang === 'tl' ? 'Bagong Negosyo (New)' : 'New Business'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBizAppType('Renewal')}
+                    className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
+                      bizAppType === 'Renewal'
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {lang === 'tl' ? 'Pababago / Renewal' : 'Renewal'}
+                  </button>
+                </div>
+
+                {/* Section A: Business Details */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    {lang === 'tl' ? 'A. Impormasyon ng Negosyo' : 'A. Business Information'}
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Pangalan ng Negosyo' : 'Business Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="E.g., Dela Cruz Trading & General Merchandise" 
+                        value={bizName}
+                        onChange={(e) => setBizName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Uri ng Negosyo' : 'Business Organization Type'}
+                      </label>
+                      <select 
+                        value={bizType} 
+                        onChange={(e) => setBizType(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Sole Proprietorship">Sole Proprietorship (DTI)</option>
+                        <option value="Partnership">Partnership (SEC)</option>
+                        <option value="Corporation">Corporation (SEC)</option>
+                        <option value="Cooperative">Cooperative (CDA)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Linya ng Negosyo / Business Activity' : 'Line of Business'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="E.g., Sari-Sari Store, Eatery, Hardware, IT Consultancy" 
+                      value={bizLine}
+                      onChange={(e) => setBizLine(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Kumpletong Address ng Negosyo' : 'Complete Business Address'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Bldg No., Street, Barangay, City, Province, Zip Code" 
+                      value={bizAddress}
+                      onChange={(e) => setBizAddress(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Numero ng Telepono' : 'Business Contact No.'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="09XX-XXX-XXXX / (02) 8XXX-XXXX" 
+                        value={bizPhone}
+                        onChange={(e) => setBizPhone(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Email Address ng Negosyo' : 'Business Email Address'}
+                      </label>
+                      <input 
+                        type="email" 
+                        placeholder="business@example.com" 
+                        value={bizEmail}
+                        onChange={(e) => setBizEmail(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Puhunan / Capitalization (₱)' : 'Capitalization (₱)'}
+                      </label>
+                      <input 
+                        type="number" 
+                        placeholder="50000.00" 
+                        value={bizCapital}
+                        onChange={(e) => setBizCapital(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Bilang ng Empleyado' : 'No. of Employees'}
+                      </label>
+                      <input 
+                        type="number" 
+                        placeholder="1" 
+                        value={bizEmployees}
+                        onChange={(e) => setBizEmployees(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Delivery Vehicles' : 'Delivery Vehicles'}
+                      </label>
+                      <input 
+                        type="number" 
+                        placeholder="0" 
+                        value={bizVehicles}
+                        onChange={(e) => setBizVehicles(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {bizAppType === 'Renewal' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                          {lang === 'tl' ? 'Dating Permit / OR No.' : 'Previous Permit / OR No.'}
+                        </label>
+                        <input 
+                          type="text" 
+                          placeholder="BP-2025-XXXXX" 
+                          value={prevPermitNo}
+                          onChange={(e) => setPrevPermitNo(e.target.value)}
+                          className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/40 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 placeholder-slate-500 transition-all font-mono"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-amber-300">
+                          {lang === 'tl' ? 'Gross Sales / Kita (₱)' : 'Gross Sales Last Year (₱)'}
+                        </label>
+                        <input 
+                          type="number" 
+                          placeholder="0.00" 
+                          value={grossSales}
+                          onChange={(e) => setGrossSales(e.target.value)}
+                          className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/40 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 placeholder-slate-500 transition-all font-mono"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Section B: Owner / Operator Info */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    {lang === 'tl' ? 'B. Impormasyon ng May-ari / Operator' : 'B. Owner / Operator Details'}
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Unang Pangalan ng May-ari' : 'Owner First Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Juan" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Mercado" 
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Apelyido' : 'Owner Last Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Dela Cruz" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Tirahan ng May-ari' : 'Owner Personal Address'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="House No., Street, Barangay, City" 
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Pagkamamamayan' : 'Citizenship'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Filipino" 
+                        value={citizenship}
+                        onChange={(e) => setCitizenship(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        TIN (Tax Identification Number)
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="XXX-XXX-XXX-000" 
+                        value={tin}
+                        onChange={(e) => setTin(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Cedula (CTC) Number' : 'Cedula (CTC) Number'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="CTC-2026-XXXXX" 
+                        value={cedulaNo}
+                        onChange={(e) => setCedulaNo(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section C: Required Documents Checklist */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    {lang === 'tl' ? 'C. Mga Dokumentong Isasama sa Application' : 'C. Required Application Documents Checklist'}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {bizType === 'Sole Proprietorship' ? 'DTI Registration Certificate' : bizType === 'Cooperative' ? 'CDA Registration Certificate' : 'SEC Certificate & Articles'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {lang === 'tl' ? 'Proof of Right to Use Address (TCT / Lease / Contract)' : 'Proof of Right to Use Address (TCT / Lease)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {lang === 'tl' ? 'Community Tax Certificate (Cedula)' : 'Community Tax Certificate (Cedula)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {lang === 'tl' ? 'Barangay Business Clearance Fee (₱300.00)' : 'Barangay Business Clearance Fee (₱300.00)'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : certType === 'Residency' ? (
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Section A: Personal Information */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    {lang === 'tl' ? 'A. Personal na Impormasyon' : 'A. Personal Information'}
+                  </h3>
+
+                  {/* Name fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Juan" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Mercado" 
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Dela Cruz" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gender & Civil Status */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Kasarian' : 'Gender'}
+                      </label>
+                      <select 
+                        value={gender} 
+                        onChange={(e) => setGender(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Male">{lang === 'tl' ? 'Lalaki (Male)' : 'Male'}</option>
+                        <option value="Female">{lang === 'tl' ? 'Babae (Female)' : 'Female'}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
+                      </label>
+                      <select 
+                        value={civilStatus} 
+                        onChange={(e) => setCivilStatus(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Single">{lang === 'tl' ? 'Walang Asawa (Single)' : 'Single'}</option>
+                        <option value="Married">{lang === 'tl' ? 'Kasal (Married)' : 'Married'}</option>
+                        <option value="Widowed">{lang === 'tl' ? 'Biyudo / Biyuda (Widowed)' : 'Widowed'}</option>
+                        <option value="Separated">{lang === 'tl' ? 'Hiwalay (Separated)' : 'Separated'}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Birthdate & Birthplace */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
+                      </label>
+                      <input 
+                        type="date" 
+                        value={birthdate}
+                        onChange={(e) => setBirthdate(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="City / Municipality" 
+                        value={placeOfBirth}
+                        onChange={(e) => setPlaceOfBirth(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Complete Address & Length of Residency */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Kumpletong Tirahan sa Barangay' : 'Complete Barangay Address'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="House No., Street Name, Barangay, City, Province" 
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Tagal ng Paninirahan' : 'Length of Residency'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="E.g., 5 Taon / 5 Years" 
+                        value={yearsOfResidency}
+                        onChange={(e) => setYearsOfResidency(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section B: Required Documents */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    {lang === 'tl' ? 'B. Mga Dokumentong Isusumite sa Counter' : 'B. Required Documents Checklist'}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? 'Valid Government ID (may pangalan at litrato)' : 'Valid Government ID (with photo & address)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? 'Proof of Residency (utility bill, kontrata sa upa)' : 'Proof of Residency (utility bill, lease contract)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? 'Community Tax Certificate (Cedula) — kung hinihingi' : 'Community Tax Certificate (Cedula) — optional'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? '2x2 ID Picture — depende sa barangay' : '2x2 ID Picture — depending on barangay'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section C: Purpose & Cedula */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    {lang === 'tl' ? 'C. Layunin ng Pagkuha' : 'C. Purpose of Request'}
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Layunin ng Paghiling' : 'Purpose of Request'} *
+                    </label>
+                    <textarea
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                      placeholder={lang === 'tl'
+                        ? 'Hal., Para sa employment, loan application, school requirement, bank requirements...'
+                        : 'E.g., For employment, loan application, school requirement, bank account opening...'}
+                      rows={2}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/20 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-none placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Cedula Number — CTC No. (kung mayroon)' : 'Cedula Number — CTC No. (Optional)'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="CTC-2026-XXXXX"
+                      value={cedulaNo}
+                      onChange={(e) => setCedulaNo(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : certType === 'Indigency' ? (
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Info Header Banner */}
+                <div className="p-4 bg-emerald-950/40 border border-emerald-500/30 rounded-2xl flex items-start gap-3">
+                  <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-black uppercase tracking-wider">
+                    FREE
+                  </span>
+                  <div className="text-xs text-emerald-200/90 leading-relaxed">
+                    <p className="font-bold text-emerald-300">
+                      {lang === 'tl' ? 'Libre ang Barangay Certificate of Indigency' : 'Barangay Certificate of Indigency is completely FREE'}
+                    </p>
+                    <p className="mt-0.5 opacity-80">
+                      {lang === 'tl'
+                        ? 'Ito ay ibinibigay sa mga mamamayang nangangailangan ng tulong pampinansyal, medikal, o legal.'
+                        : 'Issued to residents in need of financial, medical, educational, or legal assistance.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Section A: Personal Information */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    {lang === 'tl' ? 'A. Personal na Impormasyon' : 'A. Personal Information'}
+                  </h3>
+
+                  {/* Name fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Juan" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Mercado" 
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Dela Cruz" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Kumpletong Tirahan sa Barangay' : 'Complete Barangay Address'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="House No., Street Name, Barangay, City, Province" 
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  {/* Family Composition / Living Status */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Katayuan sa Pamumuhay / Family Info' : 'Living Status / Family Composition'}
+                    </label>
+                    <textarea
+                      value={indigencyFamilyComposition}
+                      onChange={(e) => setIndigencyFamilyComposition(e.target.value)}
+                      placeholder={lang === 'tl'
+                        ? 'Hal., Nakatira sa bahay ng kamag-anak, walang permanenteng trabaho...'
+                        : 'E.g., Living with relatives, unemployed, daily wage earner...'}
+                      rows={2}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-blue-500/20 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 resize-none placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Section B: Documents */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    {lang === 'tl' ? 'B. Mga Dokumentong Isusumite' : 'B. Required Documents Checklist'}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      Valid Government ID
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      Proof of Residency
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      Application Form
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      Request Letter
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section C: Purpose */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    {lang === 'tl' ? 'C. Layunin ng Pagkuha' : 'C. Purpose of Request'}
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Layunin ng Paghiling' : 'Purpose of Request'} *
+                    </label>
+                    <textarea
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                      placeholder={lang === 'tl'
+                        ? 'Hal., Medical assistance, DSWD aid, scholarship...'
+                        : 'E.g., Medical assistance, DSWD financial aid, scholarship...'
+                      }
+                      rows={2}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/20 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-none placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="p-3.5 bg-amber-950/30 border border-amber-500/20 rounded-xl text-[11px] text-amber-200/80 leading-relaxed">
+                    <span className="font-black text-amber-400">ℹ {lang === 'tl' ? 'Tandaan:' : 'Note:'} </span>
+                    {lang === 'tl'
+                      ? 'Pagkatapos ng Barangay Hall, maaaring kailanganing i-process pa ito sa City/Municipal Social Welfare and Development Office (CSWDO/MSWDO). Processing time: 1 oras hanggang 14 na araw.'
+                      : 'After the Barangay Hall, this may need further processing at the City/Municipal Social Welfare and Development Office (CSWDO/MSWDO). Processing time: 1 hour to 14 days depending on LGU.'}
+                  </div>
+                </div>
+              </div>
+            ) : certType === 'Clearance' ? (
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Section A: Personal Information */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    {lang === 'tl' ? 'A. Personal na Impormasyon' : 'A. Personal Information'}
+                  </h3>
+
+                  {/* Name fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Juan" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Mercado" 
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Dela Cruz" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gender & Civil Status & Citizenship */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Kasarian' : 'Gender'}
+                      </label>
+                      <select 
+                        value={gender} 
+                        onChange={(e) => setGender(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Male">{lang === 'tl' ? 'Lalaki (Male)' : 'Male'}</option>
+                        <option value="Female">{lang === 'tl' ? 'Babae (Female)' : 'Female'}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
+                      </label>
+                      <select 
+                        value={civilStatus} 
+                        onChange={(e) => setCivilStatus(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Single">{lang === 'tl' ? 'Walang Asawa (Single)' : 'Single'}</option>
+                        <option value="Married">{lang === 'tl' ? 'Kasal (Married)' : 'Married'}</option>
+                        <option value="Widowed">{lang === 'tl' ? 'Biyudo / Biyuda (Widowed)' : 'Widowed'}</option>
+                        <option value="Separated">{lang === 'tl' ? 'Hiwalay (Separated)' : 'Separated'}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Pagkamamamayan' : 'Citizenship'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Filipino" 
+                        value={citizenship}
+                        onChange={(e) => setCitizenship(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Birthdate & Birthplace */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
+                      </label>
+                      <input 
+                        type="date" 
+                        value={birthdate}
+                        onChange={(e) => setBirthdate(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="City / Municipality" 
+                        value={placeOfBirth}
+                        onChange={(e) => setPlaceOfBirth(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Complete Address */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Kumpletong Tirahan (Bahay, Kalye, Barangay, Lungsod)' : 'Complete Address'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="House No., Street Name, Barangay, City, Province" 
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  {/* Contact Number & Occupation */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Numero ng Telepono / Mobile' : 'Contact / Mobile No.'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="09XX-XXX-XXXX" 
+                        value={contactNo}
+                        onChange={(e) => setContactNo(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Hanapbuhay / Trabaho' : 'Occupation'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="E.g., Private Employee, Driver, Self-Employed" 
+                        value={occupation}
+                        onChange={(e) => setOccupation(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section B: Required Documents */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                    {lang === 'tl' ? 'B. Mga Dokumentong Isusumite' : 'B. Required Documents Checklist'}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {lang === 'tl' ? 'Valid Government ID (may larawan)' : 'Valid Government ID (with photo)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {lang === 'tl' ? 'Community Tax Certificate (Cedula)' : 'Community Tax Certificate (Cedula)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {lang === 'tl' ? 'Proof of Address / Residency' : 'Proof of Address / Billing Statement'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span>
+                      {lang === 'tl' ? 'Barangay Clearance Fee (₱150.00)' : 'Barangay Clearance Fee (₱150.00)'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section C: Purpose & Cedula */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    {lang === 'tl' ? 'C. Layunin ng Pagkuha' : 'C. Purpose of Request'}
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Layunin ng Paghiling' : 'Purpose of Request'} *
+                    </label>
+                    <textarea
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                      placeholder={lang === 'tl'
+                        ? 'Hal., Para sa local employment, Postal ID application, bank account opening, license...'
+                        : 'E.g., For local employment, Postal ID application, bank account opening, Police Clearance...'}
+                      rows={2}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/20 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-none placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Cedula Number — CTC No. (kung mayroon)' : 'Cedula Number — CTC No. (Optional)'}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="CTC-2026-XXXXX"
+                      value={cedulaNo}
+                      onChange={(e) => setCedulaNo(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : certType === 'Barangay ID' ? (
+              <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Section A: ID Cardholder Information */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    {lang === 'tl' ? 'A. Impormasyon ng May-ari ng ID' : 'A. Cardholder Personal Information'}
+                  </h3>
+
+                  {/* Name fields */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Juan" 
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Mercado" 
+                        value={middleName}
+                        onChange={(e) => setMiddleName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Dela Cruz" 
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Gender & Civil Status */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Kasarian' : 'Gender'}
+                      </label>
+                      <select 
+                        value={gender} 
+                        onChange={(e) => setGender(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Male">{lang === 'tl' ? 'Lalaki (Male)' : 'Male'}</option>
+                        <option value="Female">{lang === 'tl' ? 'Babae (Female)' : 'Female'}</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
+                      </label>
+                      <select 
+                        value={civilStatus} 
+                        onChange={(e) => setCivilStatus(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="Single">{lang === 'tl' ? 'Walang Asawa (Single)' : 'Single'}</option>
+                        <option value="Married">{lang === 'tl' ? 'Kasal (Married)' : 'Married'}</option>
+                        <option value="Widowed">{lang === 'tl' ? 'Biyudo / Biyuda (Widowed)' : 'Widowed'}</option>
+                        <option value="Separated">{lang === 'tl' ? 'Hiwalay (Separated)' : 'Separated'}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Birthdate & Birthplace */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
+                      </label>
+                      <input 
+                        type="date" 
+                        value={birthdate}
+                        onChange={(e) => setBirthdate(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="City / Municipality" 
+                        value={placeOfBirth}
+                        onChange={(e) => setPlaceOfBirth(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Complete Address */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Kumpletong Tirahan sa Barangay' : 'Complete Barangay Address'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="House No., Street Name, Barangay, City, Province" 
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  {/* Contact Number & Emergency Contact */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Numero ng Telepono / Mobile' : 'Contact / Mobile No.'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="09XX-XXX-XXXX" 
+                        value={contactNo}
+                        onChange={(e) => setContactNo(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Ipaalam sa Oras ng Sakuna (Pangalan at No.)' : 'Emergency Contact (Name & Phone)'} *
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="Pangalan - 09XX-XXX-XXXX" 
+                        value={emergencyContact}
+                        onChange={(e) => setEmergencyContact(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Blood Type & TIN/SSS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'Uri ng Dugo (Blood Type)' : 'Blood Type (Optional)'}
+                      </label>
+                      <select 
+                        value={bloodType} 
+                        onChange={(e) => setBloodType(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                      >
+                        <option value="">{lang === 'tl' ? '-- Hindi Alam / N/A --' : '-- Not Specified --'}</option>
+                        <option value="O+">O Positive (O+)</option>
+                        <option value="O-">O Negative (O-)</option>
+                        <option value="A+">A Positive (A+)</option>
+                        <option value="A-">A Negative (A-)</option>
+                        <option value="B+">B Positive (B+)</option>
+                        <option value="B-">B Negative (B-)</option>
+                        <option value="AB+">AB Positive (AB+)</option>
+                        <option value="AB-">AB Negative (AB-)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                        {lang === 'tl' ? 'TIN / SSS / GSIS No. (kung mayroon)' : 'TIN / SSS / GSIS No. (Optional)'}
+                      </label>
+                      <input 
+                        type="text" 
+                        placeholder="XXX-XXX-XXX-000" 
+                        value={tin}
+                        onChange={(e) => setTin(e.target.value)}
+                        className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section B: ID Requirements */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    {lang === 'tl' ? 'B. Mga Kailangang Dalhin sa Barangay Counter' : 'B. Requirements Checklist'}
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? '2x2 ID Picture (white background)' : '2x2 ID Photo (white background)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? 'PSA Birth Certificate o Valid Government ID' : 'PSA Birth Certificate or Valid ID'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? 'Katibayan ng Paninirahan (Proof of Residency)' : 'Proof of Residency (Utility Bill / Lease)'}
+                    </div>
+                    <div className="flex items-center gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {lang === 'tl' ? 'Barangay ID Printing Fee (₱100.00)' : 'Barangay ID Printing Fee (₱100.00)'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section C: Purpose / Remarks */}
+                <div className="p-5 bg-slate-950/60 rounded-2xl border border-slate-800/90 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                    {lang === 'tl' ? 'C. Dagdag na Impormasyon / Layunin' : 'C. Purpose & Remarks'}
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Layunin ng Paghiling (Remarks)' : 'Purpose / Additional Remarks'}
+                    </label>
+                    <textarea
+                      value={purpose}
+                      onChange={(e) => setPurpose(e.target.value)}
+                      placeholder={lang === 'tl'
+                        ? 'Hal., Pangunahing ID para sa transaction sa bank, employment, remittance...'
+                        : 'E.g., Primary valid ID for bank transactions, employment, remittance...'}
+                      rows={2}
+                      className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/20 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 resize-none placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Juan" 
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Mercado" 
+                      value={middleName}
+                      onChange={(e) => setMiddleName(e.target.value)}
+                      className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black uppercase tracking-wider text-slate-300">
+                      {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
+                    </label>
+                    <input 
+                      type="text" 
+                      placeholder="Dela Cruz" 
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-wider text-slate-300">
-                    {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
+                    {lang === 'tl' ? 'Layunin ng Paghiling' : 'Purpose of Request'} *
                   </label>
-                  <input 
-                    type="text" 
-                    placeholder="Dela Cruz" 
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
+                  <textarea
+                    value={purpose}
+                    onChange={(e) => setPurpose(e.target.value)}
+                    placeholder={lang === 'tl' ? 'Hal., Para sa trabaho, scholarship, bangko...' : 'E.g., For employment, scholarship, bank requirements...'}
+                    rows={3}
+                    className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 resize-none placeholder-slate-500 transition-all font-medium"
                   />
                 </div>
               </div>
+            )}
 
-              <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-wider text-slate-300">
-                  {lang === 'tl' ? 'Layunin ng Paghiling' : 'Purpose of Request'} *
-                </label>
-                <textarea
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  placeholder={lang === 'tl' ? 'Hal., Para sa trabaho, scholarship, bangko...' : 'E.g., For employment, scholarship, bank requirements...'}
-                  rows={3}
-                  className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 resize-none placeholder-slate-500 transition-all font-medium"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4">
+            <div className="flex gap-4 pt-4 border-t border-slate-800/80">
               <button 
                 onClick={clearAll} 
                 className="flex-1 py-4 text-sm font-black bg-rose-500/15 text-rose-300 border border-rose-500/30 rounded-2xl hover:bg-rose-500/25 transition-colors disabled:opacity-40 uppercase tracking-wider cursor-pointer" 
-                disabled={!firstName && !lastName && !purpose}
+                disabled={!firstName && !lastName && !purpose && !bizName && !birthdate && !yearsOfResidency && !contactNo && !emergencyContact}
               >
                 {lang === 'tl' ? 'Ilinis' : 'Clear All'}
               </button>
@@ -467,7 +2085,17 @@ export const KioskCertificates: React.FC = () => {
               </button>
               <button 
                 onClick={() => setStep(3)} 
-                disabled={!purpose || !firstName || !lastName} 
+                disabled={
+                  !firstName.trim() || 
+                  !lastName.trim() || 
+                  (certType === 'Cedula' && (!birthdate || !address.trim() || !purpose.trim())) ||
+                  (certType === 'Business' && (!bizName.trim() || !bizLine.trim() || !bizAddress.trim())) ||
+                  (certType === 'Residency' && (!birthdate || !address.trim() || !yearsOfResidency.trim() || !purpose.trim())) ||
+                  (certType === 'Indigency' && (!address.trim() || !purpose.trim())) ||
+                  (certType === 'Clearance' && (!birthdate || !address.trim() || !purpose.trim())) ||
+                  (certType === 'Barangay ID' && (!birthdate || !placeOfBirth.trim() || !address.trim() || !contactNo.trim() || !emergencyContact.trim())) ||
+                  (certType !== 'Cedula' && certType !== 'Business' && certType !== 'Residency' && certType !== 'Indigency' && certType !== 'Clearance' && certType !== 'Barangay ID' && !purpose.trim())
+                } 
                 className="flex-1 py-4 text-sm font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl disabled:opacity-40 transition-all shadow-xl shadow-blue-600/30 uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
               >
                 {lang === 'tl' ? 'Magpatuloy sa Lagda' : 'Continue to Sign'}
@@ -527,8 +2155,43 @@ export const KioskCertificates: React.FC = () => {
               </div>
               <div className="text-right">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">REQUESTOR</span>
-                <span className="text-xs font-extrabold text-white">{firstName} {lastName}</span>
+                <span className="text-xs font-extrabold text-white">{fullDisplayName}</span>
               </div>
+            </div>
+
+            {/* Terms & Conditions / Data Privacy Act Confirmation */}
+            <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 shadow-inner">
+              <div className="flex items-center gap-2 text-blue-400">
+                <ShieldCheck size={18} />
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200">
+                  {lang === 'tl' ? 'Pahayag sa Data Privacy at Mga Tuntunin' : 'Data Privacy Act & Terms Confirmation'}
+                </h4>
+              </div>
+              <div className="text-[11px] text-slate-400 font-medium leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800/80 max-h-24 overflow-y-auto">
+                {lang === 'tl' ? (
+                  <p>
+                    Alinsunod sa <strong>Republic Act No. 10173 (Data Privacy Act of 2012)</strong>, ang lahat ng personal na impormasyong iyong ibinigay ay gagamitin lamang para sa pagproseso, pagpapatunay, at pag-isyu ng hininging dokumento ng Barangay. Ang iyong lagda ay nagsisilbing patunay ng katapatan ng mga impormasyon.
+                  </p>
+                ) : (
+                  <p>
+                    In compliance with <strong>Republic Act No. 10173 (Data Privacy Act of 2012)</strong>, all personal information provided herein shall be strictly used for the processing, verification, and issuance of requested Barangay documents. Your digital signature serves as certification of accuracy.
+                  </p>
+                )}
+              </div>
+
+              <label className="flex items-start gap-3 pt-1 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 w-5 h-5 rounded border-slate-700 bg-slate-900 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-950 cursor-pointer accent-blue-600"
+                />
+                <span className="text-xs font-bold text-slate-300 group-hover:text-white transition-colors leading-snug">
+                  {lang === 'tl'
+                    ? 'Pinatutunayan ko na tama ang lahat ng aking ibinigay na impormasyon at sumasang-ayon ako sa mga Tuntunin at Data Privacy Policy.'
+                    : 'I certify that all information provided is true and accurate, and I agree to the Terms & Data Privacy Policy.'} *
+                </span>
+              </label>
             </div>
 
             <div className="flex gap-4 pt-2">
@@ -540,7 +2203,7 @@ export const KioskCertificates: React.FC = () => {
               </button>
               <button 
                 onClick={handleSubmit} 
-                disabled={isSubmitting} 
+                disabled={isSubmitting || !acceptedTerms} 
                 className="flex-1 py-4 text-sm font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl disabled:opacity-40 transition-all shadow-xl shadow-blue-600/30 uppercase tracking-wider flex justify-center items-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" /> : <Signature />}
@@ -569,7 +2232,7 @@ export const KioskCertificates: React.FC = () => {
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-blue-500 to-amber-500" />
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">DIGITAL TICKET NUMBER</span>
               <span className="text-5xl sm:text-6xl font-black font-mono text-blue-400 mt-2 block tracking-wider drop-shadow-md">{queueNumber}</span>
-              <span className="text-[10px] font-bold text-slate-500 mt-2 block uppercase">{certType} • {firstName} {lastName}</span>
+              <span className="text-[10px] font-bold text-slate-500 mt-2 block uppercase">{certType} • {fullDisplayName}</span>
             </div>
 
             <p className="text-xs text-slate-300 font-semibold leading-relaxed">

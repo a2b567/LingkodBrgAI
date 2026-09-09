@@ -141,9 +141,12 @@ func SetupRouter() *gin.Engine {
 			staffOnly.PUT("/businesses/:id", bizHandler.Update)
 			staffOnly.DELETE("/businesses/:id", bizHandler.Delete)
 
-			// Documents Approval
+			// Documents Approval & Editing
 			staffOnly.POST("/certificates/:id/approve", certHandler.Approve)
 			staffOnly.POST("/certificates/:id/reject", certHandler.Reject)
+			staffOnly.PUT("/certificates/:id", certHandler.Update)
+			staffOnly.DELETE("/certificates/:id", certHandler.Delete)
+			staffOnly.POST("/certificates/seed-samples", certHandler.SeedSamples)
 
 			// Payment Ledgers
 			staffOnly.GET("/payments", payHandler.List)

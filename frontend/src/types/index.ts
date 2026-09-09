@@ -36,6 +36,18 @@ export interface Resident {
   updated_at: string;
 }
 
+export interface HouseholdMemberInfo {
+  id?: string;
+  full_name: string;
+  relation: string;
+  birthdate: string;
+  gender: string;
+  civil_status: string;
+  education_level: string;
+  occupation: string;
+  monthly_income: string;
+}
+
 export interface Household {
   id: string;
   household_number: string;
@@ -44,6 +56,39 @@ export interface Household {
   poverty_level: string;
   address: string;
   members?: Resident[];
+
+  // Comprehensive profiling details
+  head_first_name?: string;
+  head_middle_name?: string;
+  head_last_name?: string;
+  head_birthdate?: string;
+  head_birthplace?: string;
+  head_gender?: string;
+  head_civil_status?: string;
+  head_religion?: string;
+  head_education?: string;
+  head_occupation?: string;
+  head_monthly_income?: string;
+
+  family_members_list?: HouseholdMemberInfo[];
+
+  housing_tenure?: string;
+  house_materials?: string;
+  number_of_rooms?: string;
+  water_source?: string;
+  power_source?: string;
+  toilet_type?: string;
+  waste_disposal?: string;
+
+  total_family_income?: string;
+  other_income_sources?: string;
+  is_4ps_member?: boolean;
+  special_categories?: string;
+  philhealth_coverage?: string;
+
+  contact_number?: string;
+  email_address?: string;
+
   created_at: string;
   updated_at: string;
 }

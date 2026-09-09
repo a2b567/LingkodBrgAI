@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
-  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send
+  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send, Monitor, Clock, PhoneCall, CheckCircle2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -21,8 +21,8 @@ const parseMarkdown = (text: string) => {
       const language = firstLineBreak !== -1 ? code.slice(0, firstLineBreak) : '';
       const actualCode = firstLineBreak !== -1 ? code.slice(firstLineBreak + 1) : code;
       return (
-        <pre key={i} className="my-2 p-2.5 bg-slate-950 text-slate-200 rounded-xl overflow-x-auto text-[10px] font-mono border border-slate-800/80">
-          {language && <div className="text-[8px] uppercase text-slate-500 font-bold mb-1 border-b border-slate-800/50 pb-0.5">{language}</div>}
+        <pre key={i} className="my-2 p-2.5 bg-slate-100 dark:bg-slate-950 text-slate-700 dark:text-slate-200 rounded-xl overflow-x-auto text-[10px] font-mono border border-slate-200 dark:border-slate-800/80">
+          {language && <div className="text-[8px] uppercase text-slate-400 dark:text-slate-500 font-bold mb-1 border-b border-slate-200 dark:border-slate-800/50 pb-0.5">{language}</div>}
           <code>{actualCode}</code>
         </pre>
       );
@@ -34,14 +34,14 @@ const parseMarkdown = (text: string) => {
         const boldParts = str.split(/(\*\*.*?\*\*)/g);
         return boldParts.map((bp, bpIdx) => {
           if (bp.startsWith('**') && bp.endsWith('**')) {
-            return <strong key={bpIdx} className="font-extrabold text-gov-gold-400">{bp.slice(2, -2)}</strong>;
+            return <strong key={bpIdx} className="font-extrabold text-gov-gold-600 dark:text-gov-gold-400">{bp.slice(2, -2)}</strong>;
           }
           return bp;
         });
       };
       if (isBullet) {
         return (
-          <li key={lineIdx} className="ml-3 list-disc mt-1 list-inside text-slate-100 font-medium">
+          <li key={lineIdx} className="ml-3 list-disc mt-1 list-inside text-slate-700 dark:text-slate-100 font-medium">
             {formatInline(line.trim().slice(2))}
           </li>
         );
@@ -50,7 +50,7 @@ const parseMarkdown = (text: string) => {
         return <div key={lineIdx} className="h-1.5"></div>;
       }
       return (
-        <p key={lineIdx} className="mt-1 text-slate-100 font-medium">
+        <p key={lineIdx} className="mt-1 text-slate-700 dark:text-slate-100 font-medium">
           {formatInline(line)}
         </p>
       );
@@ -77,9 +77,83 @@ export const Dashboard: React.FC = () => {
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [isChatMinimized, setIsChatMinimized] = useState(true);
 
+  const isStaff = user && user.role !== 'Resident';
+
+  // Queue Management state for Dashboard
+  const [queueSlots, setQueueSlots] = useState<Array<{ id: string; ticket_number: string; resident_name: string; cert_type: string; date: string; time_slot: string; status: 'Waiting' | 'Serving' | 'Completed' | 'Cancelled' }>>([]);
+
+  const defaultDashboardQueueSlots = [
+    { id: 'q-sample-1', ticket_number: 'P-001', resident_name: 'MARIA SANTOS (Senior Citizen)', cert_type: 'Barangay Clearance', date: new Date().toISOString().split('T')[0], time_slot: '09:00 AM', status: 'Waiting' as const },
+    { id: 'q-sample-2', ticket_number: 'A-101', resident_name: 'JUAN DELA CRUZ', cert_type: 'Certificate of Indigency', date: new Date().toISOString().split('T')[0], time_slot: '09:15 AM', status: 'Waiting' as const },
+    { id: 'q-sample-3', ticket_number: 'A-102', resident_name: 'ANA REYES', cert_type: 'Certificate of Residency', date: new Date().toISOString().split('T')[0], time_slot: '09:30 AM', status: 'Waiting' as const },
+    { id: 'q-sample-4', ticket_number: 'A-103', resident_name: 'ROBERTO GARCIA', cert_type: 'Business Permit Clearance', date: new Date().toISOString().split('T')[0], time_slot: '09:45 AM', status: 'Waiting' as const },
+    { id: 'q-sample-5', ticket_number: 'A-104', resident_name: 'ELENA TORRES', cert_type: 'Barangay ID', date: new Date().toISOString().split('T')[0], time_slot: '10:00 AM', status: 'Waiting' as const }
+  ];
+
+  const syncDashboardQueue = () => {
+    try {
+      const saved = localStorage.getItem('lingkod_queue_slots');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const realSlots = parsed.filter((s: any) => !s.id.startsWith('q-sample-'));
+          if (realSlots.length > 0) {
+            setQueueSlots(realSlots);
+            return;
+          }
+          setQueueSlots(parsed);
+          return;
+        }
+      }
+      setQueueSlots(defaultDashboardQueueSlots);
+      localStorage.setItem('lingkod_queue_slots', JSON.stringify(defaultDashboardQueueSlots));
+    } catch (e) {
+      setQueueSlots(defaultDashboardQueueSlots);
+    }
+  };
+
+  useEffect(() => {
+    syncDashboardQueue();
+    const interval = setInterval(syncDashboardQueue, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  const updateQueueSlots = (newSlots: typeof queueSlots) => {
+    setQueueSlots(newSlots);
+    try {
+      localStorage.setItem('lingkod_queue_slots', JSON.stringify(newSlots));
+    } catch (e) {}
+  };
+
+  const waitingSlots = queueSlots.filter(s => s.status === 'Waiting');
+  const nowServingSlot = queueSlots.find(s => s.status === 'Serving');
+  const completedSlots = queueSlots.filter(s => s.status === 'Completed');
+
+  const handleCallNextQueue = () => {
+    if (waitingSlots.length === 0) {
+      alert("No tickets waiting in queue!");
+      return;
+    }
+    const next = waitingSlots[0];
+    const updated = queueSlots.map(s => {
+      if (s.id === next.id) return { ...s, status: 'Serving' as const };
+      if (s.status === 'Serving') return { ...s, status: 'Completed' as const };
+      return s;
+    });
+    updateQueueSlots(updated);
+  };
+
+  const handleMarkDoneQueue = (id: string) => {
+    if (window.confirm("Confirm marking this ticket as Completed / Done?")) {
+      const updated = queueSlots.map(s => s.id === id ? { ...s, status: 'Completed' as const } : s);
+      updateQueueSlots(updated);
+    }
+  };
+
   // Notification state
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; content: string; type: string; is_read: boolean }>>([]);
   const [showNotifPanel, setShowNotifPanel] = useState(false);
+
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
   const streamIntervalRef = React.useRef<any>(null);
@@ -365,10 +439,126 @@ export const Dashboard: React.FC = () => {
         <NotificationBell />
       </div>
 
+      {/* Queue Management Panel — Staff / Admin Only (Adapts to Light & Dark Mode) */}
+      {isStaff && (
+        <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-md dark:shadow-lg overflow-hidden">
+          {/* Queue Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700/60 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center border border-teal-500/20">
+                <Monitor size={18} className="text-teal-600 dark:text-teal-400" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Queue Management</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Call next resident &amp; manage service window</p>
+              </div>
+            </div>
+            {/* Stats Bar */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <Clock size={12} className="text-amber-600 dark:text-amber-400" />
+                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400">{waitingSlots.length}</span>
+                <span className="text-[9px] font-bold text-amber-700/80 dark:text-amber-500/70 uppercase tracking-wider">Waiting</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                <PhoneCall size={12} className="text-teal-600 dark:text-teal-400" />
+                <span className="text-[10px] font-black text-teal-600 dark:text-teal-400">{nowServingSlot ? 1 : 0}</span>
+                <span className="text-[9px] font-bold text-teal-700/80 dark:text-teal-500/70 uppercase tracking-wider">Serving</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <CheckCircle2 size={12} className="text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedSlots.length}</span>
+                <span className="text-[9px] font-bold text-emerald-700/80 dark:text-emerald-500/70 uppercase tracking-wider">Done</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Queue Body */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+            {/* NOW SERVING - Rich Teal Banner */}
+            <div className="p-6 bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800 border-r border-teal-700/40 text-white">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-teal-200 mb-3">Now Serving</p>
+              {nowServingSlot ? (
+                <div>
+                  <p className="text-xl font-black text-white leading-tight">
+                    {nowServingSlot.resident_name}
+                  </p>
+                  <p className="text-xs text-teal-100 mt-1 font-medium">{nowServingSlot.cert_type}</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-[10px] font-black bg-white/20 text-white px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                      {nowServingSlot.ticket_number}
+                    </span>
+                    <span className="text-[10px] text-teal-100/80 font-medium">{nowServingSlot.time_slot}</span>
+                  </div>
+
+                  <div className="pt-3 mt-3 border-t border-teal-500/30">
+                    <button
+                      onClick={() => handleMarkDoneQueue(nowServingSlot.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                    >
+                      <CheckCircle2 size={16} />
+                      Mark as Done / Complete
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-lg font-black text-teal-100/70 leading-snug">
+                  No one is being served right now
+                </p>
+              )}
+            </div>
+
+            {/* WAITING QUEUE + CALL NEXT */}
+            <div className="p-6 bg-slate-50/70 dark:bg-slate-900/80">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Waiting Queue</p>
+                <button
+                  onClick={handleCallNextQueue}
+                  disabled={waitingSlots.length === 0}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-black text-[11px] uppercase tracking-wide transition-all active:scale-95 shadow-md shadow-teal-600/20 cursor-pointer"
+                >
+                  <PhoneCall size={13} />
+                  Call Next
+                </button>
+              </div>
+
+              {waitingSlots.length === 0 ? (
+                <div className="flex items-center justify-center h-20 text-center">
+                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Queue is empty — no residents waiting</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                  {waitingSlots.slice(0, 5).map((slot, idx) => (
+                    <div key={slot.id} className="flex items-center gap-3 p-2.5 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/60 shadow-sm">
+                      <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-black text-slate-700 dark:text-slate-300">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                          {slot.resident_name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{slot.cert_type}</p>
+                      </div>
+                      <span className="text-[10px] font-black text-teal-600 dark:text-teal-400 shrink-0">{slot.ticket_number}</span>
+                    </div>
+                  ))}
+                  {waitingSlots.length > 5 && (
+                    <p className="text-center text-[10px] text-slate-500 dark:text-slate-400 font-bold pt-1">
+                      +{waitingSlots.length - 5} more in queue
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* AI Strategic Chat Assistant Panel */}
+
       <div 
         style={!isChatMinimized ? { height: '600px' } : {}}
-        className="relative w-full bg-slate-900/95 text-white rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.35)] overflow-hidden z-20 flex flex-col border border-slate-700/60 transition-all duration-300 ease-in-out"
+        className="relative w-full bg-white dark:bg-slate-900/95 rounded-3xl shadow-md dark:shadow-[0_8px_40px_rgba(0,0,0,0.35)] overflow-hidden z-20 flex flex-col border border-slate-200 dark:border-slate-700/60 transition-all duration-300 ease-in-out"
       >
         {/* Decorative top gradient line */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gov-gold-400 to-transparent opacity-75" />
@@ -376,27 +566,27 @@ export const Dashboard: React.FC = () => {
         {/* Chat header (clickable to toggle) */}
         <div 
           onClick={() => setIsChatMinimized(prev => !prev)}
-          className={`px-4 sm:px-6 py-3 flex items-center justify-between bg-slate-900/90 hover:bg-slate-800/80 transition-colors duration-200 cursor-pointer select-none relative z-10 ${isChatMinimized ? '' : 'border-b border-slate-700/50'}`}
+          className={`px-4 sm:px-6 py-3 flex items-center justify-between bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors duration-200 cursor-pointer select-none relative z-10 ${isChatMinimized ? '' : 'border-b border-slate-200 dark:border-slate-700/50'}`}
         >
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="relative flex-shrink-0">
-              <div className="p-2.5 bg-gradient-to-br from-gov-gold-500/20 to-gov-gold-600/10 rounded-xl text-gov-gold-400 border border-gov-gold-500/30 shadow-[0_0_16px_rgba(204,162,16,0.15)] flex items-center justify-center">
+              <div className="p-2.5 bg-gradient-to-br from-gov-gold-500/20 to-gov-gold-600/10 rounded-xl text-gov-gold-500 dark:text-gov-gold-400 border border-gov-gold-500/30 shadow-[0_0_16px_rgba(204,162,16,0.15)] flex items-center justify-center">
                 <Cpu size={20} />
               </div>
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-slate-900 animate-pulse" />
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-slate-900 animate-pulse" />
             </div>
             <div className="truncate">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h4 className="text-xs sm:text-sm font-black uppercase text-gov-gold-400 tracking-wider flex items-center gap-1.5 truncate">
-                  <Sparkles size={14} className="text-gov-gold-300 flex-shrink-0" />
+                <h4 className="text-xs sm:text-sm font-black uppercase text-gov-gold-600 dark:text-gov-gold-400 tracking-wider flex items-center gap-1.5 truncate">
+                  <Sparkles size={14} className="text-gov-gold-500 dark:text-gov-gold-300 flex-shrink-0" />
                   AI STRATEGIC CHAT ASSISTANT
                 </h4>
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping"></span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400 rounded-full animate-ping"></span>
                   Groq AI Active
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">Barangay Lawrence Smart Operations Officer • Fast Groq AI Engine</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">Barangay Lawrence Smart Operations Officer • Fast Groq AI Engine</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -404,14 +594,14 @@ export const Dashboard: React.FC = () => {
               type="button"
               onClick={handleResetChat} 
               disabled={isGeneratingInsight || isSending || isChatMinimized}
-              className="text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 bg-white/5 hover:bg-white/15 text-gov-gold-400 hover:text-gov-gold-300 rounded-xl border border-gov-gold-500/25 hover:border-gov-gold-400/50 transition-all duration-200 disabled:opacity-30 active:scale-95 shadow-sm backdrop-blur-sm"
+              className="text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/15 text-gov-gold-600 dark:text-gov-gold-400 hover:text-gov-gold-700 dark:hover:text-gov-gold-300 rounded-xl border border-gov-gold-300 dark:border-gov-gold-500/25 hover:border-gov-gold-400 dark:hover:border-gov-gold-400/50 transition-all duration-200 disabled:opacity-30 active:scale-95 shadow-sm"
             >
               Reset Chat
             </button>
             <button
               type="button"
               onClick={() => setIsChatMinimized(prev => !prev)}
-              className="p-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all duration-200 active:scale-95 border border-slate-700/50 hover:border-slate-600/80 flex items-center justify-center"
+              className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-all duration-200 active:scale-95 border border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600/80 flex items-center justify-center"
               title={isChatMinimized ? 'Expand' : 'Minimize'}
             >
               {isChatMinimized ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
@@ -423,7 +613,7 @@ export const Dashboard: React.FC = () => {
         {isChatMinimized ? null : (
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* Message history */}
-        <div ref={messagesContainerRef} className="px-6 py-5 space-y-5 overflow-y-auto flex flex-col flex-1 min-h-0 scroll-smooth bg-slate-950/20 shadow-inner">
+        <div ref={messagesContainerRef} className="px-6 py-5 space-y-5 overflow-y-auto flex flex-col flex-1 min-h-0 scroll-smooth bg-slate-50/80 dark:bg-slate-950/20 shadow-inner">
           {messages.map((msg, index) => {
             if (!msg.text || !msg.text.trim()) return null;
             return (
@@ -432,16 +622,16 @@ export const Dashboard: React.FC = () => {
                 className={`flex gap-3 max-w-[88%] ${msg.sender === 'user' ? 'self-end flex-row-reverse' : 'self-start'} group`}
               >
                 {msg.sender === 'ai' && (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black tracking-wide mt-0.5 shadow-[0_0_12px_rgba(204,162,16,0.12)]">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-500 dark:text-gov-gold-400 border border-gov-gold-400/40 dark:border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black tracking-wide mt-0.5 shadow-[0_0_12px_rgba(204,162,16,0.12)]">
                     AI
                   </div>
                 )}
                 <div className="relative">
                   <div 
-                    className={`p-4 rounded-2xl text-sm leading-relaxed font-medium shadow-lg ${
+                    className={`p-4 rounded-2xl text-sm leading-relaxed font-medium shadow-md ${
                       msg.sender === 'user' 
                         ? 'bg-gradient-to-br from-gov-blue-600 to-gov-blue-700 text-white rounded-tr-sm border border-gov-blue-500/40' 
-                        : 'bg-slate-800/90 text-slate-100 rounded-tl-sm border border-slate-700/60 backdrop-blur-sm'
+                        : 'bg-white dark:bg-slate-800/90 text-slate-700 dark:text-slate-100 rounded-tl-sm border border-slate-200 dark:border-slate-700/60'
                     }`}
                   >
                     {parseMarkdown(msg.text)}
@@ -451,10 +641,10 @@ export const Dashboard: React.FC = () => {
                       <button
                         onClick={() => handleCopy(msg.text, index)}
                         type="button"
-                        className="text-slate-500 hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded-lg hover:bg-white/5"
+                        className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 opacity-0 group-hover:opacity-100 transition-all duration-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5"
                         title="Copy message"
                       >
-                        {copiedIdx === index ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                        {copiedIdx === index ? <Check size={13} className="text-emerald-500 dark:text-emerald-400" /> : <Copy size={13} />}
                       </button>
                     )}
                   </div>
@@ -465,10 +655,10 @@ export const Dashboard: React.FC = () => {
 
           {isGeneratingInsight && (
             <div className="flex gap-3 max-w-[88%] self-start">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black mt-0.5 animate-pulse shadow-[0_0_12px_rgba(204,162,16,0.12)]">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-500 dark:text-gov-gold-400 border border-gov-gold-400/40 dark:border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black mt-0.5 animate-pulse shadow-[0_0_12px_rgba(204,162,16,0.12)]">
                 AI
               </div>
-              <div className="p-4 rounded-2xl text-sm leading-relaxed font-medium bg-slate-800/90 text-slate-400 rounded-tl-sm border border-slate-700/60 animate-pulse">
+              <div className="p-4 rounded-2xl text-sm leading-relaxed font-medium bg-white dark:bg-slate-800/90 text-slate-400 rounded-tl-sm border border-slate-200 dark:border-slate-700/60 animate-pulse">
                 Analyzing statistics and compiling strategy...
               </div>
             </div>
@@ -476,10 +666,10 @@ export const Dashboard: React.FC = () => {
 
           {isSending && (
             <div className="flex gap-3 max-w-[88%] self-start">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-400 border border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black mt-0.5 animate-pulse shadow-[0_0_12px_rgba(204,162,16,0.12)]">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-gov-gold-500/25 to-gov-gold-600/15 text-gov-gold-500 dark:text-gov-gold-400 border border-gov-gold-400/40 dark:border-gov-gold-500/30 flex items-center justify-center flex-shrink-0 text-[11px] font-black mt-0.5 animate-pulse shadow-[0_0_12px_rgba(204,162,16,0.12)]">
                 AI
               </div>
-              <div className="p-4 rounded-2xl text-sm leading-relaxed font-medium bg-slate-800/90 text-slate-400 rounded-tl-sm border border-slate-700/60 flex items-center gap-2">
+              <div className="p-4 rounded-2xl text-sm leading-relaxed font-medium bg-white dark:bg-slate-800/90 text-slate-400 rounded-tl-sm border border-slate-200 dark:border-slate-700/60 flex items-center gap-2">
                 <span className="w-2 h-2 bg-gov-gold-400 rounded-full animate-bounce [animation-delay:0ms]"></span>
                 <span className="w-2 h-2 bg-gov-gold-400 rounded-full animate-bounce [animation-delay:150ms]"></span>
                 <span className="w-2 h-2 bg-gov-gold-400 rounded-full animate-bounce [animation-delay:300ms]"></span>
@@ -492,10 +682,10 @@ export const Dashboard: React.FC = () => {
         )}
 
         {/* Input Bar - always visible even when minimized */}
-        <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-slate-700/50 bg-slate-900/80 backdrop-blur-md flex gap-3 items-center flex-shrink-0">
+        <form onSubmit={handleSendMessage} className="px-6 py-4 border-t border-slate-200 dark:border-slate-700/50 bg-white dark:bg-slate-900/80 backdrop-blur-md flex gap-3 items-center flex-shrink-0">
           <div className="relative flex-1 group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Sparkles size={16} className="text-gov-gold-500/60 group-focus-within:text-gov-gold-400 transition-colors" />
+              <Sparkles size={16} className="text-gov-gold-400/70 dark:text-gov-gold-500/60 group-focus-within:text-gov-gold-500 dark:group-focus-within:text-gov-gold-400 transition-colors" />
             </div>
             <input
               type="text"
@@ -503,7 +693,7 @@ export const Dashboard: React.FC = () => {
               onChange={(e) => setInputValue(e.target.value)}
               placeholder="Ask about active incidents, poverty levels, business reports..."
               disabled={isGeneratingInsight || isSending}
-              className="w-full pl-11 pr-5 py-3.5 bg-slate-950/50 border border-slate-700/60 focus:border-gov-gold-500/50 rounded-2xl text-sm text-white focus:outline-none focus:ring-4 focus:ring-gov-gold-500/10 placeholder-slate-500 disabled:opacity-40 transition-all duration-300 shadow-inner"
+              className="w-full pl-11 pr-5 py-3.5 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700/60 focus:border-gov-gold-400 dark:focus:border-gov-gold-500/50 rounded-2xl text-sm text-slate-800 dark:text-white focus:outline-none focus:ring-4 focus:ring-gov-gold-500/10 placeholder-slate-400 dark:placeholder-slate-500 disabled:opacity-40 transition-all duration-300 shadow-inner"
             />
           </div>
           <button

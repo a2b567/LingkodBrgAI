@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogIn, KeyRound, User as UserIcon, Loader2, Mail } from 'lucide-react';
+import { LogIn, KeyRound, User as UserIcon, Loader2, Mail, ShieldAlert } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import logo from '../assets/logo.png';
 import { VisualCaptcha } from '../components/VisualCaptcha';
 
 const GoogleIcon = () => (
@@ -213,7 +212,9 @@ export const Login: React.FC = () => {
         
         {/* Government Crest Logo Header */}
         <div className="text-center space-y-2 mb-8">
-          <img src={logo} alt="Barangay Logo" className="w-20 h-20 object-contain rounded-2xl mx-auto shadow-lg shadow-gov-blue-500/25" />
+          <div className="w-18 h-18 bg-gradient-to-tr from-gov-blue-800 to-indigo-900 rounded-2xl mx-auto shadow-lg shadow-gov-blue-500/25 flex items-center justify-center border border-gov-blue-700/50">
+            <ShieldAlert size={36} className="text-gov-gold-400" />
+          </div>
           <h2 className="text-xl font-extrabold tracking-tight text-gov-blue-900 dark:text-gov-blue-300 uppercase">
             LingkodBrgAI
           </h2>

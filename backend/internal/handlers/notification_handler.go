@@ -21,12 +21,10 @@ func (h *NotificationHandler) List(c *gin.Context) {
 
 	query := db.Model(&models.Notification{})
 
-	// Residents only see announcements and their personal notifications
+	// Residents only see announcements and notifications targeted to their user ID
 	if userRole == "Resident" && exists {
 		userID := userIDVal.(uuid.UUID)
-		query = query.Where("user_id = ? OR user_id IS NULL", userID)
-	} else if userRole != "Resident" {
-		// Staff see all notifications
+		query = query.Where("user_id = ? OR type = ? OR type = ?", userID, "Announcement", "General")
 	}
 
 	if err := query.Order("created_at desc").Limit(30).Find(&notifications).Error; err != nil {

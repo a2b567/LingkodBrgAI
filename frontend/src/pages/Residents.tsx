@@ -410,157 +410,190 @@ export const Residents: React.FC = () => {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSave} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-thin">
+            <form onSubmit={handleSave} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto scrollbar-thin">
               
-              {/* Profile photo uploader */}
-              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/40 dark:border-slate-800/80">
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-inner">
-                  {photoUrl ? (
-                    <img src={`http://localhost:8080${photoUrl}`} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <Users size={24} className="text-slate-400 dark:text-slate-500" />
-                  )}
+              {/* SECTION F: Profile Photo */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-2">
+                <span className="text-[10px] font-black text-gov-blue-600 dark:text-gov-blue-400 uppercase tracking-widest block">
+                  F. Profile Photo (Litrato ng Mamamayan)
+                </span>
+                <div className="flex items-center gap-4 pt-1">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0 border border-slate-200 dark:border-slate-700 shadow-inner">
+                    {photoUrl ? (
+                      <img src={`http://localhost:8080${photoUrl}`} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users size={24} className="text-slate-400 dark:text-slate-500" />
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                      Mag-upload ng malinaw na 2x2 o 1x1 ID photo (PNG, JPG, WEBP).
+                    </p>
+                    <label className="inline-flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/80 transition-all text-slate-700 dark:text-slate-200 shadow-sm">
+                      <Upload size={14} className="text-gov-blue-500" />
+                      Upload Profile Photo
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleUploadPhoto(e.target.files[0]);
+                          }
+                        }} 
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Profile Photo</label>
-                  <label className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-bold rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/80 transition-all text-slate-700 dark:text-slate-200 shadow-sm">
-                    <Upload size={12} className="text-gov-blue-500" />
-                    Upload Image
+              </div>
+
+              {/* SECTION A: Personal na Impormasyon */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-gov-blue-600 dark:text-gov-blue-400 uppercase tracking-widest block border-b border-slate-100 dark:border-slate-800 pb-1">
+                  A. Personal na Impormasyon (Personal Information)
+                </span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">First Name (Unang Pangalan) *</label>
+                    <input type="text" required title="First Name" placeholder="Juan" value={form.first_name} onChange={(e) => setForm({...form, first_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Middle Name (Gitnang Pangalan)</label>
+                    <input type="text" title="Middle Name" placeholder="Mercado" value={form.middle_name} onChange={(e) => setForm({...form, middle_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Last Name (Apelyido) *</label>
+                    <input type="text" required title="Last Name" placeholder="Dela Cruz" value={form.last_name} onChange={(e) => setForm({...form, last_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Petsa ng Kapanganakan (Birthdate) *</label>
                     <input 
-                      type="file" 
-                      accept="image/*" 
+                      type="date" 
+                      required 
+                      title="Birthdate" 
+                      value={form.birthdate} 
                       onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleUploadPhoto(e.target.files[0]);
+                        const bdate = e.target.value;
+                        let isSeniorAuto = form.is_senior;
+                        let isPregnantAuto = form.is_pregnant;
+                        if (bdate) {
+                          const birthYear = new Date(bdate).getFullYear();
+                          const currentYear = new Date().getFullYear();
+                          if (currentYear - birthYear >= 60) {
+                            isSeniorAuto = true;
+                            isPregnantAuto = false;
+                          }
                         }
+                        setForm({
+                          ...form,
+                          birthdate: bdate,
+                          is_senior: isSeniorAuto,
+                          is_pregnant: isPregnantAuto
+                        });
                       }} 
-                      className="hidden" 
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" 
                     />
-                  </label>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Kasarian (Gender)</label>
+                    <select 
+                      value={form.gender} 
+                      title="Gender" 
+                      onChange={(e) => {
+                        const g = e.target.value;
+                        setForm({
+                          ...form,
+                          gender: g,
+                          is_pregnant: g === 'Male' ? false : form.is_pregnant
+                        });
+                      }} 
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white"
+                    >
+                      <option value="Male">Lalaki (Male)</option>
+                      <option value="Female">Babae (Female)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Katayuang Sibil (Civil Status)</label>
+                    <select value={form.civil_status} title="Civil Status" onChange={(e) => setForm({...form, civil_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
+                      <option value="Single">Walang Asawa (Single)</option>
+                      <option value="Married">Kasal (Married)</option>
+                      <option value="Widowed">Biyudo / Biyuda (Widowed)</option>
+                      <option value="Single Parent">Solo Parent (Single Parent)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">First Name *</label>
-                  <input type="text" required title="First Name" placeholder="First Name" value={form.first_name} onChange={(e) => setForm({...form, first_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Middle Name</label>
-                  <input type="text" title="Middle Name" placeholder="Middle Name" value={form.middle_name} onChange={(e) => setForm({...form, middle_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Last Name *</label>
-                  <input type="text" required title="Last Name" placeholder="Last Name" value={form.last_name} onChange={(e) => setForm({...form, last_name: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Birthdate *</label>
-                  <input 
-                    type="date" 
-                    required 
-                    title="Birthdate" 
-                    placeholder="Birthdate" 
-                    value={form.birthdate} 
-                    onChange={(e) => {
-                      const bdate = e.target.value;
-                      let isSeniorAuto = form.is_senior;
-                      let isPregnantAuto = form.is_pregnant;
-                      if (bdate) {
-                        const birthYear = new Date(bdate).getFullYear();
-                        const currentYear = new Date().getFullYear();
-                        if (currentYear - birthYear >= 60) {
-                          isSeniorAuto = true;
-                          isPregnantAuto = false;
-                        }
-                      }
-                      setForm({
-                        ...form,
-                        birthdate: bdate,
-                        is_senior: isSeniorAuto,
-                        is_pregnant: isPregnantAuto
-                      });
-                    }} 
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" 
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Gender</label>
-                  <select 
-                    value={form.gender} 
-                    title="Gender" 
-                    onChange={(e) => {
-                      const g = e.target.value;
-                      setForm({
-                        ...form,
-                        gender: g,
-                        is_pregnant: g === 'Male' ? false : form.is_pregnant
-                      });
-                    }} 
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Civil Status</label>
-                  <select value={form.civil_status} title="Civil Status" onChange={(e) => setForm({...form, civil_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
-                    <option value="Single">Single</option>
-                    <option value="Married">Married</option>
-                    <option value="Widowed">Widowed</option>
-                    <option value="Single Parent">Single Parent</option>
-                  </select>
+              {/* SECTION B: Contact at Trabaho */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-gov-blue-600 dark:text-gov-blue-400 uppercase tracking-widest block border-b border-slate-100 dark:border-slate-800 pb-1">
+                  B. Contact at Trabaho (Contact & Occupation)
+                </span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Numero ng Telepono (Contact Number)</label>
+                    <input type="text" title="Contact Number" placeholder="09XX-XXX-XXXX" value={form.contact_number} onChange={(e) => setForm({...form, contact_number: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Email Address</label>
+                    <input type="email" title="Email" placeholder="resident@email.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Hanapbuhay (Occupation)</label>
+                    <input type="text" title="Occupation" placeholder="E.g., Private Employee, Driver, Merchant" value={form.occupation} onChange={(e) => setForm({...form, occupation: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* SECTION C: Tirahan */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-gov-blue-600 dark:text-gov-blue-400 uppercase tracking-widest block border-b border-slate-100 dark:border-slate-800 pb-1">
+                  C. Tirahan (Complete Address)
+                </span>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Contact Number</label>
-                  <input type="text" title="Contact Number" placeholder="09123456789" value={form.contact_number} onChange={(e) => setForm({...form, contact_number: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Email</label>
-                  <input type="email" title="Email" placeholder="resident@email.com" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Occupation</label>
-                  <input type="text" title="Occupation" placeholder="Occupation" value={form.occupation} onChange={(e) => setForm({...form, occupation: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+                  <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Kumpletong Address (Street, Purok, Zone, Barangay) *</label>
+                  <input type="text" required title="Address" placeholder="Street, Purok, Zone Location..." value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Address *</label>
-                <input type="text" required title="Address" placeholder="Street, Purok, Zone..." value={form.address} onChange={(e) => setForm({...form, address: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white" />
+              {/* SECTION D: Katayuan sa Pagboto at Paninirahan */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-black text-gov-blue-600 dark:text-gov-blue-400 uppercase tracking-widest block border-b border-slate-100 dark:border-slate-800 pb-1">
+                  D. Katayuan sa Pagboto at Paninirahan (Voter & Residency Status)
+                </span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Voter Status (Katayuan sa Pagboto)</label>
+                    <select value={form.voter_status} title="Voter Status" onChange={(e) => setForm({...form, voter_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
+                      <option value="Not Registered">Not Registered (Hindi Rehistrado)</option>
+                      <option value="Registered">Registered (Rehistradong Botante)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Residency Status (Uri ng Paninirahan)</label>
+                    <select value={form.residency_status} title="Residency Status" onChange={(e) => setForm({...form, residency_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
+                      <option value="Permanent">Permanent (Permanente)</option>
+                      <option value="Temporary">Temporary (Pansamantala / Nangungupahan)</option>
+                    </select>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Voter Status</label>
-                  <select value={form.voter_status} title="Voter Status" onChange={(e) => setForm({...form, voter_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
-                    <option value="Registered">Registered</option>
-                    <option value="Not Registered">Not Registered</option>
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block">Residency Status</label>
-                  <select value={form.residency_status} title="Residency Status" onChange={(e) => setForm({...form, residency_status: e.target.value})} className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-gov-blue-500 transition-colors font-medium text-slate-900 dark:text-white">
-                    <option value="Permanent">Permanent</option>
-                    <option value="Temporary">Temporary</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* HEALTH & PRIORITY CATEGORY */}
+              {/* SECTION E: Kalusugan at Priority Category */}
               <div className="p-4 bg-slate-50 dark:bg-slate-950/70 rounded-2xl border border-slate-200/60 dark:border-slate-800 space-y-3 shadow-inner">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-black text-gov-gold-600 dark:text-gov-gold-400 uppercase tracking-widest flex items-center gap-1.5">
                     <Sparkles size={13} className="text-gov-gold-500" />
-                    HEALTH & PRIORITY CATEGORY
+                    E. KALUSUGAN AT PRIORITY CATEGORY
                   </label>
-                  <span className="text-[9px] text-slate-400 font-semibold">Optional category tag</span>
+                  <span className="text-[9px] text-slate-400 font-semibold">Kategorya ng mamamayan</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -591,9 +624,7 @@ export const Residents: React.FC = () => {
                         setForm({ 
                           ...form, 
                           is_pregnant: isChecked,
-                          // Auto switch gender to Female if checking pregnant
                           gender: isChecked ? 'Female' : form.gender,
-                          // Auto uncheck senior if checking pregnant
                           is_senior: isChecked ? false : form.is_senior
                         });
                       }}
@@ -629,7 +660,6 @@ export const Residents: React.FC = () => {
                         setForm({ 
                           ...form, 
                           is_senior: isSeniorChecked,
-                          // If senior is checked, automatically uncheck pregnant
                           is_pregnant: isSeniorChecked ? false : form.is_pregnant
                         });
                       }}
@@ -702,8 +732,15 @@ export const Residents: React.FC = () => {
             <h3 className="font-extrabold text-sm text-black dark:text-white uppercase mb-2">QR ID Identity Card</h3>
             <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mb-6">Barangay Lawrence Secure Resident ID</p>
 
-            <div className="w-48 h-48 bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 mx-auto mb-4 flex items-center justify-center p-2">
-              <img src={`http://localhost:8080/uploads/qr/${qrModal.id}.png`} alt="QR Code" className="w-full h-full object-contain" />
+            <div className="w-48 h-48 bg-white p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-inner mx-auto mb-4 flex items-center justify-center">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrModal.qr_id || `QR-RES-${qrModal.id}`)}`} 
+                alt={`QR Code for ${qrModal.first_name} ${qrModal.last_name}`} 
+                onError={(e) => {
+                  e.currentTarget.src = `http://localhost:8080/uploads/qr/${qrModal.id}.png`;
+                }}
+                className="w-full h-full object-contain rounded-lg" 
+              />
             </div>
 
             <h4 className="font-black text-sm text-gov-blue-700 dark:text-gov-blue-300">{qrModal.first_name} {qrModal.last_name}</h4>

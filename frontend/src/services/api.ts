@@ -26,7 +26,7 @@ client.interceptors.request.use((config) => {
 });
 
 // Groq AI Integration Helper
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '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';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 
 // Use direct Groq API endpoint
 const GROQ_BASE_URL = 'https://api.groq.com';
@@ -63,15 +63,15 @@ export const callGroqAI = async (prompt: string, systemContext?: string): Promis
   };
 
   try {
-    return await makeRequest('groq/compound');
+    return await makeRequest('llama-3.3-70b-versatile');
   } catch (err) {
     console.warn('Primary Groq model failed, trying fallback 1:', err);
     try {
-      return await makeRequest('openai/gpt-oss-120b');
+      return await makeRequest('llama-3.1-8b-instant');
     } catch (err2) {
       console.warn('Fallback 1 failed, trying fallback 2:', err2);
       try {
-        return await makeRequest('qwen/qwen3.8-27b');
+        return await makeRequest('mixtral-8x7b-32768');
       } catch (err3) {
         console.warn('All Groq models failed:', err3);
         throw err3;
@@ -356,6 +356,42 @@ export const api = {
           return cert;
         }
       ),
+    update: (id: string, data: Partial<Certificate>) =>
+      withFallback(
+        () => client.put<Certificate>(`/certificates/${id}`, data).then(r => r.data),
+        () => {
+          const idx = mockState.certificates.findIndex(c => c.id === id);
+          if (idx !== -1) {
+            mockState.certificates[idx] = { ...mockState.certificates[idx], ...data };
+            return mockState.certificates[idx];
+          }
+          return mockState.certificates[0];
+        }
+      ),
+    delete: (id: string) =>
+      withFallback(
+        () => client.delete(`/certificates/${id}`).then(r => r.data),
+        () => {
+          mockState.certificates = mockState.certificates.filter(c => c.id !== id);
+          return { message: 'Certificate deleted' };
+        }
+      ),
+    seedSamples: () =>
+      withFallback(
+        () => client.post('/certificates/seed-samples').then(r => r.data),
+        () => {
+          const samples: Certificate[] = [
+            { id: `cert-${Date.now()}-1`, resident_id: 'res-1', type: 'Clearance', document_number: 'DOC-2026-0001', status: 'Issued', purpose: 'Local Employment Application', qr_hash: 'samp1', fee: 150, payment_status: 'Paid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
+            { id: `cert-${Date.now()}-2`, resident_id: 'res-1', type: 'Indigency', document_number: 'DOC-2026-0002', status: 'Issued', purpose: 'Medical Financial Assistance', qr_hash: 'samp2', fee: 0, payment_status: 'Paid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
+            { id: `cert-${Date.now()}-3`, resident_id: 'res-1', type: 'Residency', document_number: 'DOC-2026-0003', status: 'Pending', purpose: 'Bank Account Opening', qr_hash: 'samp3', fee: 100, payment_status: 'Unpaid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
+            { id: `cert-${Date.now()}-4`, resident_id: 'res-1', type: 'Business', document_number: 'DOC-2026-0004', status: 'Pending', purpose: 'Grocery Store Business Permit', qr_hash: 'samp4', fee: 300, payment_status: 'Unpaid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
+            { id: `cert-${Date.now()}-5`, resident_id: 'res-1', type: 'Cedula', document_number: 'DOC-2026-0005', status: 'Issued', purpose: 'Community Tax Certificate 2026', qr_hash: 'samp5', fee: 50, payment_status: 'Paid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
+            { id: `cert-${Date.now()}-6`, resident_id: 'res-1', type: 'Barangay ID', document_number: 'DOC-2026-0006', status: 'Pending', purpose: 'Official Resident ID Card', qr_hash: 'samp6', fee: 100, payment_status: 'Unpaid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
+          ];
+          mockState.certificates.push(...samples);
+          return { message: 'Sample certificates created', count: samples.length };
+        }
+      ),
     verifyQR: (hash: string) =>
       withFallback(
         () => client.get<{ valid: boolean; message: string; document?: string; type?: string; recipient?: string; issued_on?: string; purpose?: string }>(`/verify/document/${hash}`).then(r => r.data),
@@ -370,6 +406,7 @@ export const api = {
         })
       ),
   },
+
 
   blotters: {
     list: (params?: any) =>

@@ -6,7 +6,6 @@ import {
   Upload, Sparkles, ShieldCheck, Trash2, FileCheck
 } from 'lucide-react';
 import { api, callGroqAI } from '../services/api';
-import logo from '../assets/logo.png';
 import { VisualCaptcha } from '../components/VisualCaptcha';
 
 const GoogleIcon = () => (
@@ -254,11 +253,9 @@ export const Register: React.FC = () => {
         {/* Brand Header */}
         <div className="text-center space-y-3 mb-8">
           <div className="relative inline-block">
-            <img 
-              src={logo} 
-              alt="Barangay Logo" 
-              className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-2xl mx-auto shadow-xl shadow-gov-blue-500/20 ring-4 ring-gov-blue-500/10" 
-            />
+            <div className="w-18 h-18 sm:w-20 sm:h-20 bg-gradient-to-tr from-gov-blue-800 to-indigo-900 rounded-2xl mx-auto shadow-xl shadow-gov-blue-500/20 ring-4 ring-gov-blue-500/10 flex items-center justify-center border border-gov-blue-700/50">
+              <ShieldCheck size={36} className="text-gov-gold-400" />
+            </div>
             <span className="absolute -bottom-2 -right-2 bg-gov-blue-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md uppercase tracking-wider">
               Official
             </span>

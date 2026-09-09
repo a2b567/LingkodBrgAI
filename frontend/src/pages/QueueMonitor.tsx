@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Sparkles, Clock, CheckCircle2, Zap } from 'lucide-react';
-import logo from '../assets/logo.png';
+import { Volume2, VolumeX, Sparkles, Clock, CheckCircle2, Zap, ShieldAlert } from 'lucide-react';
 
 interface QueueSlot {
   id: string;
@@ -25,22 +24,41 @@ export const QueueMonitor: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Poll queue state from localStorage or mock every 2 seconds
+  const defaultMonitorQueueSlots: QueueSlot[] = [
+    { id: 'q-sample-1', ticket_number: 'P-001', resident_name: 'MARIA SANTOS (Senior Citizen)', cert_type: 'Barangay Clearance', date: new Date().toISOString().split('T')[0], time_slot: '09:00 AM', status: 'Waiting', is_priority: true },
+    { id: 'q-sample-2', ticket_number: 'A-101', resident_name: 'JUAN DELA CRUZ', cert_type: 'Certificate of Indigency', date: new Date().toISOString().split('T')[0], time_slot: '09:15 AM', status: 'Waiting', is_priority: false },
+    { id: 'q-sample-3', ticket_number: 'A-102', resident_name: 'ANA REYES', cert_type: 'Certificate of Residency', date: new Date().toISOString().split('T')[0], time_slot: '09:30 AM', status: 'Waiting', is_priority: false },
+    { id: 'q-sample-4', ticket_number: 'A-103', resident_name: 'ROBERTO GARCIA', cert_type: 'Business Permit Clearance', date: new Date().toISOString().split('T')[0], time_slot: '09:45 AM', status: 'Waiting', is_priority: false },
+    { id: 'q-sample-5', ticket_number: 'A-104', resident_name: 'ELENA TORRES', cert_type: 'Barangay ID', date: new Date().toISOString().split('T')[0], time_slot: '10:00 AM', status: 'Waiting', is_priority: false }
+  ];
+
+  // Poll queue state from localStorage or fallback to default samples
   useEffect(() => {
     const loadQueue = () => {
       try {
         const saved = localStorage.getItem('lingkod_queue_slots');
         if (saved) {
           const parsed: QueueSlot[] = JSON.parse(saved);
-          setQueueSlots(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Check if real kiosk inputs or backend tickets exist
+            const realSlots = parsed.filter(s => !s.id.startsWith('q-sample-'));
+            if (realSlots.length > 0) {
+              setQueueSlots(realSlots);
+              return;
+            }
+            setQueueSlots(parsed);
+            return;
+          }
         }
+        setQueueSlots(defaultMonitorQueueSlots);
+        localStorage.setItem('lingkod_queue_slots', JSON.stringify(defaultMonitorQueueSlots));
       } catch (e) {
-        console.error("Failed loading queue state", e);
+        setQueueSlots(defaultMonitorQueueSlots);
       }
     };
 
     loadQueue();
-    const interval = setInterval(loadQueue, 2000);
+    const interval = setInterval(loadQueue, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -78,7 +96,9 @@ export const QueueMonitor: React.FC = () => {
       {/* Top Header Banner */}
       <header className="flex items-center justify-between pb-6 border-b border-slate-800 relative z-10">
         <div className="flex items-center gap-4">
-          <img src={logo} alt="Barangay Logo" className="w-14 h-14 object-contain rounded-2xl shadow-lg border border-slate-700 bg-slate-900 p-1" />
+          <div className="w-14 h-14 bg-gradient-to-tr from-gov-blue-700 to-indigo-800 rounded-2xl shadow-lg border border-slate-700 flex items-center justify-center">
+            <ShieldAlert size={28} className="text-gov-gold-400" />
+          </div>
           <div>
             <h1 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wider font-display">QUEUE MONITOR</h1>
             <p className="text-xs font-bold text-gov-blue-400 uppercase tracking-widest flex items-center gap-2">

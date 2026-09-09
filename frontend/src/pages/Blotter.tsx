@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertOctagon, Plus, Cpu, Sparkles, Calendar, Scale, Search, ShieldAlert, CheckCircle2, Clock, FileText, X } from 'lucide-react';
+import { AlertOctagon, Plus, Cpu, Sparkles, Calendar, Scale, Search, ShieldAlert, CheckCircle2, Clock, X } from 'lucide-react';
 import { api } from '../services/api';
 import type { Blotter } from '../types';
 

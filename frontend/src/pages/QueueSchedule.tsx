@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Calendar as CalendarIcon, Clock, Volume2, VolumeX, Monitor, Plus, 
-  ChevronLeft, ChevronRight, CheckCircle2, Zap, FileText, X, PhoneCall, Sparkles
+  ChevronLeft, ChevronRight, CheckCircle2, Zap, FileText, X, PhoneCall, Sparkles,
+  FolderPlus
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 
@@ -77,18 +78,119 @@ export const QueueSchedule: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Persist and sync queue slots with QueueMonitor via localStorage
-  useEffect(() => {
+  const defaultSampleSlots: QueueSlot[] = [
+    {
+      id: 'q-sample-1',
+      ticket_number: 'P-001',
+      resident_name: 'MARIA SANTOS (Senior Citizen)',
+      cert_type: 'Barangay Clearance',
+      date: new Date().toISOString().split('T')[0],
+      time_slot: '09:00 AM',
+      status: 'Waiting',
+      is_priority: true
+    },
+    {
+      id: 'q-sample-2',
+      ticket_number: 'A-101',
+      resident_name: 'JUAN DELA CRUZ',
+      cert_type: 'Certificate of Indigency',
+      date: new Date().toISOString().split('T')[0],
+      time_slot: '09:15 AM',
+      status: 'Waiting',
+      is_priority: false
+    },
+    {
+      id: 'q-sample-3',
+      ticket_number: 'A-102',
+      resident_name: 'ANA REYES',
+      cert_type: 'Certificate of Residency',
+      date: new Date().toISOString().split('T')[0],
+      time_slot: '09:30 AM',
+      status: 'Waiting',
+      is_priority: false
+    },
+    {
+      id: 'q-sample-4',
+      ticket_number: 'A-103',
+      resident_name: 'ROBERTO GARCIA',
+      cert_type: 'Business Permit Clearance',
+      date: new Date().toISOString().split('T')[0],
+      time_slot: '09:45 AM',
+      status: 'Waiting',
+      is_priority: false
+    },
+    {
+      id: 'q-sample-5',
+      ticket_number: 'A-104',
+      resident_name: 'ELENA TORRES',
+      cert_type: 'Barangay ID',
+      date: new Date().toISOString().split('T')[0],
+      time_slot: '10:00 AM',
+      status: 'Waiting',
+      is_priority: false
+    }
+  ];
+
+  // Persist and sync queue slots with QueueMonitor and backend certificates
+  const loadSlots = async () => {
+    let localSlots: QueueSlot[] = [];
     try {
       const saved = localStorage.getItem('lingkod_queue_slots');
       if (saved) {
-        setQueueSlots(JSON.parse(saved));
-      } else {
-        const initialSlots: QueueSlot[] = [];
-        setQueueSlots(initialSlots);
-        localStorage.setItem('lingkod_queue_slots', JSON.stringify(initialSlots));
+        localSlots = JSON.parse(saved);
       }
     } catch (e) {}
+
+    // Fetch backend certificates
+    let backendQueueSlots: QueueSlot[] = [];
+    try {
+      const backendCerts = await api.certificates.list();
+      if (backendCerts && backendCerts.length > 0) {
+        backendQueueSlots = backendCerts
+          .filter(c => c.status === 'Pending')
+          .map((c, idx) => {
+            const resName = c.resident ? `${c.resident.first_name} ${c.resident.last_name}` : 'Kiosk Applicant';
+            const ticketNo = `Q-${(idx + 1).toString().padStart(3, '0')}`;
+            return {
+              id: `backend-${c.id}`,
+              ticket_number: ticketNo,
+              resident_name: resName,
+              cert_type: c.type,
+              date: new Date(c.request_date || Date.now()).toISOString().split('T')[0],
+              time_slot: new Date(c.request_date || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+              status: 'Waiting' as const,
+              is_priority: false
+            };
+          });
+      }
+    } catch (err) {}
+
+    // Separate real slots (kiosk or backend) from dummy sample slots (q-sample-)
+    const realKioskSlots = localSlots.filter(s => s.id.startsWith('kiosk-'));
+    const realBackendSlots = backendQueueSlots.filter(b => !realKioskSlots.some(k => k.id === b.id));
+    const nonSampleLocalSlots = localSlots.filter(s => !s.id.startsWith('q-sample-') && !s.id.startsWith('kiosk-'));
+
+    const allRealSlots = [...realKioskSlots, ...realBackendSlots, ...nonSampleLocalSlots];
+
+    let finalSlots: QueueSlot[] = [];
+    if (allRealSlots.length > 0) {
+      // Real data exists — show real data ONLY, stripping dummy sample slots
+      finalSlots = allRealSlots;
+    } else {
+      // Fallback to sample slots only if zero real inputs exist
+      finalSlots = localSlots.length > 0 ? localSlots : defaultSampleSlots;
+    }
+
+    setQueueSlots(finalSlots);
+    try {
+      localStorage.setItem('lingkod_queue_slots', JSON.stringify(finalSlots));
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    loadSlots();
+    const interval = setInterval(loadSlots, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const updateSlots = (newSlots: QueueSlot[]) => {
@@ -96,6 +198,43 @@ export const QueueSchedule: React.FC = () => {
     try {
       localStorage.setItem('lingkod_queue_slots', JSON.stringify(newSlots));
     } catch (e) {}
+  };
+
+  const handleSeedQueueSamples = () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const newSamples: QueueSlot[] = [
+      {
+        id: `q-${Date.now()}-1`,
+        ticket_number: `P-0${Math.floor(10 + Math.random() * 89)}`,
+        resident_name: 'PEDRO LUNA (PWD Priority)',
+        cert_type: 'Barangay Clearance',
+        date: todayStr,
+        time_slot: '10:15 AM',
+        status: 'Waiting',
+        is_priority: true
+      },
+      {
+        id: `q-${Date.now()}-2`,
+        ticket_number: `A-${Math.floor(105 + Math.random() * 800)}`,
+        resident_name: 'ROSA BENITEZ',
+        cert_type: 'Certificate of Indigency',
+        date: todayStr,
+        time_slot: '10:30 AM',
+        status: 'Waiting',
+        is_priority: false
+      },
+      {
+        id: `q-${Date.now()}-3`,
+        ticket_number: `A-${Math.floor(105 + Math.random() * 800)}`,
+        resident_name: 'RAMON BAUTISTA',
+        cert_type: 'Cedula (CTC)',
+        date: todayStr,
+        time_slot: '10:45 AM',
+        status: 'Waiting',
+        is_priority: false
+      }
+    ];
+    updateSlots([...queueSlots, ...newSamples]);
   };
 
   // Compute stats
@@ -119,6 +258,13 @@ export const QueueSchedule: React.FC = () => {
 
     updateSlots(updated);
     announceQueueCall(next.ticket_number);
+  };
+
+  const handleMarkDone = (id: string) => {
+    if (window.confirm("Confirm marking this ticket as Completed / Done?")) {
+      const updated = queueSlots.map(s => s.id === id ? { ...s, status: 'Completed' as const } : s);
+      updateSlots(updated);
+    }
   };
 
   const handleCreateSlot = (e: React.FormEvent) => {
@@ -192,6 +338,14 @@ export const QueueSchedule: React.FC = () => {
         <div className="flex items-center gap-3 flex-wrap">
           {isStaff && (
             <>
+              <button
+                onClick={handleSeedQueueSamples}
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+              >
+                <FolderPlus size={16} />
+                Add Sample Tickets
+              </button>
+
               <button
                 onClick={() => setVoiceEnabled(!voiceEnabled)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
@@ -272,15 +426,119 @@ export const QueueSchedule: React.FC = () => {
         </div>
       </div>
 
-      {/* 4. Big Action Banner - Call Next in Queue (Officers / Staff Only) */}
+      {/* 4. Queue Management Panel — Staff Only (Adapts to Light & Dark Mode) */}
       {isStaff && (
-        <button
-          onClick={handleCallNext}
-          className="w-full py-4 px-6 bg-gradient-to-r from-gov-blue-700 via-gov-blue-600 to-indigo-700 hover:from-gov-blue-800 hover:to-indigo-800 text-white rounded-3xl font-black text-sm shadow-xl shadow-gov-blue-900/30 flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.99] border border-gov-blue-500/40 cursor-pointer uppercase tracking-wider"
-        >
-          <PhoneCall size={20} className="animate-bounce" />
-          <span>📢 Call Next Ticket in Queue</span>
-        </button>
+        <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-md dark:shadow-lg overflow-hidden">
+          {/* Queue Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700/60 flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-2xl bg-teal-500/10 dark:bg-teal-500/20 flex items-center justify-center border border-teal-500/20">
+                <Monitor size={18} className="text-teal-600 dark:text-teal-400" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Queue Management</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Call next resident &amp; manage service window</p>
+              </div>
+            </div>
+            {/* Stats Bar */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <Clock size={12} className="text-amber-600 dark:text-amber-400" />
+                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400">{waitingSlots.length}</span>
+                <span className="text-[9px] font-bold text-amber-700/80 dark:text-amber-500/70 uppercase tracking-wider">Waiting</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                <PhoneCall size={12} className="text-teal-600 dark:text-teal-400" />
+                <span className="text-[10px] font-black text-teal-600 dark:text-teal-400">{nowServingSlot ? 1 : 0}</span>
+                <span className="text-[9px] font-bold text-teal-700/80 dark:text-teal-500/70 uppercase tracking-wider">Serving</span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                <CheckCircle2 size={12} className="text-emerald-600 dark:text-emerald-400" />
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">{completedSlots.length}</span>
+                <span className="text-[9px] font-bold text-emerald-700/80 dark:text-emerald-500/70 uppercase tracking-wider">Done</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Queue Body */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
+            {/* NOW SERVING - Rich Teal Banner */}
+            <div className="p-6 bg-gradient-to-br from-teal-600 via-teal-700 to-teal-800 border-r border-teal-700/40 text-white">
+              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-teal-200 mb-3">Now Serving</p>
+              {nowServingSlot ? (
+                <div>
+                  <p className="text-xl font-black text-white leading-tight">
+                    {nowServingSlot.resident_name}
+                  </p>
+                  <p className="text-xs text-teal-100 mt-1 font-medium">{nowServingSlot.cert_type}</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-[10px] font-black bg-white/20 text-white px-2.5 py-1 rounded-lg backdrop-blur-sm">
+                      {nowServingSlot.ticket_number}
+                    </span>
+                    <span className="text-[10px] text-teal-100/80 font-medium">{nowServingSlot.time_slot}</span>
+                  </div>
+
+                  <div className="pt-3 mt-3 border-t border-teal-500/30">
+                    <button
+                      onClick={() => handleMarkDone(nowServingSlot.id)}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                    >
+                      <CheckCircle2 size={16} />
+                      Mark as Done / Complete
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-lg font-black text-teal-100/70 leading-snug">
+                  No one is being served right now
+                </p>
+              )}
+            </div>
+
+            {/* WAITING QUEUE + CALL NEXT */}
+            <div className="p-6 bg-slate-50/70 dark:bg-slate-900/80">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Waiting Queue</p>
+                <button
+                  onClick={handleCallNext}
+                  disabled={waitingSlots.length === 0}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-black text-[11px] uppercase tracking-wide transition-all active:scale-95 shadow-md shadow-teal-600/20 cursor-pointer"
+                >
+                  <PhoneCall size={13} />
+                  Call Next
+                </button>
+              </div>
+
+              {waitingSlots.length === 0 ? (
+                <div className="flex items-center justify-center h-20 text-center">
+                  <p className="text-xs font-bold text-slate-400 dark:text-slate-500">Queue is empty — no residents waiting</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                  {waitingSlots.slice(0, 5).map((slot, idx) => (
+                    <div key={slot.id} className="flex items-center gap-3 p-2.5 bg-white dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/60 shadow-sm">
+                      <span className="w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-black text-slate-700 dark:text-slate-300">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                          {slot.resident_name}
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{slot.cert_type}</p>
+                      </div>
+                      <span className="text-[10px] font-black text-teal-600 dark:text-teal-400 shrink-0">{slot.ticket_number}</span>
+                    </div>
+                  ))}
+                  {waitingSlots.length > 5 && (
+                    <p className="text-center text-[10px] text-slate-500 dark:text-slate-400 font-bold pt-1">
+                      +{waitingSlots.length - 5} more in queue
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 5. Main Grid: Weekly Schedule + Queue List */}

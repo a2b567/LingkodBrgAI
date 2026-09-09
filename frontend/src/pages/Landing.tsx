@@ -3,11 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Calendar, AlertOctagon, Briefcase, Sun, Moon, 
   ArrowRight, Search, ShieldCheck, Sparkles, MessageSquareCode, 
-  ChevronRight, MapPin, Phone, Mail, Clock, CheckCircle2
+  ChevronRight, MapPin, Phone, Mail, Clock, CheckCircle2, QrCode, Camera, X
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
-import logo from '../assets/logo.png';
 
 export const Landing: React.FC = () => {
   const { token, user } = useAuthStore();
@@ -18,6 +17,7 @@ export const Landing: React.FC = () => {
   const [activeQuestion, setActiveQuestion] = useState<string | null>(null);
   const [simulatedAnswer, setSimulatedAnswer] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   // Default initial announcements
   const defaultAnnouncements = [
@@ -191,7 +191,9 @@ export const Landing: React.FC = () => {
           
           {/* Logo Letterhead */}
           <div className="flex items-center gap-3.5 select-none cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <img src={logo} alt="Barangay Logo" className="w-10 h-10 object-contain rounded-2xl shadow-md shadow-gov-blue-600/20 transition-transform hover:scale-105 duration-200" />
+            <div className="w-10 h-10 bg-gradient-to-tr from-gov-blue-700 to-indigo-800 rounded-2xl shadow-md shadow-gov-blue-600/20 flex items-center justify-center text-white flex-shrink-0">
+              <ShieldCheck size={22} className="text-gov-gold-400" />
+            </div>
             <div className="flex flex-col justify-center">
               <span className="font-extrabold text-base leading-tight tracking-tight text-gov-blue-900 dark:text-gov-blue-300">
                 LingkodBrgAI Portal
@@ -280,14 +282,14 @@ export const Landing: React.FC = () => {
                 type="text"
                 value={verifyHash}
                 onChange={(e) => setVerifyHash(e.target.value)}
-                placeholder="Enter E-Certificate Hash to Verify..."
+                placeholder="Paste QR ID (e.g. QR-RES-...) or Certificate Hash..."
                 className="flex-1 bg-transparent border-0 outline-none text-xs px-3 py-3 w-full focus:ring-0 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
               <button
                 type="submit"
                 className="bg-gov-blue-600 hover:bg-gov-blue-700 dark:bg-gov-blue-500 dark:hover:bg-gov-blue-600 text-white font-bold text-xs py-3 px-5 rounded-2xl transition-colors shadow-md flex-shrink-0"
               >
-                Verify
+                Verify QR
               </button>
             </form>
 
@@ -677,18 +679,18 @@ export const Landing: React.FC = () => {
 
       </section>
 
-      {/* 6. Document E-Verification Information Segment */}
+      {/* 6. Document & Resident Account E-Verification Information Segment */}
       <section id="verify" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-b border-slate-200/80 dark:border-slate-800/80 text-center space-y-6">
         
         <div className="space-y-3">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-            Secure Auditing
+            Secure Auditing & QR Scanner
           </span>
           <h3 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-            Secure Digital QR Code Verification
+            Official QR & Document Verification Hub
           </h3>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto font-medium leading-relaxed">
-            Every administrative clearance and residency certificate issued by LingkodBrgAI features an immutable, secure cryptographic hash printed as a scannable verification landing QR code.
+            Verify official Barangay Certificates, Indigency clearances, and Resident Digital QR Account IDs (<code className="text-gov-blue-600 dark:text-gov-blue-400 font-mono">QR-RES-...</code>) in real-time.
           </p>
         </div>
 
@@ -699,37 +701,46 @@ export const Landing: React.FC = () => {
               <div className="w-7 h-7 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center shadow-xs">
                 <ShieldCheck size={14} />
               </div>
-              <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">LGU Cryptographic Verification</h4>
+              <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">LGU Cryptographic Ledger Check</h4>
             </div>
             
             <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-              Institutions, banks, and government agencies can scan the QR code located on any printed document or input the document reference hash on this portal to instantly verify its authenticity online.
+              Institutions, banks, law enforcement, and government agencies can scan or input any resident QR ID or certificate checksum hash to instantly verify official registration and clearance authenticity.
             </p>
 
             <ul className="space-y-2 text-[10px] font-bold text-slate-700 dark:text-slate-300">
               <li className="flex items-center gap-2">
                 <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />
-                Tamper-Proof Digital Verification
+                Validates Resident Digital QR Accounts (<span className="font-mono">QR-RES-*</span>)
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />
-                Immediate Online Authenticity Check
+                Tamper-Proof Certificate Checksums & Hashes
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />
-                Free Public Clearance Registry Audit
+                Immediate Online Ledger Registry Audit
               </li>
             </ul>
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center space-y-4">
             
-            {/* Fake QR Scanner Visual */}
-            <div className="w-32 h-32 bg-white dark:bg-slate-900 border-4 border-gov-blue-500/20 dark:border-gov-blue-500/40 p-2.5 rounded-2xl relative shadow-inner">
-              
+            {/* Interactive QR Scanner Visual */}
+            <div 
+              onClick={() => setIsScannerOpen(true)}
+              className="w-32 h-32 bg-white dark:bg-slate-900 border-4 border-gov-blue-500/20 dark:border-gov-blue-500/40 p-2.5 rounded-2xl relative shadow-inner cursor-pointer group hover:border-gov-blue-500 transition-all"
+              title="Click to open QR Camera Scanner"
+            >
               {/* Scanning visual overlay */}
               <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 top-1/2 animate-bounce"></div>
               
+              {/* Camera overlay hover icon */}
+              <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity rounded-xl">
+                <Camera size={24} className="animate-pulse" />
+                <span className="text-[8px] font-black uppercase tracking-wider mt-1">Scan QR</span>
+              </div>
+
               {/* QR representation using SVG segments */}
               <svg viewBox="0 0 100 100" className="w-full h-full fill-slate-800 dark:fill-slate-200">
                 <rect x="0" y="0" width="25" height="25" />
@@ -753,15 +764,25 @@ export const Landing: React.FC = () => {
                 required
                 value={verifyHash}
                 onChange={(e) => setVerifyHash(e.target.value)}
-                placeholder="Paste Certificate MD5 Hash..."
+                placeholder="Paste QR ID (QR-RES-...) or Doc Hash..."
                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl px-3 py-2 text-[10px] text-center font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-gov-blue-500"
               />
-              <button
-                type="submit"
-                className="w-full bg-gov-blue-600 hover:bg-gov-blue-700 text-white font-bold text-[10px] py-2.5 rounded-2xl transition-colors uppercase tracking-wider cursor-pointer shadow-xs"
-              >
-                Validate Reference Hash
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="flex-1 bg-gov-blue-600 hover:bg-gov-blue-700 text-white font-bold text-[10px] py-2.5 rounded-2xl transition-colors uppercase tracking-wider cursor-pointer shadow-xs"
+                >
+                  Verify Now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsScannerOpen(true)}
+                  className="px-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-2xl text-[10px] font-bold flex items-center justify-center transition-colors"
+                  title="Open Camera Scanner"
+                >
+                  <Camera size={14} />
+                </button>
+              </div>
             </form>
           </div>
 
@@ -885,6 +906,100 @@ export const Landing: React.FC = () => {
           <p>dev • lawreene b aranas</p>
         </div>
       </footer>
+
+      {/* Interactive Camera QR Scanner Modal */}
+      {isScannerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] max-w-md w-full p-6 shadow-2xl space-y-5 relative">
+            
+            <button
+              onClick={() => setIsScannerOpen(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 rounded-2xl flex items-center justify-center">
+                <QrCode size={22} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                  Barangay QR Scanner Hub
+                </h3>
+                <p className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                  Scan Resident ID Card or Document Hash
+                </p>
+              </div>
+            </div>
+
+            {/* Simulated Live Camera Scanner Viewport */}
+            <div className="relative w-full aspect-square bg-slate-950 rounded-3xl overflow-hidden border-2 border-gov-blue-500/50 flex flex-col items-center justify-center shadow-inner group">
+              
+              {/* Corner framing brackets */}
+              <div className="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-gov-blue-500 rounded-tl-lg"></div>
+              <div className="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-gov-blue-500 rounded-tr-lg"></div>
+              <div className="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-gov-blue-500 rounded-bl-lg"></div>
+              <div className="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-gov-blue-500 rounded-br-lg"></div>
+
+              {/* Laser beam overlay */}
+              <div className="absolute left-4 right-4 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent top-1/2 -translate-y-1/2 animate-pulse shadow-[0_0_15px_#34d399]"></div>
+
+              <div className="text-center p-6 space-y-2 z-10">
+                <Camera size={36} className="text-slate-500 mx-auto animate-bounce" />
+                <p className="text-xs font-bold text-slate-300">Point Camera at QR Code</p>
+                <p className="text-[10px] text-slate-400 max-w-xs">Align the QR code on your printed document or Resident Mobile ID inside the frame</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
+                Or enter Code / Hash manually:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={verifyHash}
+                  onChange={(e) => setVerifyHash(e.target.value)}
+                  placeholder="e.g. QR-RES-LAWRENCE or hash..."
+                  className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 text-xs font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-gov-blue-500"
+                />
+                <button
+                  onClick={() => {
+                    if (verifyHash.trim()) {
+                      setIsScannerOpen(false);
+                      navigate(`/verify/document/${verifyHash.trim()}`);
+                    }
+                  }}
+                  className="bg-gov-blue-600 hover:bg-gov-blue-700 text-white font-extrabold text-xs px-5 rounded-2xl transition-colors uppercase tracking-wider"
+                >
+                  Verify
+                </button>
+              </div>
+
+              {/* Sample QR ID shortcuts */}
+              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Quick Test Resident IDs:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {['QR-RES-0001', 'QR-RES-MARIA1', 'QR-RES-JUAN2'].map((sampleId) => (
+                    <button
+                      key={sampleId}
+                      onClick={() => {
+                        setIsScannerOpen(false);
+                        navigate(`/verify/document/${sampleId}`);
+                      }}
+                      className="text-[9px] font-mono font-bold px-2.5 py-1 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/80 text-gov-blue-700 dark:text-gov-blue-300 border border-gov-blue-200 dark:border-gov-blue-800 hover:bg-gov-blue-100 dark:hover:bg-gov-blue-900 transition-colors"
+                    >
+                      {sampleId}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Real-time emergency announcement modal/watermark indicator */}
       <div className="fixed inset-0 pointer-events-none select-none z-[9999] flex items-center justify-center overflow-hidden opacity-[0.008] dark:opacity-[0.004]">

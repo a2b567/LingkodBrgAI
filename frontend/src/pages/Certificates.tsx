@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FileText, Plus, Check, X, Search, ArrowDownToLine, Signature, MonitorSmartphone,
-  Activity, Clock, CheckCircle2, XCircle, CreditCard, Sparkles, AlertCircle
+  Activity, Clock, CheckCircle2, XCircle, CreditCard, Sparkles, AlertCircle,
+  Edit3, Trash2, FolderPlus
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Certificate, Resident } from '../types';
@@ -16,6 +17,16 @@ export const Certificates: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Edit Modal States
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCert, setEditingCert] = useState<Certificate | null>(null);
+  const [editDocNo, setEditDocNo] = useState('');
+  const [editType, setEditType] = useState('');
+  const [editPurpose, setEditPurpose] = useState('');
+  const [editFee, setEditFee] = useState<number>(0);
+  const [editStatus, setEditStatus] = useState('Pending');
+  const [editPaymentStatus, setEditPaymentStatus] = useState('Unpaid');
 
   // Form states
   const [selectedResidentId, setSelectedResidentId] = useState('');
@@ -58,33 +69,73 @@ export const Certificates: React.FC = () => {
   useEffect(() => {
     fetchCerts();
     fetchResidents();
+    const interval = setInterval(fetchCerts, 3000);
+    return () => clearInterval(interval);
   }, [statusFilter]);
 
-  // Adjust fee based on type
+  // Adjust fee based on type — reads from Settings-stored localStorage
   useEffect(() => {
-    switch (certType) {
-      case 'Clearance':
-        setFee(150);
-        break;
-      case 'Indigency':
-        setFee(0);
-        break;
-      case 'Residency':
-        setFee(100);
-        break;
-      case 'Business':
-        setFee(300);
-        break;
-      case 'Cedula':
-        setFee(50);
-        break;
-      case 'Barangay ID':
-        setFee(100);
-        break;
-      default:
-        setFee(100);
-    }
+    const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+    let fees = defaultFees;
+    try { const s = localStorage.getItem('cert_fees'); if (s) fees = { ...defaultFees, ...JSON.parse(s) }; } catch {}
+    setFee(fees[certType] ?? 100);
   }, [certType]);
+
+  const handleSeedSamples = async () => {
+    try {
+      await api.certificates.seedSamples();
+      fetchCerts();
+      alert("Sample certificates successfully added!");
+    } catch (err) {
+      alert("Failed adding sample certificates");
+    }
+  };
+
+  const handleOpenEditModal = (cert: Certificate) => {
+    setEditingCert(cert);
+    setEditDocNo(cert.document_number);
+    setEditType(cert.type);
+    setEditPurpose(cert.purpose);
+    setEditFee(cert.fee || 0);
+    setEditStatus(cert.status);
+    setEditPaymentStatus(cert.payment_status || 'Unpaid');
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateCert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCert) return;
+    setIsSubmitting(true);
+    try {
+      await api.certificates.update(editingCert.id, {
+        document_number: editDocNo,
+        type: editType,
+        purpose: editPurpose,
+        fee: editFee,
+        status: editStatus,
+        payment_status: editPaymentStatus,
+      });
+      setIsEditModalOpen(false);
+      setEditingCert(null);
+      fetchCerts();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to update certificate");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this certificate record?")) {
+      try {
+        await api.certificates.delete(id);
+        fetchCerts();
+      } catch (err: any) {
+        alert(err.response?.data?.error || "Failed to delete certificate");
+      }
+    }
+  };
+
 
   // Handle signature drawing
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -202,14 +253,20 @@ export const Certificates: React.FC = () => {
   const rejectedCount = userCerts.filter(c => c.status === 'Rejected').length;
   const totalRevenue = userCerts.filter(c => c.status === 'Issued').reduce((sum, c) => sum + (c.fee || 0), 0);
 
+  // Certificate fees — read from Settings localStorage, fallback to defaults
+  const defaultCertFees: Record<string,number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+  const certFees: Record<string,number> = (() => {
+    try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
+  })();
+
   // Document Summary by type
   const docTypes = [
-    { type: "Clearance", name: "Barangay Clearance", price: 150, color: "border-l-gov-blue-500", desc: "For employment, local licensing, background check verification." },
-    { type: "Indigency", name: "Certificate of Indigency", price: 0, color: "border-l-emerald-500", desc: "For medical assistance, scholarships, social welfare requests." },
-    { type: "Residency", name: "Certificate of Residency", price: 100, color: "border-l-gov-gold-500", desc: "Proof of residence verification, bank accounts setup." },
-    { type: "Business", name: "Business Clearance", price: 300, color: "border-l-indigo-500", desc: "Required for municipal business permit operation." },
-    { type: "Cedula", name: "Cedula (CTC)", price: 50, color: "border-l-rose-500", desc: "Official proof of community identity and taxes paid." },
-    { type: "Barangay ID", name: "Barangay ID Card", price: 100, color: "border-l-teal-500", desc: "Official barangay identification card." }
+    { type: "Clearance",   name: "Barangay Clearance",       price: certFees['Clearance'],   color: "border-l-gov-blue-500", desc: "For employment, local licensing, background check verification." },
+    { type: "Indigency",   name: "Certificate of Indigency", price: certFees['Indigency'],   color: "border-l-emerald-500",  desc: "For medical assistance, scholarships, social welfare requests." },
+    { type: "Residency",   name: "Certificate of Residency", price: certFees['Residency'],   color: "border-l-gov-gold-500", desc: "Proof of residence verification, bank accounts setup." },
+    { type: "Business",    name: "Business Clearance",       price: certFees['Business'],    color: "border-l-indigo-500",   desc: "Required for municipal business permit operation." },
+    { type: "Cedula",      name: "Cedula (CTC)",             price: certFees['Cedula'],      color: "border-l-rose-500",     desc: "Official proof of community identity and taxes paid." },
+    { type: "Barangay ID", name: "Barangay ID Card",         price: certFees['Barangay ID'], color: "border-l-teal-500",     desc: "Official barangay identification card." }
   ];
 
   return (
@@ -252,13 +309,22 @@ export const Certificates: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           {isStaff && (
-            <Link
-              to="/kiosk/certificates"
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-95"
-            >
-              <MonitorSmartphone size={16} />
-              Open Kiosk Mode
-            </Link>
+            <>
+              <button
+                onClick={handleSeedSamples}
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+              >
+                <FolderPlus size={16} />
+                Add Sample Certificates
+              </button>
+              <Link
+                to="/kiosk/certificates"
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <MonitorSmartphone size={16} />
+                Open Kiosk Mode
+              </Link>
+            </>
           )}
           <button
             onClick={() => {
@@ -517,21 +583,40 @@ export const Certificates: React.FC = () => {
                             Print PDF
                           </a>
                         )}
-                        {isStaff && cert.status === 'Pending' && (
+                        {isStaff && (
                           <>
+                            {cert.status === 'Pending' && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(cert.id)}
+                                  className="p-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-colors cursor-pointer"
+                                  title="Approve & Generate PDF"
+                                >
+                                  <Check size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleReject(cert.id)}
+                                  className="p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-xl transition-colors cursor-pointer"
+                                  title="Reject Request"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </>
+                            )}
                             <button
-                              onClick={() => handleApprove(cert.id)}
-                              className="p-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl transition-colors cursor-pointer"
-                              title="Approve & Generate PDF"
+                              onClick={() => handleOpenEditModal(cert)}
+                              className="p-1.5 bg-gov-blue-50 hover:bg-gov-blue-100 dark:bg-gov-blue-950/40 text-gov-blue-600 dark:text-gov-blue-400 rounded-xl transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+                              title="Edit Certificate Details"
                             >
-                              <Check size={14} />
+                              <Edit3 size={13} />
+                              Edit
                             </button>
                             <button
-                              onClick={() => handleReject(cert.id)}
-                              className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-xl transition-colors cursor-pointer"
-                              title="Reject Request"
+                              onClick={() => handleDelete(cert.id)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-xl transition-colors cursor-pointer"
+                              title="Delete Record"
                             >
-                              <X size={14} />
+                              <Trash2 size={13} />
                             </button>
                           </>
                         )}
@@ -671,7 +756,123 @@ export const Certificates: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 8. Modal - Edit Certificate Details */}
+      {isEditModalOpen && editingCert && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full shadow-2xl p-6 relative overflow-hidden animate-scale-up">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                <Edit3 className="text-gov-blue-600 dark:text-gov-blue-400" size={18} />
+                Edit Certificate Record
+              </h3>
+              <button
+                onClick={() => setIsEditModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateCert} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Document Number</label>
+                <input
+                  type="text"
+                  value={editDocNo}
+                  onChange={(e) => setEditDocNo(e.target.value)}
+                  required
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Certificate Type</label>
+                <select
+                  value={editType}
+                  onChange={(e) => setEditType(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                >
+                  <option value="Clearance">Barangay Clearance</option>
+                  <option value="Indigency">Certificate of Indigency</option>
+                  <option value="Residency">Certificate of Residency</option>
+                  <option value="Business">Business Permit Clearance</option>
+                  <option value="Cedula">Cedula (CTC)</option>
+                  <option value="Barangay ID">Barangay ID</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Purpose / Reason</label>
+                <textarea
+                  value={editPurpose}
+                  onChange={(e) => setEditPurpose(e.target.value)}
+                  required
+                  rows={2}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Fee (₱)</label>
+                  <input
+                    type="number"
+                    value={editFee}
+                    onChange={(e) => setEditFee(parseFloat(e.target.value) || 0)}
+                    step="0.01"
+                    min="0"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                  >
+                    <option value="Pending">Pending</option>
+                    <option value="Issued">Issued</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Payment Status</label>
+                <select
+                  value={editPaymentStatus}
+                  onChange={(e) => setEditPaymentStatus(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                >
+                  <option value="Unpaid">Unpaid</option>
+                  <option value="Paid">Paid</option>
+                </select>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 export default Certificates;
+

@@ -17,6 +17,7 @@ type Config struct {
 	DBSSLMode    string
 	JWTSecret    string
 	OpenAIKey    string
+	GroqAPIKey   string
 	UploadDir    string
 }
 
@@ -36,6 +37,7 @@ func LoadConfig() *Config {
 		DBSSLMode:    getEnv("DB_SSLMODE", "disable"),
 		JWTSecret:    getEnv("JWT_SECRET", "super_secret_barangay_key_2026"),
 		OpenAIKey:    getEnv("OPENAI_API_KEY", ""),
+		GroqAPIKey:   getEnv("GROQ_API_KEY", ""),
 		UploadDir:    getEnv("UPLOAD_DIR", "./uploads"),
 	}
 }
