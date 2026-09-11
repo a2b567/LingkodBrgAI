@@ -217,7 +217,7 @@ export const Landing: React.FC = () => {
             </div>
             <div className="flex flex-col justify-center">
               <span className="font-extrabold text-base leading-tight tracking-tight text-gov-blue-900 dark:text-gov-blue-300">
-                LingkodBrgAI Portal
+                LingkodBrgyAi Portal
               </span>
               <p className="text-[9px] text-slate-500 dark:text-slate-400 font-black tracking-widest uppercase leading-tight">
                 Laguna Government LGU
@@ -882,7 +882,7 @@ export const Landing: React.FC = () => {
                 B
               </div>
               <div>
-                <h4 className="font-extrabold text-sm text-gov-blue-900 dark:text-gov-blue-300">LingkodBrgAI</h4>
+                <h4 className="font-extrabold text-sm text-gov-blue-900 dark:text-gov-blue-300">LingkodBrgyAi</h4>
                 <p className="text-[8px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Local Government Unit Portal</p>
               </div>
             </div>

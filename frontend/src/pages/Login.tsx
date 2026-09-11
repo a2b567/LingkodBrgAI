@@ -215,8 +215,8 @@ export const Login: React.FC = () => {
           <div className="w-18 h-18 bg-gradient-to-tr from-gov-blue-800 to-indigo-900 rounded-2xl mx-auto shadow-lg shadow-gov-blue-500/25 flex items-center justify-center border border-gov-blue-700/50">
             <ShieldAlert size={36} className="text-gov-gold-400" />
           </div>
-          <h2 className="text-xl font-extrabold tracking-tight text-gov-blue-900 dark:text-gov-blue-300 uppercase">
-            LingkodBrgAI
+          <h2 className="text-2xl font-extrabold tracking-tight text-gov-blue-900 dark:text-gov-blue-300">
+            LingkodBrgyAi
           </h2>
           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
             Barangay Management Information System

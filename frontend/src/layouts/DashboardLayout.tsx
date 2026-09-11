@@ -198,7 +198,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
           </div>
           {sidebarOpen && (
             <div className="flex flex-col justify-center">
-              <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">LingkodBrgyAI</div>
+              <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">LingkodBrgyAi</div>
               <div className="text-[9px] text-slate-400 dark:text-slate-500 font-extrabold tracking-widest uppercase leading-tight">Barangay Info Sys</div>
             </div>
           )}

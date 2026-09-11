@@ -244,7 +244,7 @@ export const QueueMonitor: React.FC = () => {
       {/* Footer ticker */}
       <footer className="pt-6 border-t border-slate-800 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center justify-center gap-2 relative z-10">
         <Clock size={12} />
-        LINGKODBRGAI • AI VOICE ANNOUNCEMENT SYSTEM CONNECTED
+        LingkodBrgyAi • AI VOICE ANNOUNCEMENT SYSTEM CONNECTED
       </footer>
     </div>
   );

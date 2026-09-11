@@ -2285,7 +2285,7 @@ export const KioskCertificates: React.FC = () => {
       </main>
 
       <footer className="py-4 text-center text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 relative z-20 border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
-        LINGKODBRGAI • SELF-SERVICE KIOSK PORTAL • BARANGAY LAWRENCE
+        LingkodBrgyAi • SELF-SERVICE KIOSK PORTAL • BARANGAY LAWRENCE
       </footer>
     </div>
   );

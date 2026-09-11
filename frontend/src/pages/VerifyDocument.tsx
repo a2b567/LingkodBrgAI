@@ -190,7 +190,7 @@ export const VerifyDocument: React.FC = () => {
 
         {/* Footer Seal */}
         <div className="text-center text-[9px] text-slate-500 dark:text-slate-400 font-semibold leading-normal pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
-          LingkodBrgAI — Barangay Lawrence (Laguna, PH) • Secure Reference Code: <span className="font-mono">{hash?.slice(0, 16)}</span>
+          LingkodBrgyAi — Barangay Lawrence (Laguna, PH) • Secure Reference Code: <span className="font-mono">{hash?.slice(0, 16)}</span>
         </div>
 
         <div className="text-center text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest pt-4 border-t border-slate-200/50 dark:border-slate-800/50 mt-6">

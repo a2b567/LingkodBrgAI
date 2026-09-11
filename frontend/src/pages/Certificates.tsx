@@ -482,7 +482,7 @@ export const Certificates: React.FC = () => {
             <div key={idx} className={`bg-white dark:bg-slate-900 p-5 rounded-3xl border-l-4 ${item.color} border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-all group`}>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider">LINGKODBRGAI DOCUMENT</span>
+                  <span className="text-[9px] font-extrabold uppercase text-slate-500 dark:text-slate-400 tracking-wider">LingkodBrgyAi DOCUMENT</span>
                   <span className="text-xs font-black text-gov-blue-600 dark:text-gov-gold-400 bg-gov-blue-50 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-gov-blue-200/60 dark:border-slate-700">
                     {item.price > 0 ? `₱${item.price.toFixed(2)}` : 'Free'}
                   </span>
