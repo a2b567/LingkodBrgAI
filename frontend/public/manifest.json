@@ -1,0 +1,56 @@
+{
+  "name": "LingkodBrgyAi - Barangay Management Information System",
+  "short_name": "LingkodBrgyAi",
+  "description": "Smart, offline-resilient barangay governance, e-services, digital ID, and document processing portal.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#090d16",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["government", "productivity", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Certificates & ID",
+      "short_name": "Certificates",
+      "description": "Request barangay certificates or print official resident ID",
+      "url": "/certificates",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Appointments",
+      "short_name": "Appointments",
+      "description": "Book a lobby appointment with barangay officials",
+      "url": "/appointments",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Health Records",
+      "short_name": "Health",
+      "description": "Access health center medical records and medicine stock",
+      "url": "/health-records",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}

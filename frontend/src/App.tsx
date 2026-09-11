@@ -18,6 +18,7 @@ import { KioskCertificates } from './pages/KioskCertificates';
 import { QueueSchedule } from './pages/QueueSchedule';
 import { QueueMonitor } from './pages/QueueMonitor';
 import { HealthRecords } from './pages/HealthRecords';
+import { PWAInstallBanner } from './components/PWAInstallBanner';
 
 // Route Guard to protect routes and handle RBAC checks
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[]; layout?: 'dashboard' | 'none' }> = ({ children, allowedRoles, layout = 'dashboard' }) => {
@@ -201,7 +202,8 @@ export const App: React.FC = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-
+      {/* Global Progressive Web App Install Banner */}
+      <PWAInstallBanner />
     </BrowserRouter>
   );
 };
