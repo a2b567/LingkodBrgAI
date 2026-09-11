@@ -6,6 +6,7 @@ import {
   FolderPlus
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { api } from '../services/api';
 
 interface QueueSlot {
   id: string;
@@ -147,8 +148,8 @@ export const QueueSchedule: React.FC = () => {
       const backendCerts = await api.certificates.list();
       if (backendCerts && backendCerts.length > 0) {
         backendQueueSlots = backendCerts
-          .filter(c => c.status === 'Pending')
-          .map((c, idx) => {
+          .filter((c: any) => c.status === 'Pending')
+          .map((c: any, idx: number) => {
             const resName = c.resident ? `${c.resident.first_name} ${c.resident.last_name}` : 'Kiosk Applicant';
             const ticketNo = `Q-${(idx + 1).toString().padStart(3, '0')}`;
             return {
