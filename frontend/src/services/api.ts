@@ -11,7 +11,7 @@ const client = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 4000, // Fast timeout for immediate fallback if backend server is not running
+  timeout: 30000, // 30s timeout for cloud backend spin-up resilience
 });
 
 // Interceptor to inject JWT Token from LocalStorage
