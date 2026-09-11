@@ -23,8 +23,6 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /app/server .
-# Copy environment configuration template if needed, else docker-compose will inject it
-COPY --from=builder /app/.env .
 
 # Create directory structures for uploads
 RUN mkdir -p uploads/photos uploads/certificates uploads/qr

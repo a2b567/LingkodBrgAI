@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: lingkodbrgai-backend
+    runtime: go
+    rootDir: backend
+    buildCommand: go build -o server ./cmd/server/main.go
+    startCommand: ./server
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_SSLMODE
+        value: require
