@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   FileText, Plus, Check, X, Search, ArrowDownToLine, Signature, MonitorSmartphone,
   Activity, Clock, CheckCircle2, XCircle, CreditCard, Sparkles, AlertCircle,
-  Edit3, Trash2, FolderPlus
+  Edit3, Trash2, FolderPlus, UserCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Certificate, Resident } from '../types';
@@ -22,11 +22,16 @@ export const Certificates: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCert, setEditingCert] = useState<Certificate | null>(null);
   const [editDocNo, setEditDocNo] = useState('');
+  const [editResidentId, setEditResidentId] = useState('');
   const [editType, setEditType] = useState('');
   const [editPurpose, setEditPurpose] = useState('');
   const [editFee, setEditFee] = useState<number>(0);
   const [editStatus, setEditStatus] = useState('Pending');
   const [editPaymentStatus, setEditPaymentStatus] = useState('Unpaid');
+
+  // Print ID Card Modal State
+  const [isIDModalOpen, setIsIDModalOpen] = useState(false);
+  const [idCertToPrint, setIdCertToPrint] = useState<Certificate | null>(null);
 
   // Form states
   const [selectedResidentId, setSelectedResidentId] = useState('');
@@ -41,8 +46,8 @@ export const Certificates: React.FC = () => {
 
   const isStaff = user && user.role !== 'Resident';
 
-  const fetchCerts = async () => {
-    setIsLoading(true);
+  const fetchCerts = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const data = await api.certificates.list({
         status: statusFilter || undefined,
@@ -51,7 +56,7 @@ export const Certificates: React.FC = () => {
     } catch (err) {
       console.error("Failed fetching certificates", err);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
@@ -67,9 +72,9 @@ export const Certificates: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchCerts();
+    fetchCerts(false); // initial — show spinner
     fetchResidents();
-    const interval = setInterval(fetchCerts, 3000);
+    const interval = setInterval(() => fetchCerts(true), 10000); // silent poll every 10s
     return () => clearInterval(interval);
   }, [statusFilter]);
 
@@ -94,6 +99,7 @@ export const Certificates: React.FC = () => {
   const handleOpenEditModal = (cert: Certificate) => {
     setEditingCert(cert);
     setEditDocNo(cert.document_number);
+    setEditResidentId(cert.resident_id || '');
     setEditType(cert.type);
     setEditPurpose(cert.purpose);
     setEditFee(cert.fee || 0);
@@ -109,6 +115,7 @@ export const Certificates: React.FC = () => {
     try {
       await api.certificates.update(editingCert.id, {
         document_number: editDocNo,
+        resident_id: editResidentId || undefined,
         type: editType,
         purpose: editPurpose,
         fee: editFee,
@@ -188,6 +195,18 @@ export const Certificates: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Capture signature from canvas
+    let signatureData: string | undefined;
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      // Check if canvas has any drawn content (not blank)
+      const pixelBuffer = ctx?.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height).data;
+      const hasSignature = pixelBuffer ? Array.from(pixelBuffer).some(v => v !== 0) : false;
+      if (hasSignature) {
+        signatureData = canvasRef.current.toDataURL('image/png');
+      }
+    }
+
     try {
       const residentId = isStaff ? selectedResidentId : user?.resident_id;
       if (!residentId) {
@@ -200,11 +219,13 @@ export const Certificates: React.FC = () => {
         resident_id: residentId,
         type: certType,
         purpose,
-        fee
+        fee,
+        ...(signatureData ? { signature: signatureData } : {})
       });
 
       setIsModalOpen(false);
       setPurpose('');
+      clearCanvas();
       fetchCerts();
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to submit request");
@@ -273,76 +294,94 @@ export const Certificates: React.FC = () => {
     <div className="space-y-6 relative z-10">
       
       {/* 1. Top Header Navigation Tabs */}
-      <div className="flex items-center justify-between flex-wrap gap-3 bg-white/80 dark:bg-slate-900/80 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm glass-panel">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-3 bg-white/80 dark:bg-slate-900/80 p-2 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm glass-panel w-max">
+        <div className="flex items-center gap-1">
           <Link
             to="/certificates"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 text-white shadow-md shadow-gov-blue-600/20"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 text-white shadow-md shadow-gov-blue-600/20"
           >
             <FileText size={15} />
-            DOCUMENT ISSUANCE & APPROVALS
+            <span className="underline decoration-1 underline-offset-2">DOCUMENT ISSUANCE & APPROVALS</span>
           </Link>
           <Link
             to="/queue-schedule"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <Clock size={15} />
-            Certificates Pickup & Queue Schedule
+            <span className="underline decoration-1 underline-offset-2">Certificates Pickup & Queue Schedule</span>
           </Link>
         </div>
       </div>
 
       {/* 2. Header Title & Main CTA Bar */}
-      <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="p-2 bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 rounded-xl">
-              <Sparkles size={18} />
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight uppercase">
-              Certificate Registry & Clearances
-            </h2>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
-            Official barangay document issuing, digital signatures, and e-clearance verification
-          </p>
+      <div className="relative bg-gradient-to-br from-slate-900 via-gov-blue-950 to-slate-950 rounded-3xl border border-slate-700/50 shadow-2xl">
+        {/* Decorative glows — clipped in their own layer */}
+        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+          <div className="absolute -top-16 -right-16 w-64 h-64 bg-gov-blue-600/25 rounded-full blur-3xl" />
+          <div className="absolute -bottom-12 left-1/3 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_rgba(59,130,246,0.08),_transparent_60%)]" />
         </div>
-        <div className="flex items-center gap-3">
-          {isStaff && (
-            <>
-              <button
-                onClick={handleSeedSamples}
-                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-              >
-                <FolderPlus size={16} />
-                Add Sample Certificates
-              </button>
-              <Link
-                to="/kiosk/certificates"
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-95"
-              >
-                <MonitorSmartphone size={16} />
-                Open Kiosk Mode
-              </Link>
-            </>
-          )}
-          <button
-            onClick={() => {
-              setIsModalOpen(true);
-              setTimeout(() => {
-                if (canvasRef.current) {
-                  canvasRef.current.width = canvasRef.current.offsetWidth;
-                  canvasRef.current.height = 120;
-                }
-              }, 100);
-            }}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white rounded-2xl font-bold text-xs shadow-md shadow-gov-blue-600/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-          >
-            <Plus size={16} />
-            Request Certificate
-          </button>
+
+        <div className="relative p-7 sm:p-9">
+          {/* Top row: icon + title + subtitle + badge */}
+          <div className="flex items-start gap-5 mb-6">
+            <div className="flex-shrink-0 w-14 h-14 bg-gov-blue-500/20 border border-gov-blue-400/30 rounded-2xl flex items-center justify-center text-gov-blue-300 shadow-inner">
+              <Sparkles size={24} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3 flex-wrap mb-1">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black font-display text-white tracking-tight uppercase leading-tight">
+                  Certificate Registry &amp; Clearances
+                </h2>
+                <span className="px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-400 text-[9px] font-black uppercase tracking-widest flex-shrink-0">
+                  🏛 Official
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-400 font-medium leading-relaxed">
+                Official barangay document issuing, digital signatures, and e-clearance verification
+              </p>
+            </div>
+          </div>
+
+          {/* Bottom row: full-width adaptive buttons */}
+          <div className="flex items-center gap-3 pt-5 border-t border-slate-700/60">
+            {isStaff && (
+              <>
+                <button
+                  onClick={handleSeedSamples}
+                  className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-amber-500/30 border border-amber-300/20 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                >
+                  <FolderPlus size={14} />
+                  Add Samples
+                </button>
+                <Link
+                  to="/kiosk/certificates"
+                  className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-emerald-500/30 border border-emerald-300/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                >
+                  <MonitorSmartphone size={14} />
+                  Kiosk Mode
+                </Link>
+              </>
+            )}
+            <button
+              onClick={() => {
+                setIsModalOpen(true);
+                setTimeout(() => {
+                  if (canvasRef.current) {
+                    canvasRef.current.width = canvasRef.current.offsetWidth;
+                    canvasRef.current.height = 120;
+                  }
+                }, 100);
+              }}
+              className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-gradient-to-r from-gov-blue-500 to-indigo-600 hover:from-gov-blue-400 hover:to-indigo-500 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-gov-blue-600/40 border border-gov-blue-300/20 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
+            >
+              <Plus size={14} />
+              Request Certificate
+            </button>
+          </div>
         </div>
       </div>
+
 
       {/* 3. Overview Stat Cards (Responsive Grid) */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${isStaff ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-4`}>
@@ -572,6 +611,19 @@ export const Certificates: React.FC = () => {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {cert.type === 'Barangay ID' && (
+                          <button
+                            onClick={() => {
+                              setIdCertToPrint(cert);
+                              setIsIDModalOpen(true);
+                            }}
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-xl transition-colors flex items-center gap-1 text-[10px] font-bold cursor-pointer"
+                            title="Print Barangay ID Card"
+                          >
+                            <CreditCard size={13} />
+                            Print ID Card
+                          </button>
+                        )}
                         {cert.pdf_path && cert.status === 'Issued' && (
                           <a
                             href={`http://localhost:8080${cert.pdf_path}`}
@@ -725,7 +777,7 @@ export const Certificates: React.FC = () => {
                     className="cursor-crosshair w-full block bg-white"
                   />
                 </div>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1">Draw inside the white box to sign. Signature is securely appended to final PDF certificate.</p>
+                <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1">Draw your signature above. It will be <strong className="text-gov-blue-500">automatically embedded</strong> into the final PDF certificate when approved.</p>
               </div>
 
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -738,15 +790,15 @@ export const Certificates: React.FC = () => {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
+                    onClick={() => { setIsModalOpen(false); clearCanvas(); }}
+                    className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs transition-all hover:scale-[1.02] active:scale-95"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50"
+                    className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white font-extrabold text-xs transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 shadow-md shadow-gov-blue-600/25"
                   >
                     {isSubmitting ? 'Submitting...' : 'Submit Request'}
                   </button>
@@ -785,6 +837,24 @@ export const Certificates: React.FC = () => {
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
                 />
               </div>
+
+              {residents.length > 0 && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Resident</label>
+                  <select
+                    value={editResidentId}
+                    onChange={(e) => setEditResidentId(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                  >
+                    <option value="">-- Keep Current Resident --</option>
+                    {residents.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.first_name} {r.last_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Certificate Type</label>
@@ -855,19 +925,176 @@ export const Certificates: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
+                  className="px-5 py-2.5 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold text-xs transition-all hover:scale-[1.02] active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white font-extrabold text-xs transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 shadow-md shadow-gov-blue-600/25"
                 >
                   {isSubmitting ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Modal - Printable Barangay Resident ID Card */}
+      {isIDModalOpen && idCertToPrint && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full shadow-2xl p-6 text-white relative animate-scale-up space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
+                  <CreditCard size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider">OFFICIAL BARANGAY RESIDENT ID</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">Printable Identity Card • Barangay, Laguna</p>
+                </div>
+              </div>
+              <button onClick={() => setIsIDModalOpen(false)} className="text-slate-400 hover:text-white p-1">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* ID Card Front & Back Preview Container */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 printable-id-card overflow-x-auto pb-2">
+              {/* FRONT SIDE */}
+              <div className="w-[340px] h-[214px] shrink-0 bg-gradient-to-br from-slate-900 via-gov-blue-950 to-slate-950 border-2 border-gov-gold-500/60 rounded-2xl p-4 shadow-2xl relative overflow-hidden text-slate-100 flex flex-col justify-between">
+                {/* Holographic Watermark Badge Effect */}
+                <div className="absolute top-2 right-2 opacity-20 pointer-events-none">
+                  <Sparkles size={120} className="text-gov-gold-400" />
+                </div>
+
+                {/* Card Header */}
+                <div className="flex items-center justify-between border-b border-gov-gold-500/30 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gov-blue-600 rounded-full flex items-center justify-center border border-gov-gold-400 font-black text-[10px] text-white shrink-0">
+                      BRGY
+                    </div>
+                    <div>
+                      <span className="text-[7px] font-black uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
+                      <h4 className="text-[10px] font-black uppercase tracking-wider text-white leading-tight">OFFICIAL BARANGAY ID • MUNICIPALITY</h4>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/40 shrink-0">
+                    RESIDENT ID
+                  </span>
+                </div>
+
+                {/* Card Content Grid */}
+                <div className="flex gap-3 items-start flex-1 mt-3">
+                  {/* Photo Section */}
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-[72px] h-[72px] bg-slate-800 border-2 border-gov-gold-400 rounded-lg overflow-hidden shadow-inner flex items-center justify-center relative">
+                      {idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url ? (
+                        <img src={idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url} alt="Resident" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-400">
+                          <UserCheck size={36} />
+                          <span className="text-[8px] font-bold mt-1">VERIFIED</span>
+                        </div>
+                      )}
+                      <div className="absolute bottom-0 inset-x-0 bg-gov-blue-900/90 text-center py-0.5 text-[7px] font-black text-white">
+                        ID: {idCertToPrint.resident?.qr_id || 'QR-RES-2026'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resident Info Details */}
+                  <div className="flex-1 space-y-1.5 text-left min-w-0">
+                    <div>
+                      <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest block">FULL NAME</span>
+                      <h3 className="text-xs font-black text-white uppercase tracking-wide leading-tight truncate">
+                        {idCertToPrint.resident ? `${idCertToPrint.resident.first_name} ${idCertToPrint.resident.last_name}` : 'Resident User'}
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-[10px]">
+                      <div>
+                        <span className="text-[7px] font-bold text-slate-400 uppercase block">GENDER / STATUS</span>
+                        <span className="font-extrabold text-slate-200">{idCertToPrint.resident?.gender || 'Male'} • {idCertToPrint.resident?.civil_status || 'Single'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[7px] font-bold text-slate-400 uppercase block">VOTER STATUS</span>
+                        <span className="font-extrabold text-emerald-400">{idCertToPrint.resident?.voter_status || 'Registered Voter'}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[6px] font-bold text-slate-400 uppercase block">ADDRESS</span>
+                      <p className="text-[8px] font-bold text-slate-300 leading-tight truncate">
+                        {idCertToPrint.resident?.address || 'Barangay, Laguna'}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between border-t border-slate-800">
+                      <div>
+                        <span className="text-[7px] font-bold text-slate-400 uppercase block">DOCUMENT NO.</span>
+                        <span className="font-mono text-[9px] font-extrabold text-gov-gold-400">{idCertToPrint.document_number}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[7px] font-bold text-slate-400 uppercase block">ISSUED ON</span>
+                        <span className="text-[9px] font-extrabold text-slate-200">
+                          {idCertToPrint.issue_date ? new Date(idCertToPrint.issue_date).toLocaleDateString() : new Date().toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* BACK SIDE */}
+              <div className="w-[340px] h-[214px] shrink-0 bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
+                <div className="space-y-1 text-left text-[8px] text-slate-400 pr-20">
+                  <p className="font-bold text-white uppercase text-[9px]">BARANGAY RESIDENT CREDENTIAL</p>
+                  <p className="leading-tight">This card certifies that the bearer is a duly registered resident of the Barangay, Laguna. If found, please return to the Barangay Hall.</p>
+                  <div className="pt-2 flex items-center gap-4">
+                    <div>
+                      <span className="text-[7px] uppercase font-bold text-slate-500 block">PURPOSE</span>
+                      <span className="text-[9px] font-bold text-slate-300 truncate max-w-[140px] block">{idCertToPrint.purpose}</span>
+                    </div>
+                    <div>
+                      <span className="text-[7px] uppercase font-bold text-slate-500 block">AUTHENTICITY QR</span>
+                      <span className="text-[9px] font-mono text-gov-gold-400 font-bold">{idCertToPrint.qr_hash?.slice(0, 12)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* QR Code SVG / Visual */}
+                <div className="absolute right-4 top-4 w-[68px] h-[68px] bg-white p-1 rounded-lg flex items-center justify-center shrink-0 border border-slate-700">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`http://localhost:5173/verify/document/${idCertToPrint.qr_hash}`)}`}
+                    alt="QR Code"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-800 mt-4 gap-4">
+              <span className="text-[10px] text-slate-400 font-bold">Standard CR80 Printable ID Card Layout</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsIDModalOpen(false)}
+                  className="px-5 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white text-xs font-extrabold shadow-lg shadow-gov-blue-600/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer border border-white/20"
+                >
+                  <ArrowDownToLine size={14} />
+                  Print ID Card
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

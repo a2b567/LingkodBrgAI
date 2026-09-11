@@ -67,9 +67,8 @@ export const QueueMonitor: React.FC = () => {
 
   useEffect(() => {
     if (servingSlot && servingSlot.ticket_number !== lastAnnouncedTicket) {
-      setLastAnnouncedTicket(servingSlot.ticket_number);
-      
       if (voiceEnabled && 'speechSynthesis' in window) {
+        setLastAnnouncedTicket(servingSlot.ticket_number);
         window.speechSynthesis.cancel();
         const text = `Attention. Now serving ticket number ${servingSlot.ticket_number}, ${servingSlot.resident_name}. Please proceed to Counter 1 for document issuance.`;
         const utterance = new SpeechSynthesisUtterance(text);

@@ -300,21 +300,21 @@ export const QueueSchedule: React.FC = () => {
     <div className="space-y-6 relative z-10">
       
       {/* 1. Top Navigation Tabs */}
-      <div className="flex items-center justify-between flex-wrap gap-3 bg-white/80 dark:bg-slate-900/80 p-2 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm glass-panel">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-3 bg-white/80 dark:bg-slate-900/80 p-2 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm glass-panel w-max">
+        <div className="flex items-center gap-1">
           <Link
             to="/certificates"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <FileText size={15} />
-            Document Issuance & Approvals
+            <span className="underline decoration-1 underline-offset-2">Document Issuance & Approvals</span>
           </Link>
           <Link
             to="/queue-schedule"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 text-white shadow-md shadow-gov-blue-600/20"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-[11px] font-black bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 text-white shadow-md shadow-gov-blue-600/20"
           >
             <CalendarIcon size={15} />
-            CERTIFICATES PICKUP & QUEUE SCHEDULE
+            <span className="underline decoration-1 underline-offset-2">CERTIFICATES PICKUP & QUEUE SCHEDULE</span>
           </Link>
         </div>
       </div>

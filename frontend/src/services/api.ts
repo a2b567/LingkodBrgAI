@@ -63,15 +63,15 @@ export const callGroqAI = async (prompt: string, systemContext?: string): Promis
   };
 
   try {
-    return await makeRequest('llama-3.3-70b-versatile');
+    return await makeRequest('openai/gpt-oss-120b');
   } catch (err) {
     console.warn('Primary Groq model failed, trying fallback 1:', err);
     try {
-      return await makeRequest('llama-3.1-8b-instant');
+      return await makeRequest('openai/gpt-oss-20b');
     } catch (err2) {
       console.warn('Fallback 1 failed, trying fallback 2:', err2);
       try {
-        return await makeRequest('mixtral-8x7b-32768');
+        return await makeRequest('qwen/qwen3.6-27b');
       } catch (err3) {
         console.warn('All Groq models failed:', err3);
         throw err3;
@@ -585,6 +585,17 @@ export const api = {
   },
 
   analytics: {
+    publicDashboard: () =>
+      withFallback(
+        () => client.get<{ total_residents: number; total_clearances: number; active_incidents: number; total_businesses: number; congestion_risk: string }>('/public/stats').then(r => r.data),
+        () => ({
+          total_residents: mockState.residents.length,
+          total_clearances: mockState.certificates.length,
+          active_incidents: mockState.blotters.length,
+          total_businesses: mockState.businesses.length,
+          congestion_risk: 'LOW / OPTIMAL',
+        })
+      ),
     dashboard: () =>
       withFallback(
         () => client.get<DashboardStats>('/analytics/dashboard').then(r => r.data),
@@ -598,6 +609,8 @@ export const api = {
           senior_citizens: mockState.residents.filter(r => (r.age || 0) >= 60).length,
           solo_parents: 0,
           pwd_residents: 0,
+          total_clearances: mockState.certificates.length,
+          total_ai_queries: 0,
           age_demographics: {
             children: mockState.residents.filter(r => (r.age || 0) < 18).length,
             youth: mockState.residents.filter(r => (r.age || 0) >= 18 && (r.age || 0) < 30).length,
@@ -617,6 +630,49 @@ export const api = {
             { month: 'Jun', amount: 0 },
           ],
         })
+      ),
+  },
+
+  health: {
+    listRecords: () =>
+      withFallback(
+        () => client.get('/health-records').then(r => r.data),
+        () => []
+      ),
+    createRecord: (data: any) =>
+      withFallback(
+        () => client.post('/health-records', data).then(r => r.data),
+        () => ({ id: `HR-${Date.now()}`, ...data })
+      ),
+    deleteRecord: (id: string) =>
+      withFallback(
+        () => client.delete(`/health-records/${id}`).then(r => r.data),
+        () => ({ success: true })
+      ),
+    dispenseMedicine: (recordId: string, data: { medicineName: string; quantity: number }) =>
+      withFallback(
+        () => client.post(`/health-records/${recordId}/dispense`, data).then(r => r.data),
+        () => ({ success: true })
+      ),
+    listStock: () =>
+      withFallback(
+        () => client.get('/medicine-stock').then(r => r.data),
+        () => []
+      ),
+    addStock: (data: any) =>
+      withFallback(
+        () => client.post('/medicine-stock', data).then(r => r.data),
+        () => ({ id: `MS-${Date.now()}`, ...data })
+      ),
+    restock: (id: string, quantity: number) =>
+      withFallback(
+        () => client.put(`/medicine-stock/${id}/restock`, { quantity }).then(r => r.data),
+        () => ({ success: true })
+      ),
+    deleteStock: (id: string) =>
+      withFallback(
+        () => client.delete(`/medicine-stock/${id}`).then(r => r.data),
+        () => ({ success: true })
       ),
   },
 

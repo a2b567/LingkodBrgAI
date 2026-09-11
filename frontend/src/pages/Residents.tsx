@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Plus, Search, Edit2, Trash2, FileSpreadsheet, QrCode,
   XCircle, UserX, UserCheck, Loader2, Upload, CheckCircle2, Sparkles, Save
@@ -73,20 +73,138 @@ export const Residents: React.FC = () => {
     fetchResidents();
   };
 
-  const handleExport = () => {
-    const token = localStorage.getItem('lingkodbrgai_token');
-    // Direct link to download csv
-    const url = `http://localhost:8080/api/residents?export=csv&search=${search}&voter_status=${voterStatus}&residency_status=${residencyStatus}`;
-    
-    // Create element to trigger download
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportCSV = () => {
+    if (residents.length === 0) {
+      alert('No resident records available to export.');
+      return;
+    }
+
+    const headers = ['ID', 'First Name', 'Middle Name', 'Last Name', 'Suffix', 'Gender', 'Birthdate', 'Civil Status', 'Occupation', 'Contact Number', 'Email', 'Address', 'Citizenship', 'Residency Status', 'Voter Status'];
+
+    const csvRows = [
+      headers.join(','),
+      ...residents.map(r => [
+        `"${r.id || ''}"`,
+        `"${(r.first_name || '').replace(/"/g, '""')}"`,
+        `"${(r.middle_name || '').replace(/"/g, '""')}"`,
+        `"${(r.last_name || '').replace(/"/g, '""')}"`,
+        `"${(r.suffix || '').replace(/"/g, '""')}"`,
+        `"${r.gender || ''}"`,
+        `"${r.birthdate ? new Date(r.birthdate).toISOString().split('T')[0] : ''}"`,
+        `"${r.civil_status || ''}"`,
+        `"${(r.occupation || '').replace(/"/g, '""')}"`,
+        `"${(r.contact_number || '').replace(/"/g, '""')}"`,
+        `"${(r.email || '').replace(/"/g, '""')}"`,
+        `"${(r.address || '').replace(/"/g, '""')}"`,
+        `"${r.citizenship || 'Filipino'}"`,
+        `"${r.residency_status || 'Permanent'}"`,
+        `"${r.voter_status || 'Not Registered'}"`
+      ].join(','))
+    ];
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', 'residents.csv');
-    // Set headers
-    if (token) {
-      // For cross-origin downloading, let's open in new tab
-      window.open(url + `&Authorization=Bearer ${token}`, '_blank');
-    }
+    link.setAttribute('download', `resident_registry_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
+      if (lines.length <= 1) {
+        alert('The CSV file is empty or missing data rows.');
+        return;
+      }
+
+      const parseLine = (line: string) => {
+        const values: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+        return values.map(v => v.replace(/^"|"$/g, '').replace(/""/g, '"'));
+      };
+
+      const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const rows = lines.slice(1);
+
+      let count = 0;
+      for (const rowStr of rows) {
+        const vals = parseLine(rowStr);
+        if (vals.length < 2) continue;
+
+        const getValue = (keys: string[]) => {
+          for (const k of keys) {
+            const idx = headers.findIndex(h => h.includes(k));
+            if (idx !== -1 && vals[idx]) return vals[idx];
+          }
+          return '';
+        };
+
+        const firstName = getValue(['first', 'fname', 'given']) || vals[0] || 'Resident';
+        const lastName = getValue(['last', 'lname', 'surname']) || vals[2] || vals[1] || 'User';
+        const middleName = getValue(['middle', 'mname']) || '';
+        const gender = getValue(['gender', 'sex']) || 'Male';
+        const address = getValue(['address', 'zone', 'street']) || 'Barangay Lawrence';
+        const civilStatus = getValue(['civil', 'status', 'marital']) || 'Single';
+        const contactNumber = getValue(['contact', 'phone', 'mobile']) || '';
+        const email = getValue(['email', 'mail']) || '';
+        const voterStatus = getValue(['voter']) || 'Not Registered';
+        const birthdate = getValue(['birth', 'bday', 'date']) || '2000-01-01';
+
+        const payload = {
+          first_name: firstName,
+          middle_name: middleName,
+          last_name: lastName,
+          gender: gender.toLowerCase().includes('f') ? 'Female' : 'Male',
+          birthdate: new Date(birthdate).toString() !== 'Invalid Date' ? new Date(birthdate).toISOString() : new Date('2000-01-01').toISOString(),
+          civil_status: civilStatus,
+          occupation: 'Resident',
+          contact_number: contactNumber,
+          email: email,
+          address: address,
+          citizenship: 'Filipino',
+          residency_status: 'Permanent',
+          voter_status: voterStatus,
+        };
+
+        try {
+          await api.residents.create(payload);
+          count++;
+        } catch (err) {
+          console.error('Failed to import CSV row:', payload, err);
+        }
+      }
+
+      alert(`Successfully imported ${count} resident records from CSV!`);
+      fetchResidents();
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    reader.readAsText(file);
   };
 
   const handleOpenEdit = (res: Resident) => {
@@ -200,20 +318,39 @@ export const Residents: React.FC = () => {
             Manage, update, and search official citizen profiles
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleImportCSV}
+            accept=".csv"
+            className="hidden"
+          />
+
           <button 
-            onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 transition-colors"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-black text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+            title="Import Residents from CSV file"
+          >
+            <Upload size={16} className="text-blue-600 dark:text-blue-400" />
+            <span>Import CSV</span>
+          </button>
+
+          <button 
+            onClick={handleExportCSV}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-black text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+            title="Export Resident Registry to CSV file"
           >
             <FileSpreadsheet size={16} className="text-emerald-600 dark:text-emerald-400" />
-            Export CSV
+            <span>Export CSV</span>
           </button>
+
           <button 
             onClick={handleOpenAdd}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white text-xs font-bold rounded-2xl shadow-md shadow-gov-blue-600/25 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white text-xs font-black rounded-2xl shadow-lg shadow-gov-blue-600/25 border border-blue-400/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
-            <Plus size={16} />
-            Add Resident
+            <Plus size={16} strokeWidth={3} />
+            <span>Add Resident</span>
           </button>
         </div>
       </div>

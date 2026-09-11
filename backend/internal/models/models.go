@@ -35,7 +35,7 @@ type User struct {
 	OTP               string `json:"-"`
 	OTPExpiry         *time.Time `json:"-"`
 	ResidentID        *uuid.UUID `gorm:"type:uuid" json:"resident_id,omitempty"`
-	Resident          *Resident  `gorm:"foreignKey:ResidentID" json:"resident,omitempty"`
+	Resident          *Resident  `gorm:"foreignKey:ResidentID;constraint:false" json:"resident,omitempty"`
 }
 
 // Resident model representing individual citizens
@@ -60,7 +60,7 @@ type Resident struct {
 	IsSenior        bool       `gorm:"default:false" json:"is_senior"`
 	IsPWD           bool       `gorm:"default:false" json:"is_pwd"`
 	ProfilePhoto    string     `json:"profile_photo"`
-	HouseholdID     *uuid.UUID `gorm:"type:uuid" json:"household_id,omitempty"`
+	HouseholdID     *uuid.UUID `gorm:"type:uuid;constraint:false" json:"household_id,omitempty"`
 	IsHouseholdHead bool       `gorm:"default:false" json:"is_household_head"`
 	QRID            string     `gorm:"uniqueIndex" json:"qr_id"`
 }
@@ -76,10 +76,10 @@ type Household struct {
 	Base
 	HouseholdNumber string     `gorm:"uniqueIndex;not null" json:"household_number"`
 	HeadID          *uuid.UUID `gorm:"type:uuid" json:"head_id,omitempty"`
-	Head            *Resident  `gorm:"foreignKey:HeadID" json:"head,omitempty"`
+	Head            *Resident  `gorm:"foreignKey:HeadID;constraint:false" json:"head,omitempty"`
 	PovertyLevel    string     `gorm:"default:'Non-Poor'" json:"poverty_level"` // Non-Poor, Low Income, Poor, Indigent
 	Address         string     `gorm:"not null" json:"address"`
-	Members         []Resident `gorm:"foreignKey:HouseholdID" json:"members,omitempty"`
+	Members         []Resident `gorm:"foreignKey:HouseholdID;constraint:false" json:"members,omitempty"`
 }
 
 // Certificate & Document requesting/processing
@@ -223,4 +223,37 @@ func (a *AILog) BeforeCreate(tx *gorm.DB) error {
 		a.ID = uuid.New()
 	}
 	return nil
+}
+
+// HealthRecord model for resident medical histories
+type HealthRecord struct {
+	Base
+	ResidentID     *uuid.UUID      `gorm:"type:uuid" json:"resident_id,omitempty"`
+	ResidentName   string          `gorm:"not null" json:"resident_name"`
+	Age            int             `gorm:"not null" json:"age"`
+	BloodType      string          `gorm:"not null;default:'O+'" json:"blood_type"`
+	Allergies      string          `json:"allergies"`
+	Conditions     string          `json:"conditions"`
+	LastCheckup    string          `json:"last_checkup"`
+	Status         string          `gorm:"default:'Healthy'" json:"status"` // Healthy, Under Observation, Critical
+	DispensedItems []DispensedItem `gorm:"foreignKey:HealthRecordID" json:"dispensedItems,omitempty"`
+}
+
+// DispensedItem model tracking medicine given to resident
+type DispensedItem struct {
+	Base
+	HealthRecordID uuid.UUID `gorm:"type:uuid;not null" json:"health_record_id"`
+	MedicineName   string    `gorm:"not null" json:"medicineName"`
+	Quantity       int       `gorm:"not null" json:"quantity"`
+	Date           string    `json:"date"`
+}
+
+// MedicineStock model for pharmacy inventory
+type MedicineStock struct {
+	Base
+	Name     string `gorm:"not null" json:"name"`
+	Category string `gorm:"not null" json:"category"`
+	Stock    int    `gorm:"not null;default:0" json:"stock"`
+	Unit     string `gorm:"not null;default:'tablets'" json:"unit"`
+	MinStock int    `gorm:"not null;default:10" json:"minStock"`
 }

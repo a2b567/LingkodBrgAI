@@ -201,12 +201,7 @@ export const App: React.FC = () => {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
-      {/* Security Watermark */}
-      <div className="fixed inset-0 pointer-events-none select-none z-[9999] flex items-center justify-center overflow-hidden opacity-[0.008] dark:opacity-[0.004]">
-        <div className="text-[7vw] font-light uppercase tracking-[0.3em] -rotate-[30deg] whitespace-nowrap text-black dark:text-slate-200">
-          DEV LAWREENE B ARANAS
-        </div>
-      </div>
+
     </BrowserRouter>
   );
 };

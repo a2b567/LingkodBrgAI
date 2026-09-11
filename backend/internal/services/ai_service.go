@@ -129,8 +129,13 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 		}
 	}
 
-	// 2. Execute OpenAI completion or Fallback to Simulated AI
-	if cfg.OpenAIKey == "" {
+	groqKey := cfg.GroqAPIKey
+	if groqKey == "" {
+		groqKey = cfg.OpenAIKey
+	}
+
+	// If no API key configured, fallback to Simulated AI
+	if groqKey == "" {
 		return s.fallbackLocalAI(prompt, userRole, contextData)
 	}
 
@@ -139,48 +144,55 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 		systemInstruction += "\n\nUse the following real-time database query results to answer the user's question accurately:\n" + contextData
 	}
 
-	groqKey := cfg.OpenAIKey
-	if groqKey == "" {
-		groqKey = cfg.GroqAPIKey
+	modelsToTry := []string{
+		"openai/gpt-oss-120b",
+		"openai/gpt-oss-20b",
+		"qwen/qwen3.6-27b",
+		"qwen/qwen3.8-27b",
+		"groq/compound",
 	}
-
-	reqBody := ChatCompletionRequest{
-		Model: "llama-3.3-70b-versatile",
-		Messages: []Message{
-			{Role: "system", Content: systemInstruction},
-			{Role: "user", Content: prompt},
-		},
-	}
-
-	jsonData, _ := json.Marshal(reqBody)
-	req, _ := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewBuffer(jsonData))
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+groqKey)
 
 	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Printf("Groq AI Request failed: %v, calling local mock fallback", err)
-		return s.fallbackLocalAI(prompt, userRole, contextData)
-	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		respBytes, _ := io.ReadAll(resp.Body)
-		log.Printf("Groq API error status: %d. Details: %s. Using local fallback.", resp.StatusCode, string(respBytes))
-		return s.fallbackLocalAI(prompt, userRole, contextData)
+	for _, model := range modelsToTry {
+		reqBody := ChatCompletionRequest{
+			Model: model,
+			Messages: []Message{
+				{Role: "system", Content: systemInstruction},
+				{Role: "user", Content: prompt},
+			},
+		}
+
+		jsonData, _ := json.Marshal(reqBody)
+		req, _ := http.NewRequest("POST", "https://api.groq.com/openai/v1/chat/completions", bytes.NewBuffer(jsonData))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+groqKey)
+
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("Groq model %s failed: %v, trying next...", model, err)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			respBytes, _ := io.ReadAll(resp.Body)
+			resp.Body.Close()
+			log.Printf("Groq model %s returned status %d: %s, trying next...", model, resp.StatusCode, string(respBytes))
+			continue
+		}
+
+		var chatResp ChatCompletionResponse
+		err = json.NewDecoder(resp.Body).Decode(&chatResp)
+		resp.Body.Close()
+
+		if err == nil && len(chatResp.Choices) > 0 {
+			log.Printf("Groq AI successfully responded using model: %s", model)
+			return chatResp.Choices[0].Message.Content, chatResp.Usage.TotalTokens, nil
+		}
 	}
 
-	var chatResp ChatCompletionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return "", 0, err
-	}
-
-	if len(chatResp.Choices) > 0 {
-		return chatResp.Choices[0].Message.Content, chatResp.Usage.TotalTokens, nil
-	}
-
-	return "No response from AI agent.", 0, nil
+	log.Printf("All Groq models failed. Falling back to local offline AI.")
+	return s.fallbackLocalAI(prompt, userRole, contextData)
 }
 
 func (s *AIService) fallbackLocalAI(prompt, role, contextData string) (string, int, error) {

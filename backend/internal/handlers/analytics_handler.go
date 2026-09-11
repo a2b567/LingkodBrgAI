@@ -33,6 +33,8 @@ type DashboardStats struct {
 	SeniorCount       int64            `json:"senior_citizens"`
 	SoloParentsCount  int64            `json:"solo_parents"`
 	PWDsCount         int64            `json:"pwd_residents"`
+	TotalClearances   int64            `json:"total_clearances"`
+	TotalAIQueries    int64            `json:"total_ai_queries"`
 	AgeDemographics   AgeDemographics  `json:"age_demographics"`
 	GenderRatio       map[string]int64 `json:"gender_ratio"`
 	RevenueHistory    []RevenueMonth   `json:"revenue_history"`
@@ -49,6 +51,7 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 	db.Model(&models.Blotter{}).Where("status IN ?", []string{"Pending", "Active"}).Count(&stats.ActiveIncidents)
 	db.Model(&models.Business{}).Where("status = ?", "Active").Count(&stats.ActiveBusinesses)
 	db.Model(&models.Resident{}).Where("voter_status = ?", "Registered").Count(&stats.VotersCount)
+	db.Model(&models.Certificate{}).Count(&stats.TotalClearances)
 
 	// Custom registries
 	db.Model(&models.Resident{}).Where("civil_status = ?", "Single Parent").Count(&stats.SoloParentsCount)
@@ -106,9 +109,6 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 		})
 	}
 
-	// PWD count
-	stats.PWDsCount = 0
-
 	// Default revenue structure if database payments are empty (all 0.00)
 	if len(stats.RevenueHistory) == 0 {
 		stats.RevenueHistory = []RevenueMonth{
@@ -121,4 +121,29 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, stats)
+}
+
+func (h *AnalyticsHandler) GetPublicStats(c *gin.Context) {
+	db := config.DB
+	var totalResidents int64
+	var totalClearances int64
+	var activeIncidents int64
+	var totalBusinesses int64
+
+	db.Model(&models.Resident{}).Count(&totalResidents)
+	db.Model(&models.Certificate{}).Count(&totalClearances)
+	db.Model(&models.Blotter{}).Where("status IN ?", []string{"Pending", "Active"}).Count(&activeIncidents)
+	db.Model(&models.Business{}).Where("status = ?", "Active").Count(&totalBusinesses)
+
+	c.JSON(http.StatusOK, gin.H{
+		"total_residents":  totalResidents,
+		"total_clearances": totalClearances,
+		"active_incidents": activeIncidents,
+		"total_businesses": totalBusinesses,
+		"congestion_risk":  "LOW / OPTIMAL",
+	})
+}
+
+func (h *AnalyticsHandler) GetDBStatus(c *gin.Context) {
+	c.JSON(http.StatusOK, config.GetDBStatus())
 }

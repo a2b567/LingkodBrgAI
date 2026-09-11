@@ -43,6 +43,8 @@ func SetupRouter() *gin.Engine {
 	payHandler := &handlers.PaymentHandler{}
 	aiHandler := &handlers.AIHandler{}
 	analyticsHandler := &handlers.AnalyticsHandler{}
+	licenseHandler := &handlers.LicenseHandler{}
+	healthHandler := &handlers.HealthHandler{}
 
 	// Public Routes
 	api := r.Group("/api")
@@ -50,6 +52,16 @@ func SetupRouter() *gin.Engine {
 		api.GET("/ping", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "pong"})
 		})
+		api.GET("/system/db-status", analyticsHandler.GetDBStatus)
+		api.GET("/public/stats", analyticsHandler.GetPublicStats)
+
+		// License Validation & Activation (Publicly accessible for system activation checks)
+		licenses := api.Group("/licenses")
+		{
+			licenses.POST("/validate", licenseHandler.Validate)
+			licenses.POST("/activate", licenseHandler.Activate)
+			licenses.GET("/status", licenseHandler.Status)
+		}
 
 		// Auth (Strict Rate Limiting: Max 10 requests per minute for login/register/reset)
 		auth := api.Group("/auth")
@@ -157,6 +169,20 @@ func SetupRouter() *gin.Engine {
 
 			// Dashboards
 			staffOnly.GET("/analytics/dashboard", analyticsHandler.GetStats)
+
+			// Health Records & Medicine Inventory Persistence
+			staffOnly.GET("/health-records", healthHandler.ListRecords)
+			staffOnly.POST("/health-records", healthHandler.CreateRecord)
+			staffOnly.DELETE("/health-records/:id", healthHandler.DeleteRecord)
+			staffOnly.POST("/health-records/:id/dispense", healthHandler.DispenseMedicine)
+
+			staffOnly.GET("/medicine-stock", healthHandler.ListStock)
+			staffOnly.POST("/medicine-stock", healthHandler.AddStock)
+			staffOnly.PUT("/medicine-stock/:id/restock", healthHandler.Restock)
+			staffOnly.DELETE("/medicine-stock/:id", healthHandler.DeleteStock)
+
+			// License Key Generation
+			staffOnly.POST("/licenses/generate", licenseHandler.Generate)
 		}
 	}
 

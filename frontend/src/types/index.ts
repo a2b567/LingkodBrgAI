@@ -29,6 +29,7 @@ export interface Resident {
   is_senior?: boolean;
   is_pwd?: boolean;
   profile_photo?: string;
+  photo_url?: string;
   household_id?: string;
   is_household_head: boolean;
   qr_id: string;
@@ -201,6 +202,8 @@ export interface DashboardStats {
   senior_citizens: number;
   solo_parents: number;
   pwd_residents: number;
+  total_clearances?: number;
+  total_ai_queries?: number;
   age_demographics: {
     children: number;
     youth: number;

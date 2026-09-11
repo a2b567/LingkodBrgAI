@@ -14,6 +14,35 @@ export const KioskCertificates: React.FC = () => {
   const [fee, setFee] = useState(150);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const [servingTicket, setServingTicket] = useState('---');
+  const [nextTicket, setNextTicket] = useState('---');
+
+  useEffect(() => {
+    const loadQueue = () => {
+      try {
+        const saved = localStorage.getItem('lingkod_queue_slots');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const serving = parsed.find(s => s.status === 'Serving');
+            const next = parsed.find(s => s.status === 'Waiting');
+            setServingTicket(serving ? serving.ticket_number : '---');
+            setNextTicket(next ? next.ticket_number : '---');
+            return;
+          }
+        }
+        setServingTicket('---');
+        setNextTicket('---');
+      } catch (e) {
+        setServingTicket('---');
+        setNextTicket('---');
+      }
+    };
+    loadQueue();
+    const interval = setInterval(loadQueue, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -480,10 +509,10 @@ export const KioskCertificates: React.FC = () => {
           <div className="hidden md:flex items-center gap-3 px-4 py-2.5 bg-slate-900/90 border border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-wider shadow-inner">
             <span className="text-slate-400 flex items-center gap-1.5">
               <Clock size={12} className="text-emerald-400 animate-spin" />
-              NOW SERVING <strong className="text-emerald-400 font-mono text-xs ml-1">---</strong>
+              NOW SERVING <strong className="text-emerald-400 font-mono text-xs ml-1">{servingTicket}</strong>
             </span>
             <span className="text-slate-700">|</span>
-            <span className="text-slate-400">NEXT UP <strong className="text-blue-400 font-mono text-xs ml-1">---</strong></span>
+            <span className="text-slate-400">NEXT UP <strong className="text-blue-400 font-mono text-xs ml-1">{nextTicket}</strong></span>
           </div>
 
           <button

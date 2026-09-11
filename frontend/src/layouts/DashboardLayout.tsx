@@ -259,11 +259,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             {sidebarOpen && <span>Log Out</span>}
           </button>
 
-          {sidebarOpen && (
-            <div className="text-center text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pt-2.5 border-t border-slate-200/50 dark:border-slate-800/50 mt-2.5">
-              dev • lawreene b aranas
-            </div>
-          )}
+
         </div>
       </aside>
 

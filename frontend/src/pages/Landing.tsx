@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
+import { api } from '../services/api';
 
 export const Landing: React.FC = () => {
   const { token, user } = useAuthStore();
@@ -18,6 +19,15 @@ export const Landing: React.FC = () => {
   const [simulatedAnswer, setSimulatedAnswer] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  // Live database stats fetched from backend
+  const [liveStats, setLiveStats] = useState<{
+    total_residents: number;
+    total_clearances: number;
+    active_incidents: number;
+    total_businesses: number;
+    congestion_risk: string;
+  } | null>(null);
 
   // Default initial announcements
   const defaultAnnouncements = [
@@ -68,8 +78,18 @@ export const Landing: React.FC = () => {
   const [contactHours, setContactHours] = useState(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
   const [heroBg, setHeroBg] = useState<string | null>(localStorage.getItem('brgy_hero_bg') || null);
 
-  // Real-time synchronization polling for changes made in Settings.tsx
+  // Real-time synchronization polling for changes made in Settings.tsx and live DB stats
   useEffect(() => {
+    const fetchLiveStats = async () => {
+      try {
+        const stats = await api.analytics.publicDashboard();
+        setLiveStats(stats);
+      } catch (e) {
+        console.error('Failed to fetch public stats', e);
+      }
+    };
+    fetchLiveStats();
+
     const syncData = () => {
       try {
         const savedAnn = localStorage.getItem('lingkod_landing_announcements');
@@ -80,8 +100,9 @@ export const Landing: React.FC = () => {
       setContactEmail(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');
       setContactHours(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
       setHeroBg(localStorage.getItem('brgy_hero_bg') || null);
+      fetchLiveStats();
     };
-    const timer = setInterval(syncData, 1000);
+    const timer = setInterval(syncData, 3000);
     return () => clearInterval(timer);
   }, []);
 
@@ -538,30 +559,38 @@ export const Landing: React.FC = () => {
             
             {/* Stat 1 */}
             <div className="bg-white/10 dark:bg-slate-900/60 border border-white/15 dark:border-slate-800/80 p-6 rounded-3xl backdrop-blur-md space-y-2 hover:bg-white/15 dark:hover:bg-slate-800/60 transition-colors">
-              <p className="text-4xl font-black font-display text-gov-gold-400">12,450+</p>
+              <p className="text-4xl font-black font-display text-gov-gold-400">
+                {liveStats !== null ? (liveStats.total_residents > 0 ? `${liveStats.total_residents.toLocaleString()}+` : liveStats.total_residents) : '...'}
+              </p>
               <h5 className="font-extrabold text-[10px] uppercase text-slate-200 tracking-wider">Active Residents</h5>
-              <p className="text-[9px] text-slate-300 font-medium">Verified local citizen profile records updated live.</p>
+              <p className="text-[9px] text-slate-300 font-medium">Verified local citizen profile records in database.</p>
             </div>
 
             {/* Stat 2 */}
             <div className="bg-white/10 dark:bg-slate-900/60 border border-white/15 dark:border-slate-800/80 p-6 rounded-3xl backdrop-blur-md space-y-2 hover:bg-white/15 dark:hover:bg-slate-800/60 transition-colors">
-              <p className="text-4xl font-black font-display text-gov-blue-300">8,920+</p>
+              <p className="text-4xl font-black font-display text-gov-blue-300">
+                {liveStats !== null ? (liveStats.total_clearances > 0 ? `${liveStats.total_clearances.toLocaleString()}+` : liveStats.total_clearances) : '...'}
+              </p>
               <h5 className="font-extrabold text-[10px] uppercase text-slate-200 tracking-wider">Clearances Issued</h5>
               <p className="text-[9px] text-slate-300 font-medium">Securely printed and digitally signed with QR signatures.</p>
             </div>
 
             {/* Stat 3 */}
             <div className="bg-white/10 dark:bg-slate-900/60 border border-white/15 dark:border-slate-800/80 p-6 rounded-3xl backdrop-blur-md space-y-2 hover:bg-white/15 dark:hover:bg-slate-800/60 transition-colors">
-              <p className="text-4xl font-black font-display text-emerald-400">4,500+</p>
-              <h5 className="font-extrabold text-[10px] uppercase text-slate-200 tracking-wider">AI Queries Handled</h5>
-              <p className="text-[9px] text-slate-300 font-medium">Automatic advisory information resolved dynamically.</p>
+              <p className="text-4xl font-black font-display text-emerald-400">
+                {liveStats !== null ? ((liveStats.active_incidents + liveStats.total_businesses) > 0 ? `${(liveStats.active_incidents + liveStats.total_businesses).toLocaleString()}+` : (liveStats.active_incidents + liveStats.total_businesses)) : '...'}
+              </p>
+              <h5 className="font-extrabold text-[10px] uppercase text-slate-200 tracking-wider">Active Permits &amp; Blotters</h5>
+              <p className="text-[9px] text-slate-300 font-medium">Live registered business permits and active blotter cases.</p>
             </div>
 
             {/* Stat 4 */}
             <div className="bg-white/10 dark:bg-slate-900/60 border border-white/15 dark:border-slate-800/80 p-6 rounded-3xl backdrop-blur-md space-y-2 hover:bg-white/15 dark:hover:bg-slate-800/60 transition-colors flex flex-col justify-center">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-emerald-500 rounded-full status-pulse"></span>
-                <span className="text-xs font-black uppercase text-emerald-400 tracking-wider">LOW / OPTIMAL</span>
+                <span className="text-xs font-black uppercase text-emerald-400 tracking-wider">
+                  {liveStats?.congestion_risk || 'LOW / OPTIMAL'}
+                </span>
               </div>
               <h5 className="font-extrabold text-[10px] uppercase text-slate-200 tracking-wider mt-2.5">Hall Congestion Risk</h5>
               <p className="text-[9px] text-slate-300 font-medium">Current estimated lobby wait times under 5 minutes.</p>
@@ -1001,12 +1030,7 @@ export const Landing: React.FC = () => {
         </div>
       )}
 
-      {/* Real-time emergency announcement modal/watermark indicator */}
-      <div className="fixed inset-0 pointer-events-none select-none z-[9999] flex items-center justify-center overflow-hidden opacity-[0.008] dark:opacity-[0.004]">
-        <div className="text-[7vw] font-light uppercase tracking-[0.3em] -rotate-[30deg] whitespace-nowrap text-black dark:text-slate-200">
-          DEV LAWREENE B ARANAS
-        </div>
-      </div>
+
 
     </div>
   );

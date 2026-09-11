@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"backend/internal/config"
@@ -20,14 +22,6 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.SetMargins(20, 20, 20)
 	pdf.AddPage()
-
-	// Watermark on printed document
-	pdf.SetFont("Arial", "B", 36)
-	pdf.SetTextColor(240, 240, 240) // Light watermark gray
-	pdf.TransformBegin()
-	pdf.TransformRotate(35, 100, 140)
-	pdf.Text(25, 140, "DEV LAWREENE B ARANAS")
-	pdf.TransformEnd()
 
 	// Draw Border
 	pdf.SetLineWidth(0.5)
@@ -69,6 +63,8 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 		certType = "BARANGAY BUSINESS PERMIT CLEARANCE"
 	case "Cedula":
 		certType = "COMMUNITY TAX CERTIFICATE (CEDULA)"
+	case "Barangay ID":
+		certType = "BARANGAY RESIDENT IDENTIFICATION CERTIFICATE"
 	default:
 		certType = "CERTIFICATION"
 	}
@@ -102,6 +98,10 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 		bodyText = fmt.Sprintf("This is to certify that the business owned by %s, located at %s, Barangay Lawrence, has cleared all standard barangay inspections.", residentName, cert.Resident.Address)
 		bodyText += "\n\nThis office poses no objection to the operation of the business provided standard public ordinances and laws are upheld."
 		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)
+	case "Barangay ID":
+		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, residing at %s, Barangay Lawrence, is an officially registered and verified resident.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
+		bodyText += "\n\nThis certification validates the issuance of the Official Barangay Identification Card under QR Verification ID: " + cert.Resident.QRID + "."
+		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)
 	default:
 		bodyText = fmt.Sprintf("This is to certify that %s is a registered resident of Barangay Lawrence, located in Laguna Province.", residentName)
 		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)
@@ -129,7 +129,7 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 
 	// Embedded Verification QR
 	frontendURL := config.GetEnvPublic("FRONTEND_URL", "http://localhost:5173")
-	qrData := fmt.Sprintf("%s/verify/resident/%s", frontendURL, cert.ResidentID)
+	qrData := fmt.Sprintf("%s/verify/document/%s", frontendURL, cert.QRHash)
 	if qrCode, err := qrcode.Encode(qrData, qrcode.Medium, 256); err == nil {
 		pdf.RegisterImageOptionsReader("qr", gofpdf.ImageOptions{ImageType: "PNG"}, bytes.NewReader(qrCode))
 		pdf.ImageOptions("qr", 15, 230, 35, 35, false, gofpdf.ImageOptions{ImageType: "PNG", ReadDpi: true}, 0, "")
@@ -142,19 +142,29 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 	pdf.CellFormat(0, 4, fmt.Sprintf("Document No: %s | QR Verified Hash: %s", cert.DocumentNumber, cert.QRHash), "0", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 4, "Any alteration voids this document. Scan QR code to verify authenticity.", "0", 1, "L", false, 0, "")
 
-	// Save to Firebase
 	var pdfBuffer bytes.Buffer
 	if err := pdf.Output(&pdfBuffer); err != nil {
 		return "", err
 	}
 
+	// Try Firebase upload first if configured
 	destPath := "certificates/" + filename
-	url, err := config.UploadFileToFirebase(context.Background(), destPath, &pdfBuffer, "application/pdf")
-	if err != nil {
+	url, err := config.UploadFileToFirebase(context.Background(), destPath, bytes.NewReader(pdfBuffer.Bytes()), "application/pdf")
+	if err == nil && url != "" {
+		return url, nil
+	}
+
+	// Fallback to local storage in ./uploads/certificates/
+	uploadDir := filepath.Join("uploads", "certificates")
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		return "", err
+	}
+	localFilePath := filepath.Join(uploadDir, filename)
+	if err := os.WriteFile(localFilePath, pdfBuffer.Bytes(), 0644); err != nil {
 		return "", err
 	}
 
-	return url, nil
+	return "/uploads/certificates/" + filename, nil
 }
 
 func ordinal(x int) string {
@@ -166,7 +176,7 @@ func ordinal(x int) string {
 		}
 	case 2:
 		if x%100 != 12 {
-			suffix = "nd"
+			suffix = "rd"
 		}
 	case 3:
 		if x%100 != 13 {
@@ -175,3 +185,4 @@ func ordinal(x int) string {
 	}
 	return fmt.Sprintf("%d%s", x, suffix)
 }
+

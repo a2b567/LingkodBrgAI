@@ -173,6 +173,36 @@ func SeedDatabase(db *gorm.DB) error {
 		}
 	}
 
-	log.Println("Essential system accounts seeded successfully.")
+	// 4. Create Default Active License Key
+	defaultLicense := models.License{
+		LicenseKey:    "LINGKOD-LAWRENCE-2026-ACTIVE",
+		CustomerName:  "Barangay Lawrence",
+		CustomerEmail: "barangay.lawrence@laguna.gov.ph",
+		MaxUsers:      100,
+		IssuedDate:    time.Now(),
+		IsActive:      true,
+		IsPerpetual:   true,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+	db.Create(&defaultLicense)
+
+	// 5. Seed Default Medicine Inventory
+	var stockCount int64
+	db.Model(&models.MedicineStock{}).Count(&stockCount)
+	if stockCount == 0 {
+		defaultStock := []models.MedicineStock{
+			{Name: "Paracetamol (Biogesic)", Category: "Analgesic", Stock: 120, Unit: "tablets", MinStock: 20},
+			{Name: "Amoxicillin", Category: "Antibiotic", Stock: 60, Unit: "capsules", MinStock: 15},
+			{Name: "Vitamin C (Ascorbic Acid)", Category: "Supplement", Stock: 200, Unit: "tablets", MinStock: 30},
+			{Name: "Flu Vaccine", Category: "Vaccine", Stock: 25, Unit: "vials", MinStock: 5},
+			{Name: "Losartan", Category: "Antihypertensive", Stock: 80, Unit: "tablets", MinStock: 10},
+		}
+		for _, s := range defaultStock {
+			db.Create(&s)
+		}
+	}
+
+	log.Println("Essential system accounts, default license, and medicine inventory seeded successfully.")
 	return nil
 }
