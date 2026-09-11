@@ -265,3 +265,45 @@
     rgba(255, 255, 255, 0) 100%
   );
 }
+
+/* ==========================================================================
+   OFFICIAL RESIDENT ID CARD PRINT SYSTEM
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  /* Hide everything on the page except the ID printable container */
+  body * {
+    visibility: hidden !important;
+  }
+
+  #printable-id-card-sheet,
+  #printable-id-card-sheet * {
+    visibility: visible !important;
+  }
+
+  #printable-id-card-sheet {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 100% !important;
+    max-width: 180mm !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ensure background colors and gradients render properly on print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

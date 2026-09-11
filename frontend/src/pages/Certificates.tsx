@@ -944,160 +944,222 @@ export const Certificates: React.FC = () => {
 
       {/* 9. Modal - Printable Barangay Resident ID Card */}
       {isIDModalOpen && idCertToPrint && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full shadow-2xl p-6 text-white relative animate-scale-up space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-rose-500/20 text-rose-400 rounded-xl">
-                  <CreditCard size={20} />
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-4xl w-full shadow-2xl p-6 sm:p-8 text-white relative animate-scale-up space-y-6">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-tr from-rose-500 to-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/20">
+                  <CreditCard size={22} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider">OFFICIAL BARANGAY RESIDENT ID</h3>
-                  <p className="text-[10px] text-slate-400 font-bold">Printable Identity Card • Barangay, Laguna</p>
+                  <h3 className="text-base font-black uppercase tracking-wider text-white">OFFICIAL BARANGAY RESIDENT ID</h3>
+                  <p className="text-xs text-slate-400 font-medium">Standard CR80 ISO Security ID • Barangay Lawrence, Laguna</p>
                 </div>
               </div>
-              <button onClick={() => setIsIDModalOpen(false)} className="text-slate-400 hover:text-white p-1">
-                <X size={18} />
+              <button 
+                onClick={() => setIsIDModalOpen(false)} 
+                className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={20} />
               </button>
             </div>
 
-            {/* ID Card Front & Back Preview Container */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 printable-id-card overflow-x-auto pb-2">
-              {/* FRONT SIDE */}
-              <div className="w-[340px] h-[214px] shrink-0 bg-gradient-to-br from-slate-900 via-gov-blue-950 to-slate-950 border-2 border-gov-gold-500/60 rounded-2xl p-4 shadow-2xl relative overflow-hidden text-slate-100 flex flex-col justify-between">
-                {/* Holographic Watermark Badge Effect */}
-                <div className="absolute top-2 right-2 opacity-20 pointer-events-none">
-                  <Sparkles size={120} className="text-gov-gold-400" />
-                </div>
-
-                {/* Card Header */}
-                <div className="flex items-center justify-between border-b border-gov-gold-500/30 pb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-gov-blue-600 rounded-full flex items-center justify-center border border-gov-gold-400 font-black text-[10px] text-white shrink-0">
-                      BRGY
-                    </div>
-                    <div>
-                      <span className="text-[7px] font-black uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
-                      <h4 className="text-[10px] font-black uppercase tracking-wider text-white leading-tight">OFFICIAL BARANGAY ID • MUNICIPALITY</h4>
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/40 shrink-0">
-                    RESIDENT ID
-                  </span>
-                </div>
-
-                {/* Card Content Grid */}
-                <div className="flex gap-3 items-start flex-1 mt-3">
-                  {/* Photo Section */}
-                  <div className="flex flex-col items-center shrink-0">
-                    <div className="w-[72px] h-[72px] bg-slate-800 border-2 border-gov-gold-400 rounded-lg overflow-hidden shadow-inner flex items-center justify-center relative">
-                      {idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url ? (
-                        <img src={idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url} alt="Resident" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-slate-400">
-                          <UserCheck size={36} />
-                          <span className="text-[8px] font-bold mt-1">VERIFIED</span>
-                        </div>
-                      )}
-                      <div className="absolute bottom-0 inset-x-0 bg-gov-blue-900/90 text-center py-0.5 text-[7px] font-black text-white">
-                        ID: {idCertToPrint.resident?.qr_id || 'QR-RES-2026'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Resident Info Details */}
-                  <div className="flex-1 space-y-1.5 text-left min-w-0">
-                    <div>
-                      <span className="text-[6px] font-bold text-slate-400 uppercase tracking-widest block">FULL NAME</span>
-                      <h3 className="text-xs font-black text-white uppercase tracking-wide leading-tight truncate">
-                        {idCertToPrint.resident ? `${idCertToPrint.resident.first_name} ${idCertToPrint.resident.last_name}` : 'Resident User'}
-                      </h3>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[10px]">
-                      <div>
-                        <span className="text-[7px] font-bold text-slate-400 uppercase block">GENDER / STATUS</span>
-                        <span className="font-extrabold text-slate-200">{idCertToPrint.resident?.gender || 'Male'} • {idCertToPrint.resident?.civil_status || 'Single'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[7px] font-bold text-slate-400 uppercase block">VOTER STATUS</span>
-                        <span className="font-extrabold text-emerald-400">{idCertToPrint.resident?.voter_status || 'Registered Voter'}</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[6px] font-bold text-slate-400 uppercase block">ADDRESS</span>
-                      <p className="text-[8px] font-bold text-slate-300 leading-tight truncate">
-                        {idCertToPrint.resident?.address || 'Barangay, Laguna'}
-                      </p>
-                    </div>
-
-                    <div className="pt-2 flex items-center justify-between border-t border-slate-800">
-                      <div>
-                        <span className="text-[7px] font-bold text-slate-400 uppercase block">DOCUMENT NO.</span>
-                        <span className="font-mono text-[9px] font-extrabold text-gov-gold-400">{idCertToPrint.document_number}</span>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[7px] font-bold text-slate-400 uppercase block">ISSUED ON</span>
-                        <span className="text-[9px] font-extrabold text-slate-200">
-                          {idCertToPrint.issue_date ? new Date(idCertToPrint.issue_date).toLocaleDateString() : new Date().toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* BACK SIDE */}
-              <div className="w-[340px] h-[214px] shrink-0 bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden">
-                <div className="space-y-1 text-left text-[8px] text-slate-400 pr-20">
-                  <p className="font-bold text-white uppercase text-[9px]">BARANGAY RESIDENT CREDENTIAL</p>
-                  <p className="leading-tight">This card certifies that the bearer is a duly registered resident of the Barangay, Laguna. If found, please return to the Barangay Hall.</p>
-                  <div className="pt-2 flex items-center gap-4">
-                    <div>
-                      <span className="text-[7px] uppercase font-bold text-slate-500 block">PURPOSE</span>
-                      <span className="text-[9px] font-bold text-slate-300 truncate max-w-[140px] block">{idCertToPrint.purpose}</span>
-                    </div>
-                    <div>
-                      <span className="text-[7px] uppercase font-bold text-slate-500 block">AUTHENTICITY QR</span>
-                      <span className="text-[9px] font-mono text-gov-gold-400 font-bold">{idCertToPrint.qr_hash?.slice(0, 12)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* QR Code SVG / Visual */}
-                <div className="absolute right-4 top-4 w-[68px] h-[68px] bg-white p-1 rounded-lg flex items-center justify-center shrink-0 border border-slate-700">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`http://localhost:5173/verify/document/${idCertToPrint.qr_hash}`)}`}
-                    alt="QR Code"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              </div>
+            {/* Print Instruction Alert */}
+            <div className="bg-gov-blue-950/40 border border-gov-blue-800/40 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-gov-blue-200">
+              <Sparkles size={18} className="text-gov-gold-400 shrink-0" />
+              <span>
+                <strong>Ready for Lamination:</strong> Click <strong>"Print ID Card"</strong> to print directly onto standard CR80 photo card paper (Front & Back aligned on 1 sheet).
+              </span>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-800 mt-4 gap-4">
-              <span className="text-[10px] text-slate-400 font-bold">Standard CR80 Printable ID Card Layout</span>
-              <div className="flex items-center gap-2">
+            {/* ID Card Front & Back Container (PRINTABLE CONTAINER) */}
+            <div id="printable-id-card-sheet" className="flex flex-col items-center justify-center gap-6 my-2">
+              
+              <div className="flex flex-col md:flex-row items-center justify-center gap-6 overflow-x-auto w-full py-2">
+                
+                {/* ========== FRONT SIDE ========== */}
+                <div className="w-[360px] h-[228px] shrink-0 bg-gradient-to-br from-gov-blue-950 via-slate-900 to-indigo-950 border-2 border-gov-gold-500/80 rounded-2xl p-4 shadow-2xl relative overflow-hidden text-slate-100 flex flex-col justify-between">
+                  
+                  {/* Security Guilloché Background Accent */}
+                  <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#eab308_1px,transparent_1px)] [background-size:12px_12px]"></div>
+                  <div className="absolute top-[-20px] right-[-20px] w-36 h-36 bg-gov-gold-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                  {/* Top Letterhead */}
+                  <div className="flex items-center justify-between border-b border-gov-gold-500/40 pb-2 relative z-10">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 bg-gradient-to-tr from-gov-blue-600 to-gov-gold-500 rounded-xl flex items-center justify-center border border-white/40 font-black text-xs text-white shrink-0 shadow-md">
+                        🏛️
+                      </div>
+                      <div className="leading-none">
+                        <span className="text-[7.5px] font-extrabold uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-white mt-0.5">BARANGAY LAWRENCE • LAGUNA</h4>
+                        <span className="text-[6.5px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">RESIDENT IDENTIFICATION CARD</span>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/50 shrink-0">
+                      OFFICIAL
+                    </span>
+                  </div>
+
+                  {/* Body Content */}
+                  <div className="flex gap-3.5 items-start flex-1 mt-2.5 relative z-10">
+                    {/* Photo & Verified Badge */}
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className="w-[80px] h-[86px] bg-slate-800 border-2 border-gov-gold-400/90 rounded-xl overflow-hidden shadow-md flex items-center justify-center relative">
+                        {idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url ? (
+                          <img src={idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url} alt="Resident" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-slate-400 p-2">
+                            <UserCheck size={36} className="text-gov-gold-400" />
+                            <span className="text-[7px] font-extrabold mt-1 text-slate-300">VERIFIED</span>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 inset-x-0 bg-gov-blue-900/95 text-center py-0.5 text-[6.5px] font-black text-gov-gold-300 tracking-wider">
+                          {idCertToPrint.resident?.qr_id || 'RES-2026'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Resident Details */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div>
+                        <span className="text-[6.5px] font-extrabold text-gov-gold-400 uppercase tracking-widest block leading-none">FULL NAME</span>
+                        <h3 className="text-[13px] font-black text-white uppercase tracking-tight leading-tight truncate">
+                          {idCertToPrint.resident ? `${idCertToPrint.resident.first_name} ${idCertToPrint.resident.middle_name ? idCertToPrint.resident.middle_name[0] + '.' : ''} ${idCertToPrint.resident.last_name}` : 'Resident User'}
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1.5 text-[8.5px] pt-0.5">
+                        <div>
+                          <span className="text-[6.5px] font-bold text-slate-400 uppercase block leading-none">CIVIL STATUS</span>
+                          <span className="font-extrabold text-slate-200">{idCertToPrint.resident?.gender || 'Male'} • {idCertToPrint.resident?.civil_status || 'Single'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[6.5px] font-bold text-slate-400 uppercase block leading-none">VOTER STATUS</span>
+                          <span className="font-extrabold text-emerald-400">{idCertToPrint.resident?.voter_status || 'Registered'}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="text-[6.5px] font-bold text-slate-400 uppercase block leading-none">RESIDENTIAL ADDRESS</span>
+                        <p className="text-[8px] font-bold text-slate-300 leading-tight line-clamp-2">
+                          {idCertToPrint.resident?.address || 'Barangay Lawrence, Laguna, Philippines'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="pt-1.5 flex items-center justify-between border-t border-gov-gold-500/30 relative z-10 text-[7.5px]">
+                    <div>
+                      <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none">CONTROL NO.</span>
+                      <span className="font-mono font-black text-gov-gold-400">{idCertToPrint.document_number}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none">DATE ISSUED</span>
+                      <span className="font-extrabold text-slate-200">
+                        {idCertToPrint.issue_date ? new Date(idCertToPrint.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ========== BACK SIDE ========== */}
+                <div className="w-[360px] h-[228px] shrink-0 bg-slate-950 border-2 border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden shadow-2xl text-slate-200">
+                  
+                  {/* Watermark */}
+                  <div className="absolute top-2 left-2 opacity-5 pointer-events-none font-black text-6xl text-slate-500">
+                    LAGUNA
+                  </div>
+
+                  {/* Header & Notice */}
+                  <div className="space-y-1 text-left relative z-10">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                      <span className="font-black text-gov-gold-400 uppercase text-[9px] tracking-wider">BARANGAY RESIDENT CREDENTIAL</span>
+                      <span className="text-[7px] font-bold text-slate-500 uppercase">PHILIPPINES LGU</span>
+                    </div>
+                    <p className="text-[7px] text-slate-400 leading-tight pt-1">
+                      This official identification card certifies that the bearer is a recognized resident of Barangay Lawrence, Laguna. If found, please return to the Barangay Hall or the nearest police station.
+                    </p>
+                  </div>
+
+                  {/* Center Section: Info & QR Code */}
+                  <div className="flex items-center justify-between gap-3 py-1 relative z-10">
+                    <div className="flex-1 space-y-1.5 text-left">
+                      <div>
+                        <span className="text-[6.5px] uppercase font-bold text-slate-500 block">CARD PURPOSE</span>
+                        <span className="text-[8.5px] font-extrabold text-slate-200 line-clamp-1">{idCertToPrint.purpose || 'Official Resident Identification'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[6.5px] uppercase font-bold text-slate-500 block">DIGITAL QR HASH</span>
+                        <span className="text-[8px] font-mono text-gov-gold-400 font-bold">{idCertToPrint.qr_hash?.slice(0, 16)}</span>
+                      </div>
+                      <div>
+                        <span className="text-[6.5px] uppercase font-bold text-slate-500 block">EMERGENCY HOTLINE</span>
+                        <span className="text-[8px] font-extrabold text-rose-400">911 / (049) 501-BRGY</span>
+                      </div>
+                    </div>
+
+                    {/* Live Cryptographic QR Code */}
+                    <div className="w-[74px] h-[74px] bg-white p-1 rounded-xl flex items-center justify-center shrink-0 border border-slate-600 shadow-md">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/verify/document/${idCertToPrint.qr_hash}`)}`}
+                        alt="Security QR Code"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Signatures Footer */}
+                  <div className="grid grid-cols-2 gap-4 pt-1.5 border-t border-slate-800 text-center relative z-10">
+                    <div>
+                      <div className="h-4 border-b border-slate-600/80 mb-0.5 mx-2"></div>
+                      <span className="text-[6px] font-extrabold text-slate-400 uppercase tracking-wider block">BEARER'S SIGNATURE</span>
+                    </div>
+                    <div>
+                      <div className="h-4 border-b border-slate-600/80 mb-0.5 mx-2 font-serif italic text-[7px] text-gov-gold-400 flex items-center justify-center">
+                        Hon. Barangay Captain
+                      </div>
+                      <span className="text-[6px] font-extrabold text-slate-400 uppercase tracking-wider block">PUNONG BARANGAY</span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Cut & Lamination Indicator (Visible only when printed) */}
+              <div className="hidden print:block text-center text-[8px] text-slate-500 font-bold tracking-widest uppercase border-t border-dashed border-slate-400 pt-2 mt-2 w-full">
+                ✂️ CUT ALONG EDGES FOR STANDARD CR80 CARD LAMINATION • LINGKODBRGYAI OFFICIAL
+              </div>
+
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-800 gap-4">
+              <span className="text-[11px] text-slate-400 font-medium">Standard CR80 Printable Format (85.6mm × 54mm)</span>
+              <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsIDModalOpen(false)}
-                  className="px-5 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95"
+                  className="px-6 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
                 >
                   Close
                 </button>
                 <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white text-xs font-extrabold shadow-lg shadow-gov-blue-600/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer border border-white/20"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white text-xs font-black shadow-lg shadow-gov-blue-600/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer border border-white/20"
                 >
-                  <ArrowDownToLine size={14} />
+                  <ArrowDownToLine size={16} />
                   Print ID Card
                 </button>
               </div>
             </div>
+
           </div>
         </div>
       )}
+
     </div>
   );
 };
