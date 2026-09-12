@@ -1047,12 +1047,10 @@ export const Certificates: React.FC = () => {
                   {/* Top Letterhead */}
                   <div className="flex items-center justify-between border-b border-gov-gold-500/40 pb-2 relative z-10">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-9 h-9 bg-gradient-to-tr from-gov-blue-600 to-gov-gold-500 rounded-xl flex items-center justify-center border border-white/40 font-black text-xs text-white shrink-0 shadow-md">
-                        🏛️
-                      </div>
+                      <img src="/logo.png" alt="Barangay Seal" className="w-8 h-8 object-contain shrink-0" />
                       <div className="leading-none">
                         <span className="text-[7.5px] font-extrabold uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
-                        <h4 className="text-[10px] font-black uppercase tracking-wider text-white mt-0.5">BARANGAY LAWRENCE • LAGUNA</h4>
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-white mt-0.5">BARANGAY SAN ISIDRO • BAY, LAGUNA</h4>
                         <span className="text-[6.5px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">RESIDENT IDENTIFICATION CARD</span>
                       </div>
                     </div>
@@ -1417,11 +1415,11 @@ export const Certificates: React.FC = () => {
                       <img src="/logo.png" alt="Barangay Seal" className="w-20 h-20 object-contain shrink-0" />
                       <div className="text-center space-y-0.5 flex-1 mx-2">
                         <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">REPUBLIC OF THE PHILIPPINES</span>
-                        <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">PROVINCE OF LAGUNA • MUNICIPALITY OF LAWRENCE</span>
-                        <h2 className="text-xl font-black tracking-tight text-gov-blue-950 uppercase font-display mt-0.5">BARANGAY LAWRENCE</h2>
+                        <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">PROVINCE OF LAGUNA • MUNICIPALITY OF BAY</span>
+                        <h2 className="text-xl font-black tracking-tight text-gov-blue-950 uppercase font-display mt-0.5">BARANGAY SAN ISIDRO</h2>
                         <span className="text-[12px] font-bold text-gov-blue-900 tracking-wider uppercase block font-sans">OFFICE OF THE PUNONG BARANGAY</span>
                       </div>
-                      <img src="/favicon.svg" alt="Official Seal" className="w-16 h-16 object-contain shrink-0" />
+                      <img src="/logo.png" alt="Official Seal" className="w-16 h-16 object-contain shrink-0" />
                     </div>
 
                     {/* Certificate Title */}
@@ -1430,12 +1428,12 @@ export const Certificates: React.FC = () => {
                         {printForm.type || 'BARANGAY CLEARANCE'}
                       </h1>
                       <span className="text-[11px] font-bold font-mono text-slate-600 uppercase tracking-widest block font-sans pt-1">
-                        Control No: <strong className="text-slate-950">{printForm.docNo}</strong>
+                        Control No: <strong className="text-slate-955">{printForm.docNo}</strong>
                       </span>
                     </div>
 
                     {/* Salutation */}
-                    <div className="pt-2 font-bold text-sm text-slate-950 uppercase tracking-wider font-sans">
+                    <div className="pt-2 font-bold text-sm text-slate-955 uppercase tracking-wider font-sans">
                       TO WHOM IT MAY CONCERN:
                     </div>
 
@@ -1454,7 +1452,7 @@ export const Certificates: React.FC = () => {
                       </p>
 
                       <p className="indent-8 pt-4">
-                        Given and issued this <strong>{new Date(printForm.issueDate).getDate()}th</strong> day of <strong>{new Date(printForm.issueDate).toLocaleString('default', { month: 'long' })}</strong>, <strong>{new Date(printForm.issueDate).getFullYear()}</strong> at Barangay Lawrence, Laguna, Republic of the Philippines.
+                        Given and issued this <strong>{new Date(printForm.issueDate).getDate()}th</strong> day of <strong>{new Date(printForm.issueDate).toLocaleString('default', { month: 'long' })}</strong>, <strong>{new Date(printForm.issueDate).getFullYear()}</strong> at Barangay San Isidro, Bay, Laguna, Republic of the Philippines.
                       </p>
                     </div>
 
@@ -1495,7 +1493,7 @@ export const Certificates: React.FC = () => {
                           {printForm.signatoryTitle}
                         </span>
                         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block pt-0.5">
-                          BARANGAY LAWRENCE, LAGUNA
+                          BARANGAY SAN ISIDRO, BAY, LAGUNA
                         </span>
                       </div>
                     </div>
