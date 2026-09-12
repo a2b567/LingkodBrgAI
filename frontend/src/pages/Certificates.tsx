@@ -314,71 +314,60 @@ export const Certificates: React.FC = () => {
       </div>
 
       {/* 2. Header Title & Main CTA Bar */}
-      <div className="relative bg-gradient-to-br from-slate-900 via-gov-blue-950 to-slate-950 rounded-3xl border border-slate-700/50 shadow-2xl">
-        {/* Decorative glows — clipped in their own layer */}
-        <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-          <div className="absolute -top-16 -right-16 w-64 h-64 bg-gov-blue-600/25 rounded-full blur-3xl" />
-          <div className="absolute -bottom-12 left-1/3 w-48 h-48 bg-indigo-500/15 rounded-full blur-3xl" />
-          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_rgba(59,130,246,0.08),_transparent_60%)]" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gov-blue-50 dark:bg-gov-blue-950/80 text-gov-blue-600 dark:text-gov-blue-400 border border-gov-blue-200/60 dark:border-gov-blue-800/60 flex items-center justify-center flex-shrink-0">
+              <Sparkles size={20} />
+            </div>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight uppercase">
+                Certificate Registry &amp; Clearances
+              </h2>
+              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[9px] font-black uppercase tracking-widest flex-shrink-0">
+                🏛 Official
+              </span>
+            </div>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
+            Official barangay document issuing, digital signatures, and e-clearance verification
+          </p>
         </div>
 
-        <div className="relative p-7 sm:p-9">
-          {/* Top row: icon + title + subtitle + badge */}
-          <div className="flex items-start gap-5 mb-6">
-            <div className="flex-shrink-0 w-14 h-14 bg-gov-blue-500/20 border border-gov-blue-400/30 rounded-2xl flex items-center justify-center text-gov-blue-300 shadow-inner">
-              <Sparkles size={24} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-3 flex-wrap mb-1">
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-black font-display text-white tracking-tight uppercase leading-tight">
-                  Certificate Registry &amp; Clearances
-                </h2>
-                <span className="px-2.5 py-1 rounded-full bg-slate-800/80 border border-slate-700 text-slate-400 text-[9px] font-black uppercase tracking-widest flex-shrink-0">
-                  🏛 Official
-                </span>
-              </div>
-              <p className="text-xs sm:text-sm text-slate-400 font-medium leading-relaxed">
-                Official barangay document issuing, digital signatures, and e-clearance verification
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom row: full-width adaptive buttons */}
-          <div className="flex items-center gap-3 pt-5 border-t border-slate-700/60">
-            {isStaff && (
-              <>
-                <button
-                  onClick={handleSeedSamples}
-                  className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-amber-500/30 border border-amber-300/20 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
-                >
-                  <FolderPlus size={14} />
-                  Add Samples
-                </button>
-                <Link
-                  to="/kiosk/certificates"
-                  className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-emerald-500/30 border border-emerald-300/20 transition-all duration-200 hover:scale-[1.02] active:scale-95"
-                >
-                  <MonitorSmartphone size={14} />
-                  Kiosk Mode
-                </Link>
-              </>
-            )}
-            <button
-              onClick={() => {
-                setIsModalOpen(true);
-                setTimeout(() => {
-                  if (canvasRef.current) {
-                    canvasRef.current.width = canvasRef.current.offsetWidth;
-                    canvasRef.current.height = 120;
-                  }
-                }, 100);
-              }}
-              className="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-full bg-gradient-to-r from-gov-blue-500 to-indigo-600 hover:from-gov-blue-400 hover:to-indigo-500 text-white font-extrabold text-xs tracking-wide shadow-lg shadow-gov-blue-600/40 border border-gov-blue-300/20 transition-all duration-200 hover:scale-[1.02] active:scale-95 cursor-pointer"
-            >
-              <Plus size={14} />
-              Request Certificate
-            </button>
-          </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          {isStaff && (
+            <>
+              <button
+                onClick={handleSeedSamples}
+                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+              >
+                <FolderPlus size={16} />
+                Add Samples
+              </button>
+              <Link
+                to="/kiosk/certificates"
+                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-95"
+              >
+                <MonitorSmartphone size={16} />
+                Kiosk Mode
+              </Link>
+            </>
+          )}
+          <button
+            onClick={() => {
+              setIsModalOpen(true);
+              setTimeout(() => {
+                if (canvasRef.current) {
+                  canvasRef.current.width = canvasRef.current.offsetWidth;
+                  canvasRef.current.height = 120;
+                }
+              }, 100);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+          >
+            <Plus size={16} />
+            Request Certificate
+          </button>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 {
-  "name": "LingkodBrgyAi - Barangay Management Information System",
-  "short_name": "LingkodBrgyAi",
+  "name": "LingkodBrgyAI Barangay System",
+  "short_name": "LingkodBrgy",
   "description": "Smart, offline-resilient barangay governance, e-services, digital ID, and document processing portal.",
   "start_url": "/",
   "id": "/",

@@ -89,23 +89,23 @@ export const PWAInstallBanner: React.FC = () => {
         aria-label="App Installation Prompt" 
         className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:max-w-md z-50 animate-bounce-subtle"
       >
-        <div className="bg-slate-900/95 dark:bg-slate-900/95 text-white p-4 rounded-3xl border border-gov-gold-500/40 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-3.5">
+        <div className="bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white p-4 rounded-3xl border border-slate-200 dark:border-gov-gold-500/40 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-3.5">
           
           {/* App Icon */}
-          <div className="w-12 h-12 bg-gradient-to-tr from-gov-blue-700 via-gov-blue-800 to-indigo-900 rounded-2xl flex items-center justify-center border border-gov-gold-400/50 shadow-md shrink-0 p-1">
+          <div className="w-12 h-12 bg-gradient-to-tr from-gov-blue-600 via-gov-blue-700 to-indigo-800 rounded-2xl flex items-center justify-center border border-gov-blue-400/30 dark:border-gov-gold-400/50 shadow-md shrink-0 p-1">
             <img src="/logo.png" alt="LingkodBrgyAi App Logo" className="w-full h-full object-contain rounded-xl" />
           </div>
 
           {/* Text Information */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <h4 className="text-xs font-black uppercase tracking-wider text-white truncate">Install LingkodBrgyAi</h4>
-              <span className="px-1.5 py-0.5 rounded-full text-[8px] font-extrabold bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/40">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white truncate">Install LingkodBrgyAi</h4>
+              <span className="px-1.5 py-0.5 rounded-full text-[8px] font-extrabold bg-gov-blue-100 text-gov-blue-700 border border-gov-blue-200 dark:bg-gov-gold-500/20 dark:text-gov-gold-400 dark:border-gov-gold-500/40">
                 PWA APP
               </span>
             </div>
-            <p className="text-[10px] text-slate-300 font-medium leading-tight mt-0.5">
-              Fast, offline-ready mobile & desktop app experience.
+            <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium leading-tight mt-0.5">
+              Fast, offline-ready mobile &amp; desktop app experience.
             </p>
           </div>
 
@@ -113,14 +113,14 @@ export const PWAInstallBanner: React.FC = () => {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={handleInstallClick}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-gov-gold-500 to-amber-500 hover:from-gov-gold-600 hover:to-amber-600 text-slate-950 font-black text-xs shadow-md shadow-gov-gold-500/30 transition-transform active:scale-95 cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-gradient-to-r from-gov-blue-600 to-indigo-600 hover:from-gov-blue-500 hover:to-indigo-500 text-white dark:from-gov-gold-500 dark:to-amber-500 dark:hover:from-gov-gold-600 dark:hover:to-amber-600 dark:text-slate-950 font-black text-xs shadow-md shadow-gov-blue-600/20 dark:shadow-gov-gold-500/30 transition-transform active:scale-95 cursor-pointer"
             >
               <Download size={14} className="stroke-[3]" />
               <span>Install</span>
             </button>
             <button
               onClick={handleDismiss}
-              className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors"
+              className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="Dismiss banner"
             >
               <X size={16} />
