@@ -275,13 +275,15 @@
     margin: 15mm;
   }
 
-  /* Hide everything on the page except the ID printable container */
+  /* Hide everything on the page except the ID & Certificate printable containers */
   body * {
     visibility: hidden !important;
   }
 
   #printable-id-card-sheet,
-  #printable-id-card-sheet * {
+  #printable-id-card-sheet *,
+  #printable-certificate-sheet,
+  #printable-certificate-sheet * {
     visibility: visible !important;
   }
 
@@ -297,6 +299,22 @@
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  #printable-certificate-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 20mm 15mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }

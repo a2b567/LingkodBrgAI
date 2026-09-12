@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   FileText, Plus, Check, X, Search, ArrowDownToLine, Signature, MonitorSmartphone,
   Activity, Clock, CheckCircle2, XCircle, CreditCard, Sparkles, AlertCircle,
-  Edit3, Trash2, FolderPlus, UserCheck
+  Edit3, Trash2, FolderPlus, UserCheck, Printer
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Certificate, Resident } from '../types';
@@ -17,6 +17,16 @@ export const Certificates: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Helper for production-resilient PDF URLs (prevents localhost:8080 errors on deployment)
+  const getPdfUrl = (path?: string) => {
+    if (!path) return '#';
+    if (path.startsWith('http')) return path;
+    const baseUrl = import.meta.env.VITE_API_URL 
+      ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
+      : (import.meta.env.PROD ? '' : 'http://localhost:8080');
+    return `${baseUrl}${path}`;
+  };
 
   // Edit Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -32,6 +42,55 @@ export const Certificates: React.FC = () => {
   // Print ID Card Modal State
   const [isIDModalOpen, setIsIDModalOpen] = useState(false);
   const [idCertToPrint, setIdCertToPrint] = useState<Certificate | null>(null);
+
+  // Printable Official Certificate Modal State
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [certToPrint, setCertToPrint] = useState<Certificate | null>(null);
+  const [isEditingPrintForm, setIsEditingPrintForm] = useState(true);
+  const [printForm, setPrintForm] = useState({
+    docNo: '',
+    residentName: '',
+    civilStatus: 'Single',
+    citizenship: 'Filipino',
+    address: '',
+    type: 'Barangay Clearance',
+    purpose: '',
+    remarks: 'No derogatory record on file. Recommended for official transaction.',
+    issueDate: new Date().toISOString().split('T')[0],
+    orNo: `OR-${Math.floor(100000 + Math.random() * 900000)}`,
+    fee: 150,
+    signatoryName: 'HON. ROBERTO V. LUNA',
+    signatoryTitle: 'Punong Barangay',
+  });
+
+  const handleOpenPrintModal = (cert: Certificate) => {
+    setCertToPrint(cert);
+    const residentName = cert.resident 
+      ? `${cert.resident.first_name} ${cert.resident.middle_name ? cert.resident.middle_name[0] + '.' : ''} ${cert.resident.last_name}` 
+      : 'RESIDENT USER';
+    const residentAddress = cert.resident?.address || 'Purok 3, Barangay Lawrence, Laguna';
+    const residentCivilStatus = cert.resident?.gender ? `${cert.resident.gender} / ${cert.resident.civil_status || 'Single'}` : 'Single';
+    const issueDateFormatted = cert.issue_date 
+      ? new Date(cert.issue_date).toISOString().split('T')[0] 
+      : new Date().toISOString().split('T')[0];
+
+    setPrintForm({
+      docNo: cert.document_number,
+      residentName,
+      civilStatus: residentCivilStatus,
+      citizenship: 'Filipino',
+      address: residentAddress,
+      type: cert.type === 'Clearance' ? 'Barangay Clearance' : cert.type,
+      purpose: cert.purpose || 'Official transactions and record verification',
+      remarks: 'Subject has no derogatory record or pending criminal complaint registered in the Barangay Registry Database as of date of issuance.',
+      issueDate: issueDateFormatted,
+      orNo: `OR-${Math.floor(100000 + Math.random() * 900000)}`,
+      fee: cert.fee || 0,
+      signatoryName: 'HON. ROBERTO V. LUNA',
+      signatoryTitle: 'Punong Barangay',
+    });
+    setIsPrintModalOpen(true);
+  };
 
   // Form states
   const [selectedResidentId, setSelectedResidentId] = useState('');
@@ -600,7 +659,7 @@ export const Certificates: React.FC = () => {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {cert.type === 'Barangay ID' && (
+                        {cert.type === 'Barangay ID' ? (
                           <button
                             onClick={() => {
                               setIdCertToPrint(cert);
@@ -612,16 +671,26 @@ export const Certificates: React.FC = () => {
                             <CreditCard size={13} />
                             Print ID Card
                           </button>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenPrintModal(cert)}
+                            className="p-1.5 bg-gov-blue-50 hover:bg-gov-blue-100 dark:bg-gov-blue-950/40 text-gov-blue-600 dark:text-gov-blue-400 rounded-xl transition-colors flex items-center gap-1 text-[10px] font-bold cursor-pointer"
+                            title="Preview, Edit & Print Official Certificate"
+                          >
+                            <Printer size={13} />
+                            Print &amp; Edit
+                          </button>
                         )}
                         {cert.pdf_path && cert.status === 'Issued' && (
                           <a
-                            href={`http://localhost:8080${cert.pdf_path}`}
+                            href={getPdfUrl(cert.pdf_path)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl transition-colors flex items-center gap-1 text-[10px] font-bold"
+                            title="Download PDF File"
                           >
                             <ArrowDownToLine size={13} />
-                            Print PDF
+                            Download PDF
                           </a>
                         )}
                         {isStaff && (
@@ -1141,6 +1210,353 @@ export const Certificates: React.FC = () => {
                 >
                   <ArrowDownToLine size={16} />
                   Print ID Card
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 10. Modal - Printable & Live Editable Official Certificate */}
+      {isPrintModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-6xl w-full shadow-2xl p-4 sm:p-6 text-white relative animate-scale-up space-y-4 my-auto max-h-[95vh] flex flex-col">
+            
+            {/* Modal Top Control Header */}
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-tr from-gov-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-gov-blue-600/30">
+                  <Printer size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
+                    Printable Official Certificate
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-gov-blue-500/20 text-gov-blue-400 border border-gov-blue-500/40">
+                      LIVE EDITOR &amp; PREVIEW
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-medium">Edit document fields in real-time before printing or downloading</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingPrintForm(!isEditingPrintForm)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    isEditingPrintForm
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                  }`}
+                >
+                  <Edit3 size={14} />
+                  <span>{isEditingPrintForm ? 'Hide Field Editor' : 'Show Field Editor'}</span>
+                </button>
+                <button 
+                  onClick={() => setIsPrintModalOpen(false)} 
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Split Screen: Live Editor & Printable Sheet Preview */}
+            <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-5 pr-1 min-h-0">
+              
+              {/* Left Column: Live Field Editor Controls */}
+              {isEditingPrintForm && (
+                <div className="lg:col-span-4 bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 shrink-0 text-xs overflow-y-auto max-h-[72vh]">
+                  <h4 className="text-xs font-black uppercase text-gov-gold-400 tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                    <Edit3 size={14} /> Live Field Editor
+                  </h4>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Document Control No.</label>
+                    <input
+                      type="text"
+                      value={printForm.docNo}
+                      onChange={(e) => setPrintForm({ ...printForm, docNo: e.target.value })}
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl font-mono text-xs font-bold text-gov-gold-400 focus:outline-none focus:border-gov-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Resident Full Name</label>
+                    <input
+                      type="text"
+                      value={printForm.residentName}
+                      onChange={(e) => setPrintForm({ ...printForm, residentName: e.target.value })}
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-gov-blue-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Civil Status</label>
+                      <input
+                        type="text"
+                        value={printForm.civilStatus}
+                        onChange={(e) => setPrintForm({ ...printForm, civilStatus: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Citizenship</label>
+                      <input
+                        type="text"
+                        value={printForm.citizenship}
+                        onChange={(e) => setPrintForm({ ...printForm, citizenship: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Address</label>
+                    <input
+                      type="text"
+                      value={printForm.address}
+                      onChange={(e) => setPrintForm({ ...printForm, address: e.target.value })}
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Certificate Header Title</label>
+                    <input
+                      type="text"
+                      value={printForm.type}
+                      onChange={(e) => setPrintForm({ ...printForm, type: e.target.value })}
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-gov-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Purpose / Requested Intent</label>
+                    <textarea
+                      value={printForm.purpose}
+                      onChange={(e) => setPrintForm({ ...printForm, purpose: e.target.value })}
+                      rows={2}
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500 resize-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Official Remarks</label>
+                    <textarea
+                      value={printForm.remarks}
+                      onChange={(e) => setPrintForm({ ...printForm, remarks: e.target.value })}
+                      rows={2}
+                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500 resize-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">O.R. Number</label>
+                      <input
+                        type="text"
+                        value={printForm.orNo}
+                        onChange={(e) => setPrintForm({ ...printForm, orNo: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Fee Paid (₱)</label>
+                      <input
+                        type="number"
+                        value={printForm.fee}
+                        onChange={(e) => setPrintForm({ ...printForm, fee: parseFloat(e.target.value) || 0 })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Signatory Name</label>
+                      <input
+                        type="text"
+                        value={printForm.signatoryName}
+                        onChange={(e) => setPrintForm({ ...printForm, signatoryName: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Signatory Title</label>
+                      <input
+                        type="text"
+                        value={printForm.signatoryTitle}
+                        onChange={(e) => setPrintForm({ ...printForm, signatoryTitle: e.target.value })}
+                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Right Column: Live Printable Certificate Document Preview */}
+              <div className={`${isEditingPrintForm ? 'lg:col-span-8' : 'lg:col-span-12'} bg-slate-950/80 p-4 sm:p-6 rounded-2xl border border-slate-800 flex flex-col items-center overflow-y-auto max-h-[72vh]`}>
+                
+                {/* Official Certificate Printable Container */}
+                <div 
+                  id="printable-certificate-sheet" 
+                  className="w-full max-w-[210mm] min-h-[275mm] bg-white text-slate-950 p-8 sm:p-12 shadow-2xl relative flex flex-col justify-between border-8 border-double border-gov-blue-950 my-auto text-left font-serif"
+                >
+                  {/* Subtle Security Seal Watermark */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none">
+                    <img src="/logo.png" alt="Barangay Seal Watermark" className="w-[320px] h-[320px] object-contain" />
+                  </div>
+
+                  <div className="space-y-6 relative z-10">
+                    
+                    {/* Header Letterhead */}
+                    <div className="flex items-center justify-between border-b-2 border-gov-blue-950 pb-4">
+                      <img src="/logo.png" alt="Barangay Seal" className="w-20 h-20 object-contain shrink-0" />
+                      <div className="text-center space-y-0.5 flex-1 mx-2">
+                        <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">REPUBLIC OF THE PHILIPPINES</span>
+                        <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">PROVINCE OF LAGUNA • MUNICIPALITY OF LAWRENCE</span>
+                        <h2 className="text-xl font-black tracking-tight text-gov-blue-950 uppercase font-display mt-0.5">BARANGAY LAWRENCE</h2>
+                        <span className="text-[12px] font-bold text-gov-blue-900 tracking-wider uppercase block font-sans">OFFICE OF THE PUNONG BARANGAY</span>
+                      </div>
+                      <img src="/favicon.svg" alt="Official Seal" className="w-16 h-16 object-contain shrink-0" />
+                    </div>
+
+                    {/* Certificate Title */}
+                    <div className="text-center space-y-2 py-4">
+                      <h1 className="text-2xl sm:text-3xl font-black text-gov-blue-950 uppercase tracking-wider font-display underline decoration-gov-gold-500 underline-offset-8">
+                        {printForm.type || 'BARANGAY CLEARANCE'}
+                      </h1>
+                      <span className="text-[11px] font-bold font-mono text-slate-600 uppercase tracking-widest block font-sans pt-1">
+                        Control No: <strong className="text-slate-950">{printForm.docNo}</strong>
+                      </span>
+                    </div>
+
+                    {/* Salutation */}
+                    <div className="pt-2 font-bold text-sm text-slate-950 uppercase tracking-wider font-sans">
+                      TO WHOM IT MAY CONCERN:
+                    </div>
+
+                    {/* Main Certification Paragraph */}
+                    <div className="text-justify text-sm sm:text-base leading-relaxed text-slate-900 space-y-4 font-serif">
+                      <p className="indent-8">
+                        This is to certify that <strong className="text-gov-blue-950 uppercase text-base tracking-wide font-sans">{printForm.residentName}</strong>, of legal age, <strong>{printForm.civilStatus}</strong>, <strong>{printForm.citizenship}</strong>, is a bona fide resident of <strong>{printForm.address}</strong>.
+                      </p>
+
+                      <p className="indent-8">
+                        This certification is issued upon the request of the above-named person for the purpose of: <strong className="text-gov-blue-900 uppercase font-sans text-sm">{printForm.purpose}</strong> and for whatever legal intents and purposes it may serve.
+                      </p>
+
+                      <p className="indent-8">
+                        <strong className="font-sans text-xs uppercase tracking-wider text-slate-700">REMARKS:</strong> {printForm.remarks}
+                      </p>
+
+                      <p className="indent-8 pt-4">
+                        Given and issued this <strong>{new Date(printForm.issueDate).getDate()}th</strong> day of <strong>{new Date(printForm.issueDate).toLocaleString('default', { month: 'long' })}</strong>, <strong>{new Date(printForm.issueDate).getFullYear()}</strong> at Barangay Lawrence, Laguna, Republic of the Philippines.
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* Signatures & Footer Verification Row */}
+                  <div className="pt-10 relative z-10 space-y-6">
+                    
+                    <div className="grid grid-cols-2 gap-8 items-end">
+                      {/* Left: Applicant Signature Box & Payment Metadata */}
+                      <div className="space-y-3 font-sans text-xs">
+                        {certToPrint?.signature || certToPrint?.e_signature_path ? (
+                          <div className="space-y-1">
+                            <img src={certToPrint.signature || getPdfUrl(certToPrint.e_signature_path)} alt="Applicant Signature" className="h-12 object-contain" />
+                            <div className="border-t border-slate-400 w-44 pt-0.5 text-[9px] font-bold text-slate-500 uppercase">APPLICANT SIGNATURE</div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="h-10 border-b border-slate-400 w-44"></div>
+                            <div className="text-[9px] font-bold text-slate-500 uppercase">APPLICANT SIGNATURE / THUMBMARK</div>
+                          </div>
+                        )}
+
+                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[10px] space-y-1 text-slate-700 font-mono">
+                          <div>O.R. No: <strong>{printForm.orNo}</strong></div>
+                          <div>Amount Paid: <strong>{printForm.fee > 0 ? `₱${printForm.fee.toFixed(2)}` : 'FREE'}</strong></div>
+                          <div>Date Issued: <strong>{printForm.issueDate}</strong></div>
+                        </div>
+                      </div>
+
+                      {/* Right: Official Barangay Captain Signature */}
+                      <div className="text-center space-y-1 font-sans">
+                        <div className="font-serif italic text-xs text-gov-blue-900 h-6">Approved &amp; Signed</div>
+                        <h4 className="text-sm font-black text-gov-blue-950 uppercase tracking-tight underline underline-offset-2">
+                          {printForm.signatoryName}
+                        </h4>
+                        <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider block">
+                          {printForm.signatoryTitle}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block pt-0.5">
+                          BARANGAY LAWRENCE, LAGUNA
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bottom Live Cryptographic QR Verification Footer */}
+                    <div className="border-t-2 border-slate-200 pt-3 flex items-center justify-between text-[9px] text-slate-600 font-sans">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/verify/document/${certToPrint?.qr_hash || printForm.docNo}`)}`} 
+                          alt="Verification QR" 
+                          className="w-12 h-12 object-contain border border-slate-300 p-0.5 rounded bg-white shrink-0" 
+                        />
+                        <div>
+                          <span className="font-bold text-slate-900 uppercase block">AUTHENTIC DIGITAL BARANGAY DOCUMENT</span>
+                          <span>Scan QR code to verify e-clearance validity on the official portal.</span>
+                          <span className="font-mono block text-slate-500">HASH: {certToPrint?.qr_hash || 'SHA-256-VERIFIED'}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-slate-800 block">NOT VALID WITHOUT OFFICIAL SEAL</span>
+                        <span>LingkodBrgyAi Digital Governance System</span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Modal Bottom Actions Bar */}
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-3 border-t border-slate-800 gap-3 shrink-0">
+              <span className="text-xs text-slate-400 font-medium">Standard A4 Printable Official Document</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPrintModalOpen(false)}
+                  className="px-5 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                >
+                  Close
+                </button>
+                {certToPrint?.pdf_path && (
+                  <a
+                    href={getPdfUrl(certToPrint.pdf_path)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-5 py-2 rounded-full bg-slate-700 hover:bg-slate-600 text-white text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95"
+                  >
+                    <ArrowDownToLine size={14} />
+                    <span>Download Server PDF</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white text-xs font-black shadow-lg shadow-gov-blue-600/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer border border-white/20"
+                >
+                  <Printer size={15} />
+                  <span>Print Certificate Now</span>
                 </button>
               </div>
             </div>

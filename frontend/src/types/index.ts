@@ -104,6 +104,7 @@ export interface Certificate {
   status: string;
   purpose: string;
   e_signature_path?: string;
+  signature?: string;
   pdf_path?: string;
   qr_hash: string;
   fee: number;
