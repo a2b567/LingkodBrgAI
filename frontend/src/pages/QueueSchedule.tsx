@@ -79,58 +79,7 @@ export const QueueSchedule: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  const defaultSampleSlots: QueueSlot[] = [
-    {
-      id: 'q-sample-1',
-      ticket_number: 'P-001',
-      resident_name: 'MARIA SANTOS (Senior Citizen)',
-      cert_type: 'Barangay Clearance',
-      date: new Date().toISOString().split('T')[0],
-      time_slot: '09:00 AM',
-      status: 'Waiting',
-      is_priority: true
-    },
-    {
-      id: 'q-sample-2',
-      ticket_number: 'A-101',
-      resident_name: 'JUAN DELA CRUZ',
-      cert_type: 'Certificate of Indigency',
-      date: new Date().toISOString().split('T')[0],
-      time_slot: '09:15 AM',
-      status: 'Waiting',
-      is_priority: false
-    },
-    {
-      id: 'q-sample-3',
-      ticket_number: 'A-102',
-      resident_name: 'ANA REYES',
-      cert_type: 'Certificate of Residency',
-      date: new Date().toISOString().split('T')[0],
-      time_slot: '09:30 AM',
-      status: 'Waiting',
-      is_priority: false
-    },
-    {
-      id: 'q-sample-4',
-      ticket_number: 'A-103',
-      resident_name: 'ROBERTO GARCIA',
-      cert_type: 'Business Permit Clearance',
-      date: new Date().toISOString().split('T')[0],
-      time_slot: '09:45 AM',
-      status: 'Waiting',
-      is_priority: false
-    },
-    {
-      id: 'q-sample-5',
-      ticket_number: 'A-104',
-      resident_name: 'ELENA TORRES',
-      cert_type: 'Barangay ID',
-      date: new Date().toISOString().split('T')[0],
-      time_slot: '10:00 AM',
-      status: 'Waiting',
-      is_priority: false
-    }
-  ];
+  const defaultSampleSlots: QueueSlot[] = [];
 
   // Persist and sync queue slots with QueueMonitor and backend certificates
   const loadSlots = async () => {
@@ -166,22 +115,11 @@ export const QueueSchedule: React.FC = () => {
       }
     } catch (err) {}
 
-    // Separate real slots (kiosk or backend) from dummy sample slots (q-sample-)
     const realKioskSlots = localSlots.filter(s => s.id.startsWith('kiosk-'));
     const realBackendSlots = backendQueueSlots.filter(b => !realKioskSlots.some(k => k.id === b.id));
     const nonSampleLocalSlots = localSlots.filter(s => !s.id.startsWith('q-sample-') && !s.id.startsWith('kiosk-'));
 
-    const allRealSlots = [...realKioskSlots, ...realBackendSlots, ...nonSampleLocalSlots];
-
-    let finalSlots: QueueSlot[] = [];
-    if (allRealSlots.length > 0) {
-      // Real data exists — show real data ONLY, stripping dummy sample slots
-      finalSlots = allRealSlots;
-    } else {
-      // Fallback to sample slots only if zero real inputs exist
-      finalSlots = localSlots.length > 0 ? localSlots : defaultSampleSlots;
-    }
-
+    const finalSlots = [...realKioskSlots, ...realBackendSlots, ...nonSampleLocalSlots];
     setQueueSlots(finalSlots);
     try {
       localStorage.setItem('lingkod_queue_slots', JSON.stringify(finalSlots));

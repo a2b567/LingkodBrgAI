@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Port         string
+	DatabaseURL  string
 	DBHost       string
 	DBUser       string
 	DBPassword   string
@@ -23,27 +24,52 @@ type Config struct {
 
 func LoadConfig() *Config {
 	// Load .env file if it exists, otherwise rely on system env vars
-	if err := godotenv.Overload(); err != nil {
-		log.Println("No .env file found, reading from environment variables")
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found or reading from existing environment variables")
 	}
+
+	dbURL := getEnv("DATABASE_URL", getEnv("POSTGRES_URL", getEnv("POSTGRES_PRISMA_URL", getEnv("POSTGRES_URL_NON_POOLING", ""))))
+
+	dbHost := getEnv("DB_HOST", getEnv("POSTGRES_HOST", getEnv("POSTGRES_PGHOST", "")))
+	if dbHost == "" && dbURL == "" {
+		dbHost = "localhost"
+	}
+
+	dbUser := getEnv("DB_USER", getEnv("POSTGRES_USER", getEnv("POSTGRES_PGUSER", "postgres")))
+	dbPassword := getEnv("DB_PASSWORD", getEnv("POSTGRES_PASSWORD", getEnv("POSTGRES_PGPASSWORD", "postgres")))
+	dbName := getEnv("DB_NAME", getEnv("POSTGRES_DATABASE", getEnv("POSTGRES_PGDATABASE", "lingkodbrgai")))
+	dbPort := getEnv("DB_PORT", getEnv("POSTGRES_PORT", "5432"))
+
+	dbSSL := getEnv("DB_SSLMODE", "")
+	if dbSSL == "" {
+		if dbHost != "localhost" && dbHost != "sqlite" && dbHost != "" {
+			dbSSL = "require"
+		} else {
+			dbSSL = "disable"
+		}
+	}
+
+	groqKey := getEnv("GROQ_API_KEY", getEnv("VITE_GROQ_API_KEY", ""))
+	openAIKey := getEnv("OPENAI_API_KEY", groqKey)
 
 	return &Config{
 		Port:         getEnv("PORT", "8080"),
-		DBHost:       getEnv("DB_HOST", "localhost"),
-		DBUser:       getEnv("DB_USER", "postgres"),
-		DBPassword:   getEnv("DB_PASSWORD", "postgres"),
-		DBName:       getEnv("DB_NAME", "lingkodbrgai"),
-		DBPort:       getEnv("DB_PORT", "5432"),
-		DBSSLMode:    getEnv("DB_SSLMODE", "disable"),
+		DatabaseURL:  dbURL,
+		DBHost:       dbHost,
+		DBUser:       dbUser,
+		DBPassword:   dbPassword,
+		DBName:       dbName,
+		DBPort:       dbPort,
+		DBSSLMode:    dbSSL,
 		JWTSecret:    getEnv("JWT_SECRET", "super_secret_barangay_key_2026"),
-		OpenAIKey:    getEnv("OPENAI_API_KEY", ""),
-		GroqAPIKey:   getEnv("GROQ_API_KEY", ""),
+		OpenAIKey:    openAIKey,
+		GroqAPIKey:   groqKey,
 		UploadDir:    getEnv("UPLOAD_DIR", "./uploads"),
 	}
 }
 
 func getEnv(key, fallback string) string {
-	if value, exists := os.LookupEnv(key); exists {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
 	}
 	return fallback
@@ -53,4 +79,5 @@ func getEnv(key, fallback string) string {
 func GetEnvPublic(key, fallback string) string {
 	return getEnv(key, fallback)
 }
+
 

@@ -34,71 +34,52 @@ type DBInfo struct {
 func InitDB(cfg *Config) (*gorm.DB, error) {
 	var err error
 
-	// 1. Initialize Primary Local Database (SQLite - Fast, Zero-latency, 100% Offline Resilience)
-	localPath := "lingkodbrgai.db"
-	if os.Getenv("VERCEL") == "1" {
-		localPath = "/tmp/lingkodbrgai.db"
-	}
-
-	log.Printf("[LOCAL DB] Connecting to Primary Local Database (%s)...", localPath)
-	DB, err = gorm.Open(sqlite.Open(localPath), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("could not connect to Local SQLite DB: %w", err)
-	}
-	log.Println("[LOCAL DB] Primary Local Database connected successfully.")
-
-	// Auto-Migrate Schemas on Local DB
-	err = DB.AutoMigrate(
-		&models.Household{},
-		&models.Resident{},
-		&models.User{},
-		&models.Certificate{},
-		&models.Blotter{},
-		&models.Business{},
-		&models.Appointment{},
-		&models.Notification{},
-		&models.Payment{},
-		&models.AuditLog{},
-		&models.AILog{},
-		&models.QueueTicket{},
-		&models.License{},
-		&models.MedicineStock{},
-		&models.HealthRecord{},
-		&models.DispensedItem{},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("Local DB auto-migration failed: %w", err)
-	}
-	log.Println("[LOCAL DB] Primary Local Database migration completed.")
-
-	// 2. Initialize Secondary Cloud Database (PostgreSQL or Cloud SQLite)
+	// 1. Check if Cloud Database (PostgreSQL) is configured
+	hasCloudConfig := cfg.DatabaseURL != "" || (cfg.DBHost != "" && cfg.DBHost != "sqlite" && cfg.DBHost != "localhost")
 	cloudPath := "lingkodbrgai_cloud.db"
-	if cfg.DBHost != "" && cfg.DBHost != "sqlite" && cfg.DBHost != "localhost" {
-		dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Manila",
-			cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode)
+	if os.Getenv("VERCEL") == "1" {
+		cloudPath = "/tmp/lingkodbrgai_cloud.db"
+	}
 
-		log.Printf("[CLOUD DB] Connecting to Remote PostgreSQL Cloud Database (%s:%s)...", cfg.DBHost, cfg.DBPort)
-		for i := 1; i <= 3; i++ {
-			CloudDB, err = gorm.Open(postgres.New(postgres.Config{
-				DSN:                  dsn,
-				PreferSimpleProtocol: true,
-			}), &gorm.Config{
-				Logger:                                   logger.Default.LogMode(logger.Info),
-				DisableForeignKeyConstraintWhenMigrating: true,
-			})
-			if err == nil {
-				break
+	if hasCloudConfig {
+		if cfg.DatabaseURL != "" {
+			log.Printf("[CLOUD DB] Connecting to Remote PostgreSQL using Database URL...")
+			for i := 1; i <= 3; i++ {
+				CloudDB, err = gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{
+					Logger:                                   logger.Default.LogMode(logger.Warn),
+					DisableForeignKeyConstraintWhenMigrating: true,
+				})
+				if err == nil {
+					break
+				}
+				log.Printf("[CLOUD DB] Connection attempt %d/3 failed: %v. Retrying in 2s...", i, err)
+				time.Sleep(2 * time.Second)
 			}
-			log.Printf("[CLOUD DB] Connection attempt %d/3 failed: %v. Retrying in 2s...", i, err)
-			time.Sleep(2 * time.Second)
+		} else {
+			dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Manila",
+				cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode)
+
+			log.Printf("[CLOUD DB] Connecting to Remote PostgreSQL Cloud Database (%s:%s)...", cfg.DBHost, cfg.DBPort)
+			for i := 1; i <= 3; i++ {
+				CloudDB, err = gorm.Open(postgres.New(postgres.Config{
+					DSN:                  dsn,
+					PreferSimpleProtocol: true,
+				}), &gorm.Config{
+					Logger:                                   logger.Default.LogMode(logger.Info),
+					DisableForeignKeyConstraintWhenMigrating: true,
+				})
+				if err == nil {
+					break
+				}
+				log.Printf("[CLOUD DB] Connection attempt %d/3 failed: %v. Retrying in 2s...", i, err)
+				time.Sleep(2 * time.Second)
+			}
 		}
 
 		if err != nil {
-			log.Printf("[CLOUD DB] PostgreSQL connection unavailable. Initializing local Cloud Mirror DB (%s)...", cloudPath)
+			log.Printf("[CLOUD DB] Remote PostgreSQL connection unavailable: %v. Initializing local Cloud Mirror DB (%s)...", err, cloudPath)
 			CloudDB, _ = gorm.Open(sqlite.Open(cloudPath), &gorm.Config{
-				Logger: logger.Default.LogMode(logger.Info),
+				Logger: logger.Default.LogMode(logger.Warn),
 			})
 		}
 	} else {
@@ -111,11 +92,9 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		}
 	}
 
+	// Auto-Migrate Cloud Database if active
 	if CloudDB != nil {
-		// Pass 1: Migrate Household table first so foreign keys in Resident can reference it
 		_ = CloudDB.AutoMigrate(&models.Household{})
-
-		// Pass 2: Migrate all remaining tables
 		if migrateErr := CloudDB.AutoMigrate(
 			&models.Resident{},
 			&models.User{},
@@ -133,10 +112,61 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 			&models.HealthRecord{},
 			&models.DispensedItem{},
 		); migrateErr != nil {
-			log.Printf("[CLOUD DB ERROR] Secondary Cloud Database migration error: %v", migrateErr)
+			log.Printf("[CLOUD DB ERROR] Cloud Database migration error: %v", migrateErr)
 		} else {
-			log.Println("[CLOUD DB] Secondary Cloud Database migration completed successfully.")
+			log.Println("[CLOUD DB] Cloud Database migration completed successfully.")
 		}
+	}
+
+	// In serverless environment (Vercel) or when CloudDB is live PostgreSQL, use CloudDB as primary DB
+	if CloudDB != nil && (os.Getenv("VERCEL") == "1" || (hasCloudConfig && err == nil)) {
+		DB = CloudDB
+		log.Println("[PRIMARY DB] Operating in Cloud PostgreSQL mode as Primary DB.")
+		return DB, nil
+	}
+
+	// 2. Initialize Primary Local Database (SQLite) for offline-first local mode
+	localPath := "lingkodbrgai.db"
+	if os.Getenv("VERCEL") == "1" {
+		localPath = "/tmp/lingkodbrgai.db"
+	}
+
+	log.Printf("[LOCAL DB] Connecting to Primary Local Database (%s)...", localPath)
+	DB, err = gorm.Open(sqlite.Open(localPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Info),
+	})
+	if err != nil {
+		if CloudDB != nil {
+			DB = CloudDB
+			return DB, nil
+		}
+		return nil, fmt.Errorf("could not connect to Local SQLite DB: %w", err)
+	}
+	log.Println("[LOCAL DB] Primary Local Database connected successfully.")
+
+	// Auto-Migrate Schemas on Local DB
+	_ = DB.AutoMigrate(&models.Household{})
+	err = DB.AutoMigrate(
+		&models.Resident{},
+		&models.User{},
+		&models.Certificate{},
+		&models.Blotter{},
+		&models.Business{},
+		&models.Appointment{},
+		&models.Notification{},
+		&models.Payment{},
+		&models.AuditLog{},
+		&models.AILog{},
+		&models.QueueTicket{},
+		&models.License{},
+		&models.MedicineStock{},
+		&models.HealthRecord{},
+		&models.DispensedItem{},
+	)
+	if err != nil {
+		log.Printf("[LOCAL DB WARNING] Local DB auto-migration warning: %v", err)
+	} else {
+		log.Println("[LOCAL DB] Primary Local Database migration completed.")
 	}
 
 	return DB, nil

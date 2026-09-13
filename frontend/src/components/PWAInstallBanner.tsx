@@ -92,8 +92,8 @@ export const PWAInstallBanner: React.FC = () => {
         <div className="bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white p-4 rounded-3xl border border-slate-200 dark:border-gov-gold-500/40 shadow-2xl backdrop-blur-xl flex items-center justify-between gap-3.5">
           
           {/* App Icon */}
-          <div className="w-12 h-12 bg-gradient-to-tr from-gov-blue-600 via-gov-blue-700 to-indigo-800 rounded-2xl flex items-center justify-center border border-gov-blue-400/30 dark:border-gov-gold-400/50 shadow-md shrink-0 p-1">
-            <img src="/logo.png" alt="LingkodBrgyAi App Logo" className="w-full h-full object-contain rounded-xl" />
+          <div className="w-12 h-12 bg-gradient-to-tr from-gov-blue-600 via-gov-blue-700 to-indigo-800 rounded-2xl flex items-center justify-center border border-gov-blue-400/30 dark:border-gov-gold-400/50 shadow-md shrink-0">
+            <span className="text-white text-2xl font-black leading-none select-none">L</span>
           </div>
 
           {/* Text Information */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Calendar, AlertOctagon, Briefcase, Sun, Moon, 
@@ -19,6 +19,12 @@ export const Landing: React.FC = () => {
   const [simulatedAnswer, setSimulatedAnswer] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animFrameRef = useRef<number>(0);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
 
   // Live database stats fetched from backend
   const [liveStats, setLiveStats] = useState<{
@@ -137,6 +143,90 @@ export const Landing: React.FC = () => {
       navigate(`/verify/document/${verifyHash.trim()}`);
     }
   };
+
+  // ── Real Camera QR Scanner ──────────────────────────────────────────────────
+  const stopCamera = useCallback(() => {
+    cancelAnimationFrame(animFrameRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+    }
+    setCameraReady(false);
+  }, []);
+
+  const scanFrame = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState < 2) {
+      animFrameRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    import('jsqr').then(({ default: jsQR }) => {
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert',
+      });
+      if (code?.data) {
+        stopCamera();
+        setIsScannerOpen(false);
+        const raw = code.data.trim();
+        // If it's a full URL, extract the hash from the path
+        try {
+          const url = new URL(raw);
+          const parts = url.pathname.split('/');
+          const hash = parts[parts.length - 1];
+          navigate(`/verify/document/${hash}`);
+        } catch {
+          navigate(`/verify/document/${raw}`);
+        }
+        return;
+      }
+      animFrameRef.current = requestAnimationFrame(scanFrame);
+    });
+  }, [navigate, stopCamera]);
+
+  const startCamera = useCallback(async () => {
+    setCameraError(null);
+    setCameraReady(false);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 640 } },
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play();
+          setCameraReady(true);
+          animFrameRef.current = requestAnimationFrame(scanFrame);
+        };
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes('Permission') || msg.includes('denied') || msg.includes('NotAllowed')) {
+        setCameraError('Camera access denied. Please allow camera permission in your browser settings.');
+      } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
+        setCameraError('No camera found on this device.');
+      } else {
+        setCameraError('Could not start camera: ' + msg);
+      }
+    }
+  }, [scanFrame]);
+
+  useEffect(() => {
+    if (isScannerOpen) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [isScannerOpen, startCamera, stopCamera]);
+  // ────────────────────────────────────────────────────────────────────────────
 
   // Pre-defined AI Questions & Mock Answers
   const aiPrompts = [
@@ -962,23 +1052,60 @@ export const Landing: React.FC = () => {
               </div>
             </div>
 
-            {/* Simulated Live Camera Scanner Viewport */}
-            <div className="relative w-full aspect-square bg-slate-950 rounded-3xl overflow-hidden border-2 border-gov-blue-500/50 flex flex-col items-center justify-center shadow-inner group">
+            {/* Real Camera Scanner Viewport */}
+            <div className="relative w-full aspect-square bg-slate-950 rounded-3xl overflow-hidden border-2 border-gov-blue-500/50 shadow-inner">
               
+              {/* Hidden canvas for frame analysis */}
+              <canvas ref={canvasRef} className="hidden" />
+
+              {/* Live video feed */}
+              <video
+                ref={videoRef}
+                muted
+                playsInline
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${cameraReady ? 'opacity-100' : 'opacity-0'}`}
+              />
+
               {/* Corner framing brackets */}
-              <div className="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-gov-blue-500 rounded-tl-lg"></div>
-              <div className="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-gov-blue-500 rounded-tr-lg"></div>
-              <div className="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-gov-blue-500 rounded-bl-lg"></div>
-              <div className="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-gov-blue-500 rounded-br-lg"></div>
+              <div className="absolute top-4 left-4 w-6 h-6 border-t-4 border-l-4 border-gov-blue-400 rounded-tl-lg z-10" />
+              <div className="absolute top-4 right-4 w-6 h-6 border-t-4 border-r-4 border-gov-blue-400 rounded-tr-lg z-10" />
+              <div className="absolute bottom-4 left-4 w-6 h-6 border-b-4 border-l-4 border-gov-blue-400 rounded-bl-lg z-10" />
+              <div className="absolute bottom-4 right-4 w-6 h-6 border-b-4 border-r-4 border-gov-blue-400 rounded-br-lg z-10" />
 
-              {/* Laser beam overlay */}
-              <div className="absolute left-4 right-4 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent top-1/2 -translate-y-1/2 animate-pulse shadow-[0_0_15px_#34d399]"></div>
+              {/* Scan laser line — shown only when camera is live */}
+              {cameraReady && !cameraError && (
+                <div className="absolute left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent top-1/2 -translate-y-1/2 animate-pulse shadow-[0_0_15px_#34d399] z-10" />
+              )}
 
-              <div className="text-center p-6 space-y-2 z-10">
-                <Camera size={36} className="text-slate-500 mx-auto animate-bounce" />
-                <p className="text-xs font-bold text-slate-300">Point Camera at QR Code</p>
-                <p className="text-[10px] text-slate-400 max-w-xs">Align the QR code on your printed document or Resident Mobile ID inside the frame</p>
-              </div>
+              {/* Loading state */}
+              {!cameraReady && !cameraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 z-20">
+                  <div className="w-8 h-8 border-2 border-gov-blue-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs font-bold text-slate-300">Starting camera…</p>
+                </div>
+              )}
+
+              {/* Error state */}
+              {cameraError && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 z-20">
+                  <Camera size={36} className="text-rose-400" />
+                  <p className="text-xs font-bold text-rose-300 text-center">{cameraError}</p>
+                  <button
+                    onClick={startCamera}
+                    className="mt-2 px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold rounded-xl transition-colors"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              )}
+
+              {/* Live indicator badge */}
+              {cameraReady && !cameraError && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 bg-black/60 px-2.5 py-1 rounded-full z-10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[9px] font-bold text-emerald-300 uppercase tracking-wider">Live Scanning</span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -1004,25 +1131,6 @@ export const Landing: React.FC = () => {
                 >
                   Verify
                 </button>
-              </div>
-
-              {/* Sample QR ID shortcuts */}
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Quick Test Resident IDs:</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {['QR-RES-0001', 'QR-RES-MARIA1', 'QR-RES-JUAN2'].map((sampleId) => (
-                    <button
-                      key={sampleId}
-                      onClick={() => {
-                        setIsScannerOpen(false);
-                        navigate(`/verify/document/${sampleId}`);
-                      }}
-                      className="text-[9px] font-mono font-bold px-2.5 py-1 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/80 text-gov-blue-700 dark:text-gov-blue-300 border border-gov-blue-200 dark:border-gov-blue-800 hover:bg-gov-blue-100 dark:hover:bg-gov-blue-900 transition-colors"
-                    >
-                      {sampleId}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
 

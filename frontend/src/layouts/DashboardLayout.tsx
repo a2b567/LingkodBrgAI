@@ -193,7 +193,6 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Letterhead Logo */}
         <div className="h-16 flex items-center gap-3 px-5 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
-          <img src="/logo.png" alt="Barangay San Isidro Seal" className="w-9 h-9 object-contain shrink-0" />
           {sidebarOpen && (
             <div className="flex flex-col justify-center">
               <div className="font-extrabold text-sm leading-tight tracking-tight text-gov-blue-850 dark:text-gov-blue-300">LingkodBrgyAi</div>
@@ -276,10 +275,6 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             >
               <Menu size={20} />
             </button>
-            <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-              <img src="/logo.png" alt="Barangay San Isidro Seal" className="w-5 h-5 object-contain" />
-              <span>Barangay San Isidro, Bay, Laguna • Government Portal</span>
-            </div>
           </div>
 
           {/* Header Right Actions: Notification Bell + Quick Stats info */}

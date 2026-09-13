@@ -24,36 +24,24 @@ export const QueueMonitor: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const defaultMonitorQueueSlots: QueueSlot[] = [
-    { id: 'q-sample-1', ticket_number: 'P-001', resident_name: 'MARIA SANTOS (Senior Citizen)', cert_type: 'Barangay Clearance', date: new Date().toISOString().split('T')[0], time_slot: '09:00 AM', status: 'Waiting', is_priority: true },
-    { id: 'q-sample-2', ticket_number: 'A-101', resident_name: 'JUAN DELA CRUZ', cert_type: 'Certificate of Indigency', date: new Date().toISOString().split('T')[0], time_slot: '09:15 AM', status: 'Waiting', is_priority: false },
-    { id: 'q-sample-3', ticket_number: 'A-102', resident_name: 'ANA REYES', cert_type: 'Certificate of Residency', date: new Date().toISOString().split('T')[0], time_slot: '09:30 AM', status: 'Waiting', is_priority: false },
-    { id: 'q-sample-4', ticket_number: 'A-103', resident_name: 'ROBERTO GARCIA', cert_type: 'Business Permit Clearance', date: new Date().toISOString().split('T')[0], time_slot: '09:45 AM', status: 'Waiting', is_priority: false },
-    { id: 'q-sample-5', ticket_number: 'A-104', resident_name: 'ELENA TORRES', cert_type: 'Barangay ID', date: new Date().toISOString().split('T')[0], time_slot: '10:00 AM', status: 'Waiting', is_priority: false }
-  ];
+  const defaultMonitorQueueSlots: QueueSlot[] = [];
 
-  // Poll queue state from localStorage or fallback to default samples
+  // Poll queue state from localStorage or fallback to empty
   useEffect(() => {
     const loadQueue = () => {
       try {
         const saved = localStorage.getItem('lingkod_queue_slots');
         if (saved) {
           const parsed: QueueSlot[] = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            // Check if real kiosk inputs or backend tickets exist
+          if (Array.isArray(parsed)) {
             const realSlots = parsed.filter(s => !s.id.startsWith('q-sample-'));
-            if (realSlots.length > 0) {
-              setQueueSlots(realSlots);
-              return;
-            }
-            setQueueSlots(parsed);
+            setQueueSlots(realSlots);
             return;
           }
         }
-        setQueueSlots(defaultMonitorQueueSlots);
-        localStorage.setItem('lingkod_queue_slots', JSON.stringify(defaultMonitorQueueSlots));
+        setQueueSlots([]);
       } catch (e) {
-        setQueueSlots(defaultMonitorQueueSlots);
+        setQueueSlots([]);
       }
     };
 

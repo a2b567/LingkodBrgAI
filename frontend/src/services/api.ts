@@ -518,11 +518,7 @@ export const api = {
     getCongestion: () =>
       withFallback(
         () => client.get<{ date: string; bookings_count: number; congestion_risk: string }[]>('/appointments/congestion').then(r => r.data),
-        () => [
-          { date: '2026-09-01', bookings_count: 3, congestion_risk: 'Low' },
-          { date: '2026-09-02', bookings_count: 14, congestion_risk: 'High' },
-          { date: '2026-09-03', bookings_count: 5, congestion_risk: 'Medium' },
-        ]
+        () => []
       ),
   },
 
@@ -555,29 +551,18 @@ export const api = {
     list: (params?: any) =>
       withFallback(
         () => client.get<Payment[]>('/payments', { params }).then(r => r.data),
-        () => [
-          {
-            id: 'pay-1',
-            reference_number: 'PAY-2026-901',
-            purpose: 'Barangay Clearance Fee',
-            amount: 50,
-            status: 'Completed',
-            payor_name: 'Juan Dela Cruz',
-            transaction_date: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-          }
-        ]
+        () => []
       ),
     get: (id: string) =>
       withFallback(
         () => client.get<Payment>(`/payments/${id}`).then(r => r.data),
         () => ({
           id: id,
-          reference_number: 'PAY-2026-901',
-          purpose: 'Barangay Clearance Fee',
-          amount: 50,
+          reference_number: `PAY-${Date.now()}`,
+          purpose: 'Official Transaction Fee',
+          amount: 0,
           status: 'Completed',
-          payor_name: 'Juan Dela Cruz',
+          payor_name: 'Resident',
           transaction_date: new Date().toISOString(),
           created_at: new Date().toISOString(),
         })

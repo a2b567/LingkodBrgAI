@@ -145,16 +145,6 @@ export const Certificates: React.FC = () => {
     setFee(fees[certType] ?? 100);
   }, [certType]);
 
-  const handleSeedSamples = async () => {
-    try {
-      await api.certificates.seedSamples();
-      fetchCerts();
-      alert("Sample certificates successfully added!");
-    } catch (err) {
-      alert("Failed adding sample certificates");
-    }
-  };
-
   const handleOpenEditModal = (cert: Certificate) => {
     setEditingCert(cert);
     setEditDocNo(cert.document_number);
@@ -395,22 +385,13 @@ export const Certificates: React.FC = () => {
 
         <div className="flex items-center gap-3 flex-wrap">
           {isStaff && (
-            <>
-              <button
-                onClick={handleSeedSamples}
-                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-              >
-                <FolderPlus size={16} />
-                Add Samples
-              </button>
-              <Link
-                to="/kiosk/certificates"
-                className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-95"
-              >
-                <MonitorSmartphone size={16} />
-                Kiosk Mode
-              </Link>
-            </>
+            <Link
+              to="/kiosk/certificates"
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-xs shadow-md shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-95"
+            >
+              <MonitorSmartphone size={16} />
+              Kiosk Mode
+            </Link>
           )}
           <button
             onClick={() => {
@@ -1047,7 +1028,6 @@ export const Certificates: React.FC = () => {
                   {/* Top Letterhead */}
                   <div className="flex items-center justify-between border-b border-gov-gold-500/40 pb-2 relative z-10">
                     <div className="flex items-center gap-2.5">
-                      <img src="/logo.png" alt="Barangay Seal" className="w-8 h-8 object-contain shrink-0" />
                       <div className="leading-none">
                         <span className="text-[7.5px] font-extrabold uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
                         <h4 className="text-[10px] font-black uppercase tracking-wider text-white mt-0.5">BARANGAY SAN ISIDRO • BAY, LAGUNA</h4>
@@ -1403,23 +1383,18 @@ export const Certificates: React.FC = () => {
                   id="printable-certificate-sheet" 
                   className="w-full max-w-[210mm] min-h-[275mm] bg-white text-slate-950 p-8 sm:p-12 shadow-2xl relative flex flex-col justify-between border-8 border-double border-gov-blue-950 my-auto text-left font-serif"
                 >
-                  {/* Subtle Security Seal Watermark */}
-                  <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none">
-                    <img src="/logo.png" alt="Barangay Seal Watermark" className="w-[320px] h-[320px] object-contain" />
-                  </div>
+                  {/* Subtle Security Seal Watermark — removed */}
 
                   <div className="space-y-6 relative z-10">
                     
                     {/* Header Letterhead */}
                     <div className="flex items-center justify-between border-b-2 border-gov-blue-950 pb-4">
-                      <img src="/logo.png" alt="Barangay Seal" className="w-20 h-20 object-contain shrink-0" />
                       <div className="text-center space-y-0.5 flex-1 mx-2">
                         <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">REPUBLIC OF THE PHILIPPINES</span>
                         <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">PROVINCE OF LAGUNA • MUNICIPALITY OF BAY</span>
                         <h2 className="text-xl font-black tracking-tight text-gov-blue-950 uppercase font-display mt-0.5">BARANGAY SAN ISIDRO</h2>
                         <span className="text-[12px] font-bold text-gov-blue-900 tracking-wider uppercase block font-sans">OFFICE OF THE PUNONG BARANGAY</span>
                       </div>
-                      <img src="/logo.png" alt="Official Seal" className="w-16 h-16 object-contain shrink-0" />
                     </div>
 
                     {/* Certificate Title */}
