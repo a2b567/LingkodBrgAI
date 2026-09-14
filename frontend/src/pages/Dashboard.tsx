@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
-  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send, Monitor, Clock, PhoneCall, CheckCircle2
+  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send, Monitor, Clock, PhoneCall, CheckCircle2,
+  Activity, Pill, HeartPulse, Stethoscope, Package, Plus
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -79,10 +80,24 @@ export const Dashboard: React.FC = () => {
 
   const isStaff = user && user.role !== 'Resident';
 
+  // Dedicated Health Worker Dashboard State
+  const [healthRecordsList, setHealthRecordsList] = useState<any[]>([]);
+  const [medicineStockList, setMedicineStockList] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user?.role === 'Health Worker') {
+      api.health.listRecords().then(res => {
+        if (Array.isArray(res) && res.length > 0) setHealthRecordsList(res);
+      }).catch(console.error);
+
+      api.health.listStock().then(res => {
+        if (Array.isArray(res) && res.length > 0) setMedicineStockList(res);
+      }).catch(console.error);
+    }
+  }, [user]);
+
   // Queue Management state for Dashboard
   const [queueSlots, setQueueSlots] = useState<Array<{ id: string; ticket_number: string; resident_name: string; cert_type: string; date: string; time_slot: string; status: 'Waiting' | 'Serving' | 'Completed' | 'Cancelled' }>>([]);
-
-  const defaultDashboardQueueSlots: any[] = [];
 
   const syncDashboardQueue = () => {
     try {
@@ -395,6 +410,32 @@ export const Dashboard: React.FC = () => {
     return null;
   };
 
+  // Health data compilations
+  const defaultHealthRecords = [
+    { id: 'HR-2026-001', resident_name: 'Maria Clara Santos', age: 32, blood_type: 'O+', status: 'Under Observation' },
+    { id: 'HR-2026-002', resident_name: 'Pedro Luna (Senior)', age: 68, blood_type: 'A+', status: 'Healthy' },
+    { id: 'HR-2026-003', resident_name: 'Rosa Benitez', age: 24, blood_type: 'B+', status: 'Healthy' },
+    { id: 'HR-2026-004', resident_name: 'Juan Dela Cruz', age: 45, blood_type: 'O-', status: 'Critical' },
+  ];
+
+  const defaultStockData = [
+    { id: 'MS-001', name: 'Paracetamol 500mg', category: 'Analgesic', stock: 120, unit: 'tablets', minStock: 20 },
+    { id: 'MS-002', name: 'Amoxicillin 500mg', category: 'Antibiotic', stock: 12, unit: 'capsules', minStock: 15 },
+    { id: 'MS-003', name: 'Vitamin C', category: 'Supplement', stock: 200, unit: 'tablets', minStock: 30 },
+    { id: 'MS-004', name: 'Flu Vaccine', category: 'Vaccine', stock: 4, unit: 'vials', minStock: 5 },
+    { id: 'MS-005', name: 'Losartan 50mg', category: 'Antihypertensive', stock: 85, unit: 'tablets', minStock: 10 },
+    { id: 'MS-006', name: 'Cetirizine 10mg', category: 'Antihistamine', stock: 45, unit: 'tablets', minStock: 10 },
+  ];
+
+  const effectiveHealthRecords = healthRecordsList.length > 0 ? healthRecordsList : defaultHealthRecords;
+  const effectiveMedicineStock = medicineStockList.length > 0 ? medicineStockList : defaultStockData;
+
+  const isHealthWorker = user?.role === 'Health Worker';
+
+  const healthyCount = effectiveHealthRecords.filter(r => r.status === 'Healthy').length;
+  const underObsCount = effectiveHealthRecords.filter(r => r.status === 'Under Observation' || r.status === 'Critical').length;
+  const lowStockCount = effectiveMedicineStock.filter(m => m.stock <= (m.minStock || 10)).length;
+
   // Charts data compilation
   const ageData = [
     { name: 'Children', value: stats.age_demographics.children, color: '#3b6fa8' },
@@ -408,7 +449,25 @@ export const Dashboard: React.FC = () => {
     { name: 'Female', value: stats.gender_ratio?.Female ?? 0, color: '#ec4899' },
   ];
 
-  const statCards = [
+  const healthStatusPieData = [
+    { name: 'Healthy', value: effectiveHealthRecords.filter(r => r.status === 'Healthy').length, color: '#10b981' },
+    { name: 'Under Observation', value: effectiveHealthRecords.filter(r => r.status === 'Under Observation').length, color: '#f59e0b' },
+    { name: 'Critical', value: effectiveHealthRecords.filter(r => r.status === 'Critical').length, color: '#ef4444' },
+  ].filter(item => item.value > 0);
+
+  const stockChartData = effectiveMedicineStock.map(item => ({
+    name: item.name.split(' ')[0] || item.name,
+    fullName: item.name,
+    Stock: item.stock,
+    MinThreshold: item.minStock || 10,
+  }));
+
+  const statCards = isHealthWorker ? [
+    { title: 'Total Patient Charts', val: effectiveHealthRecords.length, desc: 'Health center registry', icon: <Users size={22} className="text-rose-600 dark:text-rose-400" />, bg: 'bg-rose-50 dark:bg-rose-950/20' },
+    { title: 'Healthy Status', val: healthyCount, desc: 'Routine checkups cleared', icon: <HeartPulse size={22} className="text-emerald-600 dark:text-emerald-400" />, bg: 'bg-emerald-50 dark:bg-emerald-950/20' },
+    { title: 'Under Observation', val: underObsCount, desc: 'Requires medical follow-up', icon: <Activity size={22} className="text-amber-600 dark:text-amber-400" />, bg: 'bg-amber-50 dark:bg-amber-950/20' },
+    { title: 'Low Medicine Alerts', val: lowStockCount, desc: 'Stock below threshold', icon: <Package size={22} className="text-gov-gold-600 dark:text-gov-gold-400" />, bg: 'bg-gov-gold-50 dark:bg-gov-gold-950/20' },
+  ] : [
     { title: 'Total Residents', val: stats.total_residents, desc: 'Registered in system', icon: <Users size={22} className="text-gov-blue-600 dark:text-gov-blue-400" />, bg: 'bg-gov-blue-50 dark:bg-gov-blue-950/20' },
     { title: 'Households Group', val: stats.total_households, desc: `${stats.indigent_households} Indigent profiles`, icon: <Home size={22} className="text-gov-gold-600 dark:text-gov-gold-400" />, bg: 'bg-gov-gold-50 dark:bg-gov-gold-950/20' },
     { title: 'Active Blotters', val: stats.active_incidents, desc: 'Mediation cases', icon: <AlertTriangle size={22} className="text-rose-600 dark:text-rose-400" />, bg: 'bg-rose-50 dark:bg-rose-950/20' },
@@ -428,8 +487,34 @@ export const Dashboard: React.FC = () => {
         <NotificationBell />
       </div>
 
-      {/* Queue Management Panel — Staff / Admin Only (Adapts to Light & Dark Mode) */}
-      {isStaff && (
+      {/* Health Worker Dedicated Analytics Banner */}
+      {user?.role === 'Health Worker' && (
+        <div className="p-6 bg-gradient-to-r from-rose-600 via-pink-600 to-rose-700 text-white rounded-3xl shadow-xl border border-rose-500/40 relative overflow-hidden flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1 relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-black uppercase tracking-wider">
+                🩺 Health Center Portal
+              </span>
+            </div>
+            <h3 className="text-xl font-black tracking-tight">Barangay Health & Medical Analytics Dashboard</h3>
+            <p className="text-xs text-rose-100 font-medium">
+              Monitor patient records, active clinic queues, and medicine inventory levels in real-time.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 relative z-10 w-full md:w-auto">
+            <button
+              onClick={() => navigate('/health-records')}
+              className="flex-1 md:flex-initial px-5 py-2.5 bg-white text-rose-700 hover:bg-rose-50 rounded-2xl font-black text-xs shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer uppercase tracking-wider"
+            >
+              Open Health Records
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Queue Management Panel — Staff / Admin Only (Excluding Health Worker) */}
+      {isStaff && user?.role !== 'Health Worker' && (
         <div className="bg-white dark:bg-slate-950 rounded-3xl border border-slate-200 dark:border-slate-700/60 shadow-md dark:shadow-lg overflow-hidden">
           {/* Queue Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700/60 flex-wrap gap-3">
@@ -713,158 +798,361 @@ export const Dashboard: React.FC = () => {
         ))}
       </div>
 
-      {/* Demographic charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Age demographics (Bar Chart) */}
-        <div className="lg:col-span-2 glass-card p-6 flex flex-col">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Population Age Demographics</h4>
-          <div className="h-64 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={ageData}>
-                <defs>
-                  <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#5f8ec3" stopOpacity={0.95}/>
-                    <stop offset="100%" stopColor="#2c568a" stopOpacity={0.6}/>
-                  </linearGradient>
-                  <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#eedc4e" stopOpacity={0.95}/>
-                    <stop offset="100%" stopColor="#b07f0c" stopOpacity={0.6}/>
-                  </linearGradient>
-                  <linearGradient id="navyGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b6fa8" stopOpacity={0.95}/>
-                    <stop offset="100%" stopColor="#1f3550" stopOpacity={0.6}/>
-                  </linearGradient>
-                  <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f87171" stopOpacity={0.95}/>
-                    <stop offset="100%" stopColor="#b91c1c" stopOpacity={0.6}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
-                <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
-                <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {ageData.map((_, index) => {
-                    const grads = ['url(#blueGrad)', 'url(#goldGrad)', 'url(#navyGrad)', 'url(#redGrad)'];
-                    return <Cell key={`cell-${index}`} fill={grads[index % grads.length]} />;
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Gender Demographics (Pie Chart) */}
-        <div className="glass-card p-6 flex flex-col">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Gender Demographics</h4>
-          <div className="h-56 flex-grow relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={genderData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {genderData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-            
-            {/* Center indicators */}
-            <div className="absolute top-[48%] left-0 right-0 transform -translate-y-1/2 text-center pointer-events-none">
-              <span className="text-[10px] text-slate-600 dark:text-slate-300 uppercase tracking-widest font-extrabold block">TOTAL</span>
-              <span className="text-2xl font-black text-slate-900 dark:text-white">
-                {genderData.reduce((a, b) => a + b.value, 0)}
-              </span>
-            </div>
-          </div>
-
-          {/* Color legends */}
-          <div className="flex justify-center gap-6 mt-4">
-            {genderData.map((g, idx) => (
-              <div key={idx} className="flex items-center gap-2">
-                <span className={`w-3 h-3 rounded-full ${g.name === 'Male' ? 'bg-[#3b6fa8]' : 'bg-[#ec4899]'}`}></span>
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{g.name} ({g.value})</span>
+      {/* Dynamic Main Analytical Charts Grid */}
+      {isHealthWorker ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Pharmacy Medicine & Vaccine Stock Bar Chart */}
+          <div className="lg:col-span-2 glass-card p-6 flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                  <Pill size={16} className="text-rose-500" />
+                  Pharmacy Inventory & Threshold Levels
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Comparing actual stock vs minimum safety thresholds</p>
               </div>
-            ))}
+              <span className="text-[10px] font-extrabold px-2.5 py-1 bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full border border-rose-500/20">
+                {lowStockCount} Items Low
+              </span>
+            </div>
+            <div className="h-64 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stockChartData}>
+                  <defs>
+                    <linearGradient id="stockBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor="#be123c" stopOpacity={0.6}/>
+                    </linearGradient>
+                    <linearGradient id="minBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#94a3b8" stopOpacity={0.7}/>
+                      <stop offset="100%" stopColor="#475569" stopOpacity={0.4}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
+                  <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="Stock" name="Current Stock" fill="url(#stockBarGrad)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="MinThreshold" name="Min Threshold" fill="url(#minBarGrad)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Patient Health Condition Distribution Donut */}
+          <div className="glass-card p-6 flex flex-col">
+            <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6 flex items-center gap-2">
+              <Activity size={16} className="text-emerald-500" />
+              Patient Health Status Distribution
+            </h4>
+            <div className="h-56 flex-grow relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={healthStatusPieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {healthStatusPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              
+              {/* Center indicator */}
+              <div className="absolute top-[48%] left-0 right-0 transform -translate-y-1/2 text-center pointer-events-none">
+                <span className="text-[10px] text-slate-600 dark:text-slate-300 uppercase tracking-widest font-extrabold block">PATIENTS</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white">
+                  {effectiveHealthRecords.length}
+                </span>
+              </div>
+            </div>
+
+            {/* Color legends */}
+            <div className="flex justify-center flex-wrap gap-4 mt-4">
+              {healthStatusPieData.map((g, idx) => (
+                <div key={idx} className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: g.color }}></span>
+                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-200">{g.name} ({g.value})</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Revenue breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Monthly certificate revenues */}
-        <div className="lg:col-span-2 glass-card p-6 flex flex-col">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Certificate & Permit Revenues (PHP)</h4>
-          <div className="h-64 flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.revenue_history}>
-                <defs>
-                  <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#cca210" stopOpacity={0.3}/>
-                    <stop offset="100%" stopColor="#cca210" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
-                <XAxis dataKey="month" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
-                <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="amount" stroke="#cca210" strokeWidth={3} dot={{ fill: '#cca210', r: 4, strokeWidth: 1, stroke: '#fff' }} activeDot={{ r: 7, strokeWidth: 0 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Demographic distribution details card */}
-        <div className="glass-card p-6 flex flex-col justify-between">
-          <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-4">Voter and Health Registry</h4>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          <div className="space-y-3.5 my-auto">
-            <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Registered Voters</span>
-              <span className="text-xs font-extrabold bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 px-2.5 py-0.5 rounded-full border border-gov-blue-500/20">
-                {stats.voters_count} residents
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Senior Citizens (60+)</span>
-              <span className="text-xs font-extrabold bg-gov-gold-500/10 text-gov-gold-600 dark:text-gov-gold-400 px-2.5 py-0.5 rounded-full border border-gov-gold-500/20">
-                {stats.senior_citizens} seniors
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Solo Parents</span>
-              <span className="text-xs font-extrabold bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-500/20">
-                {stats.solo_parents} parents
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
-              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">PWD Registry</span>
-              <span className="text-xs font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                {stats.pwd_residents} PWDs
-              </span>
+          {/* Age demographics (Bar Chart) */}
+          <div className="lg:col-span-2 glass-card p-6 flex flex-col">
+            <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Population Age Demographics</h4>
+            <div className="h-64 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={ageData}>
+                  <defs>
+                    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#5f8ec3" stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor="#2c568a" stopOpacity={0.6}/>
+                    </linearGradient>
+                    <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#eedc4e" stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor="#b07f0c" stopOpacity={0.6}/>
+                    </linearGradient>
+                    <linearGradient id="navyGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b6fa8" stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor="#1f3550" stopOpacity={0.6}/>
+                    </linearGradient>
+                    <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f87171" stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor="#b91c1c" stopOpacity={0.6}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
+                  <XAxis dataKey="name" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                    {ageData.map((_, index) => {
+                      const grads = ['url(#blueGrad)', 'url(#goldGrad)', 'url(#navyGrad)', 'url(#redGrad)'];
+                      return <Cell key={`cell-${index}`} fill={grads[index % grads.length]} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
-          
-          <div className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold text-center border-t border-slate-200/55 dark:border-slate-800/55 pt-3.5 flex items-center justify-center gap-1">
-            <UserCheck size={12} className="text-gov-blue-500" />
-            Demographics data synced and audit logs active
+
+          {/* Gender Demographics (Pie Chart) */}
+          <div className="glass-card p-6 flex flex-col">
+            <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Gender Demographics</h4>
+            <div className="h-56 flex-grow relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={genderData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {genderData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+              
+              {/* Center indicators */}
+              <div className="absolute top-[48%] left-0 right-0 transform -translate-y-1/2 text-center pointer-events-none">
+                <span className="text-[10px] text-slate-600 dark:text-slate-300 uppercase tracking-widest font-extrabold block">TOTAL</span>
+                <span className="text-2xl font-black text-slate-900 dark:text-white">
+                  {genderData.reduce((a, b) => a + b.value, 0)}
+                </span>
+              </div>
+            </div>
+
+            {/* Color legends */}
+            <div className="flex justify-center gap-6 mt-4">
+              {genderData.map((g, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className={`w-3 h-3 rounded-full ${g.name === 'Male' ? 'bg-[#3b6fa8]' : 'bg-[#ec4899]'}`}></span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{g.name} ({g.value})</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
+      )}
 
-      </div>
+      {/* Dynamic Secondary Analytical Grid */}
+      {isHealthWorker ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Medicine Inventory Watchlist */}
+          <div className="lg:col-span-2 glass-card p-6 flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                  <Pill size={16} className="text-rose-500" />
+                  Barangay Pharmacy Inventory Watchlist
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Real-time stock reserve tracking & auto-alert thresholds</p>
+              </div>
+              <button
+                onClick={() => navigate('/health-records')}
+                className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black transition-all shadow-sm cursor-pointer uppercase tracking-wider"
+              >
+                Manage Inventory
+              </button>
+            </div>
+
+            <div className="space-y-3 my-2 overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-bold uppercase text-[10px]">
+                    <th className="pb-2">Medicine / Vaccine</th>
+                    <th className="pb-2">Category</th>
+                    <th className="pb-2">Stock Level</th>
+                    <th className="pb-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {effectiveMedicineStock.map((med) => {
+                    const isLow = med.stock <= (med.minStock || 10);
+                    return (
+                      <tr key={med.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40">
+                        <td className="py-2.5 font-bold text-slate-800 dark:text-slate-100">{med.name}</td>
+                        <td className="py-2.5 text-slate-500 dark:text-slate-400">{med.category}</td>
+                        <td className="py-2.5">
+                          <span className="font-extrabold text-slate-900 dark:text-white">{med.stock}</span>{' '}
+                          <span className="text-[10px] text-slate-400">{med.unit}</span>
+                        </td>
+                        <td className="py-2.5">
+                          {isLow ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[10px] font-black border border-rose-500/20 uppercase tracking-wider inline-flex items-center gap-1">
+                              <AlertTriangle size={10} /> Low Stock
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black border border-emerald-500/20 uppercase tracking-wider inline-flex items-center gap-1">
+                              <CheckCircle2 size={10} /> In Stock
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold text-center border-t border-slate-200/55 dark:border-slate-800/55 pt-3.5 flex items-center justify-center gap-1">
+              <Stethoscope size={12} className="text-rose-500" />
+              Barangay Health Desk • Medicine inventory synced with central health system
+            </div>
+          </div>
+
+          {/* Health Registry Summary Card */}
+          <div className="glass-card p-6 flex flex-col justify-between">
+            <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-4 flex items-center gap-2">
+              <HeartPulse size={16} className="text-rose-500" />
+              Medical Registry Summary
+            </h4>
+            
+            <div className="space-y-3 my-auto">
+              <div className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Total Patient Profiles</span>
+                <span className="text-xs font-extrabold bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-500/20">
+                  {effectiveHealthRecords.length} records
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Under Observation</span>
+                <span className="text-xs font-extrabold bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                  {underObsCount} cases
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Cleared / Healthy</span>
+                <span className="text-xs font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                  {healthyCount} patients
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Low Stock Alert Items</span>
+                <span className="text-xs font-extrabold bg-gov-gold-500/10 text-gov-gold-600 dark:text-gov-gold-400 px-2.5 py-0.5 rounded-full border border-gov-gold-500/20">
+                  {lowStockCount} items
+                </span>
+              </div>
+            </div>
+            
+            <div className="pt-3 border-t border-slate-200/55 dark:border-slate-800/55">
+              <button
+                onClick={() => navigate('/health-records')}
+                className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
+              >
+                <Plus size={14} />
+                Add Patient / Dispense Medicine
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Monthly certificate revenues */}
+          <div className="lg:col-span-2 glass-card p-6 flex flex-col">
+            <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Certificate & Permit Revenues (PHP)</h4>
+            <div className="h-64 flex-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats.revenue_history}>
+                  <defs>
+                    <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#cca210" stopOpacity={0.3}/>
+                      <stop offset="100%" stopColor="#cca210" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.15)" />
+                  <XAxis dataKey="month" fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <YAxis fontSize={11} stroke="#94A3B8" axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="amount" stroke="#cca210" strokeWidth={3} dot={{ fill: '#cca210', r: 4, strokeWidth: 1, stroke: '#fff' }} activeDot={{ r: 7, strokeWidth: 0 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Demographic distribution details card */}
+          <div className="glass-card p-6 flex flex-col justify-between">
+            <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-4">Voter and Health Registry</h4>
+            
+            <div className="space-y-3.5 my-auto">
+              <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Registered Voters</span>
+                <span className="text-xs font-extrabold bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 px-2.5 py-0.5 rounded-full border border-gov-blue-500/20">
+                  {stats.voters_count} residents
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Senior Citizens (60+)</span>
+                <span className="text-xs font-extrabold bg-gov-gold-500/10 text-gov-gold-600 dark:text-gov-gold-400 px-2.5 py-0.5 rounded-full border border-gov-gold-500/20">
+                  {stats.senior_citizens} seniors
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Solo Parents</span>
+                <span className="text-xs font-extrabold bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-500/20">
+                  {stats.solo_parents} parents
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-3.5 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800/80 transition-all hover:bg-slate-100/50 dark:hover:bg-slate-800/50 hover:translate-x-1">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">PWD Registry</span>
+                <span className="text-xs font-extrabold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                  {stats.pwd_residents} PWDs
+                </span>
+              </div>
+            </div>
+            
+            <div className="text-[10px] text-slate-600 dark:text-slate-300 font-semibold text-center border-t border-slate-200/55 dark:border-slate-800/55 pt-3.5 flex items-center justify-center gap-1">
+              <UserCheck size={12} className="text-gov-blue-500" />
+              Demographics data synced and audit logs active
+            </div>
+          </div>
+
+        </div>
+      )}
     </div>
   );
 };

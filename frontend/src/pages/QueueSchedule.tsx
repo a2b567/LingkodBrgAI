@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Calendar as CalendarIcon, Clock, Volume2, VolumeX, Monitor, Plus, 
-  ChevronLeft, ChevronRight, CheckCircle2, Zap, FileText, X, PhoneCall, Sparkles,
-  FolderPlus
+  ChevronLeft, ChevronRight, CheckCircle2, Zap, FileText, X, PhoneCall, Sparkles
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
@@ -79,8 +78,6 @@ export const QueueSchedule: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  const defaultSampleSlots: QueueSlot[] = [];
-
   // Persist and sync queue slots with QueueMonitor and backend certificates
   const loadSlots = async () => {
     let localSlots: QueueSlot[] = [];
@@ -139,42 +136,6 @@ export const QueueSchedule: React.FC = () => {
     } catch (e) {}
   };
 
-  const handleSeedQueueSamples = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    const newSamples: QueueSlot[] = [
-      {
-        id: `q-${Date.now()}-1`,
-        ticket_number: `P-0${Math.floor(10 + Math.random() * 89)}`,
-        resident_name: 'PEDRO LUNA (PWD Priority)',
-        cert_type: 'Barangay Clearance',
-        date: todayStr,
-        time_slot: '10:15 AM',
-        status: 'Waiting',
-        is_priority: true
-      },
-      {
-        id: `q-${Date.now()}-2`,
-        ticket_number: `A-${Math.floor(105 + Math.random() * 800)}`,
-        resident_name: 'ROSA BENITEZ',
-        cert_type: 'Certificate of Indigency',
-        date: todayStr,
-        time_slot: '10:30 AM',
-        status: 'Waiting',
-        is_priority: false
-      },
-      {
-        id: `q-${Date.now()}-3`,
-        ticket_number: `A-${Math.floor(105 + Math.random() * 800)}`,
-        resident_name: 'RAMON BAUTISTA',
-        cert_type: 'Cedula (CTC)',
-        date: todayStr,
-        time_slot: '10:45 AM',
-        status: 'Waiting',
-        is_priority: false
-      }
-    ];
-    updateSlots([...queueSlots, ...newSamples]);
-  };
 
   // Compute stats
   const waitingSlots = queueSlots.filter(s => s.status === 'Waiting');
@@ -277,14 +238,6 @@ export const QueueSchedule: React.FC = () => {
         <div className="flex items-center gap-3 flex-wrap">
           {isStaff && (
             <>
-              <button
-                onClick={handleSeedQueueSamples}
-                className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-xs shadow-md shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-              >
-                <FolderPlus size={16} />
-                Add Sample Tickets
-              </button>
-
               <button
                 onClick={() => setVoiceEnabled(!voiceEnabled)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${

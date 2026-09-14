@@ -93,7 +93,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	}
 
 	// Auto-Migrate Cloud Database if active
-	if CloudDB != nil {
+	if CloudDB != nil && os.Getenv("SKIP_MIGRATE") != "1" {
 		_ = CloudDB.AutoMigrate(&models.Household{})
 		if migrateErr := CloudDB.AutoMigrate(
 			&models.Resident{},
@@ -145,28 +145,30 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	log.Println("[LOCAL DB] Primary Local Database connected successfully.")
 
 	// Auto-Migrate Schemas on Local DB
-	_ = DB.AutoMigrate(&models.Household{})
-	err = DB.AutoMigrate(
-		&models.Resident{},
-		&models.User{},
-		&models.Certificate{},
-		&models.Blotter{},
-		&models.Business{},
-		&models.Appointment{},
-		&models.Notification{},
-		&models.Payment{},
-		&models.AuditLog{},
-		&models.AILog{},
-		&models.QueueTicket{},
-		&models.License{},
-		&models.MedicineStock{},
-		&models.HealthRecord{},
-		&models.DispensedItem{},
-	)
-	if err != nil {
-		log.Printf("[LOCAL DB WARNING] Local DB auto-migration warning: %v", err)
-	} else {
-		log.Println("[LOCAL DB] Primary Local Database migration completed.")
+	if os.Getenv("SKIP_MIGRATE") != "1" {
+		_ = DB.AutoMigrate(&models.Household{})
+		err = DB.AutoMigrate(
+			&models.Resident{},
+			&models.User{},
+			&models.Certificate{},
+			&models.Blotter{},
+			&models.Business{},
+			&models.Appointment{},
+			&models.Notification{},
+			&models.Payment{},
+			&models.AuditLog{},
+			&models.AILog{},
+			&models.QueueTicket{},
+			&models.License{},
+			&models.MedicineStock{},
+			&models.HealthRecord{},
+			&models.DispensedItem{},
+		)
+		if err != nil {
+			log.Printf("[LOCAL DB WARNING] Local DB auto-migration warning: %v", err)
+		} else {
+			log.Println("[LOCAL DB] Primary Local Database migration completed.")
+		}
 	}
 
 	return DB, nil

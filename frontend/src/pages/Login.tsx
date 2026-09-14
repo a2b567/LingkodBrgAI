@@ -488,7 +488,9 @@ export const Login: React.FC = () => {
               <span>Continue with Google Account</span>
             </button>
 
-            <div className="text-center mt-6">
+
+
+            <div className="text-center mt-4">
               <p className="text-xs text-slate-400 font-medium">
                 New Resident?{' '}
                 <Link to="/register" className="text-gov-blue-600 dark:text-gov-blue-400 font-bold hover:underline">

@@ -155,7 +155,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   }, []);
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff'] },
+    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Health Worker', 'Staff'] },
     { name: 'Residents', path: '/residents', icon: <Users size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Households', path: '/households', icon: <Home size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Health Records', path: '/health-records', icon: <Activity size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff'] },

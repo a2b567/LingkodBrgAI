@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   FileText, Plus, Check, X, Search, ArrowDownToLine, Signature, MonitorSmartphone,
   Activity, Clock, CheckCircle2, XCircle, CreditCard, Sparkles, AlertCircle,
-  Edit3, Trash2, FolderPlus, UserCheck, Printer
+  Edit3, Trash2, UserCheck, Printer
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Certificate, Resident } from '../types';
@@ -39,9 +39,56 @@ export const Certificates: React.FC = () => {
   const [editStatus, setEditStatus] = useState('Pending');
   const [editPaymentStatus, setEditPaymentStatus] = useState('Unpaid');
 
-  // Print ID Card Modal State
+  // Print ID Card Modal State & Live Editor
   const [isIDModalOpen, setIsIDModalOpen] = useState(false);
   const [idCertToPrint, setIdCertToPrint] = useState<Certificate | null>(null);
+  const [isEditingIDForm, setIsEditingIDForm] = useState(true);
+  const [idForm, setIdForm] = useState({
+    docNo: '',
+    residentName: '',
+    gender: 'Male',
+    civilStatus: 'Single',
+    voterStatus: 'Registered Voter',
+    address: '',
+    purpose: 'Official Resident Identification',
+    emergencyHotline: '911 / (049) 501-BRGY',
+    issueDate: new Date().toISOString().split('T')[0],
+    signatoryName: 'HON. ROBERTO V. LUNA',
+    signatoryTitle: 'Punong Barangay',
+    qrId: 'RES-2026',
+    photoUrl: '',
+  });
+
+  const handleOpenIDModal = (cert: Certificate) => {
+    setIdCertToPrint(cert);
+    const residentName = cert.resident 
+      ? `${cert.resident.first_name} ${cert.resident.middle_name ? cert.resident.middle_name[0] + '.' : ''} ${cert.resident.last_name}` 
+      : 'RESIDENT USER';
+    const residentAddress = cert.resident?.address || 'Barangay Lawrence, Laguna, Philippines';
+    const residentGender = cert.resident?.gender || 'Male';
+    const residentCivilStatus = cert.resident?.civil_status || 'Single';
+    const residentVoterStatus = cert.resident?.voter_status || 'Registered Voter';
+    const issueDateFormatted = cert.issue_date 
+      ? new Date(cert.issue_date).toISOString().split('T')[0] 
+      : new Date().toISOString().split('T')[0];
+
+    setIdForm({
+      docNo: cert.document_number,
+      residentName,
+      gender: residentGender,
+      civilStatus: residentCivilStatus,
+      voterStatus: residentVoterStatus,
+      address: residentAddress,
+      purpose: cert.purpose || 'Official Resident Identification',
+      emergencyHotline: '911 / (049) 501-BRGY',
+      issueDate: issueDateFormatted,
+      signatoryName: 'HON. ROBERTO V. LUNA',
+      signatoryTitle: 'Punong Barangay',
+      qrId: cert.resident?.qr_id || 'RES-2026',
+      photoUrl: cert.resident?.profile_photo || cert.resident?.photo_url || '',
+    });
+    setIsIDModalOpen(true);
+  };
 
   // Printable Official Certificate Modal State
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
@@ -642,10 +689,7 @@ export const Certificates: React.FC = () => {
                       <div className="flex items-center justify-end gap-2">
                         {cert.type === 'Barangay ID' ? (
                           <button
-                            onClick={() => {
-                              setIdCertToPrint(cert);
-                              setIsIDModalOpen(true);
-                            }}
+                            onClick={() => handleOpenIDModal(cert)}
                             className="p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-xl transition-colors flex items-center gap-1 text-[10px] font-bold cursor-pointer"
                             title="Print Barangay ID Card"
                           >
@@ -981,213 +1025,391 @@ export const Certificates: React.FC = () => {
         </div>
       )}
 
-      {/* 9. Modal - Printable Barangay Resident ID Card */}
+      {/* 9. Modal - Printable & Live Editable Barangay Resident ID Card */}
       {isIDModalOpen && idCertToPrint && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-4xl w-full shadow-2xl p-6 sm:p-8 text-white relative animate-scale-up space-y-6">
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl max-w-6xl w-full shadow-2xl p-4 sm:p-6 text-slate-900 dark:text-white relative animate-scale-up space-y-4 my-auto max-h-[95vh] flex flex-col">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-tr from-rose-500 to-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-rose-500/20">
                   <CreditCard size={22} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black uppercase tracking-wider text-white">OFFICIAL BARANGAY RESIDENT ID</h3>
-                  <p className="text-xs text-slate-400 font-medium">Standard CR80 ISO Security ID • Barangay Lawrence, Laguna</p>
+                  <h3 className="text-base font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    OFFICIAL BARANGAY RESIDENT ID
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                      LIVE EDITOR &amp; PREVIEW
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Standard CR80 ISO Security ID • Barangay Lawrence, Laguna</p>
                 </div>
               </div>
-              <button 
-                onClick={() => setIsIDModalOpen(false)} 
-                className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingIDForm(!isEditingIDForm)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    isEditingIDForm
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <Edit3 size={14} />
+                  <span>{isEditingIDForm ? 'Hide Field Editor' : 'Show Field Editor'}</span>
+                </button>
+                <button 
+                  onClick={() => setIsIDModalOpen(false)} 
+                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
-            {/* Print Instruction Alert */}
-            <div className="bg-gov-blue-950/40 border border-gov-blue-800/40 rounded-2xl p-3.5 flex items-center gap-3 text-xs text-gov-blue-200">
-              <Sparkles size={18} className="text-gov-gold-400 shrink-0" />
-              <span>
-                <strong>Ready for Lamination:</strong> Click <strong>"Print ID Card"</strong> to print directly onto standard CR80 photo card paper (Front & Back aligned on 1 sheet).
-              </span>
-            </div>
-
-            {/* ID Card Front & Back Container (PRINTABLE CONTAINER) */}
-            <div id="printable-id-card-sheet" className="flex flex-col items-center justify-center gap-6 my-2">
+            {/* Split Screen: Live Editor Controls & Printable ID Card Sheet */}
+            <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-5 pr-1 min-h-0">
               
-              <div className="flex flex-col md:flex-row items-center justify-center gap-6 overflow-x-auto w-full py-2">
-                
-                {/* ========== FRONT SIDE ========== */}
-                <div className="w-[360px] h-[228px] shrink-0 bg-gradient-to-br from-gov-blue-950 via-slate-900 to-indigo-950 border-2 border-gov-gold-500/80 rounded-2xl p-4 shadow-2xl relative overflow-hidden text-slate-100 flex flex-col justify-between">
-                  
-                  {/* Security Guilloché Background Accent */}
-                  <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#eab308_1px,transparent_1px)] [background-size:12px_12px]"></div>
-                  <div className="absolute top-[-20px] right-[-20px] w-36 h-36 bg-gov-gold-500/10 rounded-full blur-2xl pointer-events-none"></div>
+              {/* Left Column: Live Field Editor Controls */}
+              {isEditingIDForm && (
+                <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 shrink-0 text-xs overflow-y-auto max-h-[72vh]">
+                  <h4 className="text-xs font-black uppercase text-gov-gold-600 dark:text-gov-gold-400 tracking-wider flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <Edit3 size={14} /> Live ID Card Editor
+                  </h4>
 
-                  {/* Top Letterhead */}
-                  <div className="flex items-center justify-between border-b border-gov-gold-500/40 pb-2 relative z-10">
-                    <div className="flex items-center gap-2.5">
-                      <div className="leading-none">
-                        <span className="text-[7.5px] font-extrabold uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
-                        <h4 className="text-[10px] font-black uppercase tracking-wider text-white mt-0.5">BARANGAY SAN ISIDRO • BAY, LAGUNA</h4>
-                        <span className="text-[6.5px] font-bold text-slate-400 uppercase tracking-wider block mt-0.5">RESIDENT IDENTIFICATION CARD</span>
-                      </div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/50 shrink-0">
-                      OFFICIAL
-                    </span>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">ID Control No.</label>
+                    <input
+                      type="text"
+                      value={idForm.docNo}
+                      onChange={(e) => setIdForm({ ...idForm, docNo: e.target.value })}
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs font-bold text-gov-gold-600 dark:text-gov-gold-400 focus:outline-none focus:border-gov-blue-500"
+                    />
                   </div>
 
-                  {/* Body Content */}
-                  <div className="flex gap-3.5 items-start flex-1 mt-2.5 relative z-10">
-                    {/* Photo & Verified Badge */}
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className="w-[80px] h-[86px] bg-slate-800 border-2 border-gov-gold-400/90 rounded-xl overflow-hidden shadow-md flex items-center justify-center relative">
-                        {idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url ? (
-                          <img src={idCertToPrint.resident?.profile_photo || idCertToPrint.resident?.photo_url} alt="Resident" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="flex flex-col items-center justify-center text-slate-400 p-2">
-                            <UserCheck size={36} className="text-gov-gold-400" />
-                            <span className="text-[7px] font-extrabold mt-1 text-slate-300">VERIFIED</span>
-                          </div>
-                        )}
-                        <div className="absolute bottom-0 inset-x-0 bg-gov-blue-900/95 text-center py-0.5 text-[6.5px] font-black text-gov-gold-300 tracking-wider">
-                          {idCertToPrint.resident?.qr_id || 'RES-2026'}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Resident Details */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div>
-                        <span className="text-[6.5px] font-extrabold text-gov-gold-400 uppercase tracking-widest block leading-none">FULL NAME</span>
-                        <h3 className="text-[13px] font-black text-white uppercase tracking-tight leading-tight truncate">
-                          {idCertToPrint.resident ? `${idCertToPrint.resident.first_name} ${idCertToPrint.resident.middle_name ? idCertToPrint.resident.middle_name[0] + '.' : ''} ${idCertToPrint.resident.last_name}` : 'Resident User'}
-                        </h3>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-1.5 text-[8.5px] pt-0.5">
-                        <div>
-                          <span className="text-[6.5px] font-bold text-slate-400 uppercase block leading-none">CIVIL STATUS</span>
-                          <span className="font-extrabold text-slate-200">{idCertToPrint.resident?.gender || 'Male'} • {idCertToPrint.resident?.civil_status || 'Single'}</span>
-                        </div>
-                        <div>
-                          <span className="text-[6.5px] font-bold text-slate-400 uppercase block leading-none">VOTER STATUS</span>
-                          <span className="font-extrabold text-emerald-400">{idCertToPrint.resident?.voter_status || 'Registered'}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <span className="text-[6.5px] font-bold text-slate-400 uppercase block leading-none">RESIDENTIAL ADDRESS</span>
-                        <p className="text-[8px] font-bold text-slate-300 leading-tight line-clamp-2">
-                          {idCertToPrint.resident?.address || 'Barangay Lawrence, Laguna, Philippines'}
-                        </p>
-                      </div>
-                    </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Resident Full Name</label>
+                    <input
+                      type="text"
+                      value={idForm.residentName}
+                      onChange={(e) => setIdForm({ ...idForm, residentName: e.target.value })}
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                    />
                   </div>
 
-                  {/* Card Footer */}
-                  <div className="pt-1.5 flex items-center justify-between border-t border-gov-gold-500/30 relative z-10 text-[7.5px]">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none">CONTROL NO.</span>
-                      <span className="font-mono font-black text-gov-gold-400">{idCertToPrint.document_number}</span>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Gender</label>
+                      <input
+                        type="text"
+                        value={idForm.gender}
+                        onChange={(e) => setIdForm({ ...idForm, gender: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                      />
                     </div>
-                    <div className="text-right">
-                      <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none">DATE ISSUED</span>
-                      <span className="font-extrabold text-slate-200">
-                        {idCertToPrint.issue_date ? new Date(idCertToPrint.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ========== BACK SIDE ========== */}
-                <div className="w-[360px] h-[228px] shrink-0 bg-slate-950 border-2 border-slate-700/80 rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden shadow-2xl text-slate-200">
-                  
-                  {/* Watermark */}
-                  <div className="absolute top-2 left-2 opacity-5 pointer-events-none font-black text-6xl text-slate-500">
-                    LAGUNA
-                  </div>
-
-                  {/* Header & Notice */}
-                  <div className="space-y-1 text-left relative z-10">
-                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                      <span className="font-black text-gov-gold-400 uppercase text-[9px] tracking-wider">BARANGAY RESIDENT CREDENTIAL</span>
-                      <span className="text-[7px] font-bold text-slate-500 uppercase">PHILIPPINES LGU</span>
-                    </div>
-                    <p className="text-[7px] text-slate-400 leading-tight pt-1">
-                      This official identification card certifies that the bearer is a recognized resident of Barangay Lawrence, Laguna. If found, please return to the Barangay Hall or the nearest police station.
-                    </p>
-                  </div>
-
-                  {/* Center Section: Info & QR Code */}
-                  <div className="flex items-center justify-between gap-3 py-1 relative z-10">
-                    <div className="flex-1 space-y-1.5 text-left">
-                      <div>
-                        <span className="text-[6.5px] uppercase font-bold text-slate-500 block">CARD PURPOSE</span>
-                        <span className="text-[8.5px] font-extrabold text-slate-200 line-clamp-1">{idCertToPrint.purpose || 'Official Resident Identification'}</span>
-                      </div>
-                      <div>
-                        <span className="text-[6.5px] uppercase font-bold text-slate-500 block">DIGITAL QR HASH</span>
-                        <span className="text-[8px] font-mono text-gov-gold-400 font-bold">{idCertToPrint.qr_hash?.slice(0, 16)}</span>
-                      </div>
-                      <div>
-                        <span className="text-[6.5px] uppercase font-bold text-slate-500 block">EMERGENCY HOTLINE</span>
-                        <span className="text-[8px] font-extrabold text-rose-400">911 / (049) 501-BRGY</span>
-                      </div>
-                    </div>
-
-                    {/* Live Cryptographic QR Code */}
-                    <div className="w-[74px] h-[74px] bg-white p-1 rounded-xl flex items-center justify-center shrink-0 border border-slate-600 shadow-md">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/verify/document/${idCertToPrint.qr_hash}`)}`}
-                        alt="Security QR Code"
-                        className="w-full h-full object-contain"
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Civil Status</label>
+                      <input
+                        type="text"
+                        value={idForm.civilStatus}
+                        onChange={(e) => setIdForm({ ...idForm, civilStatus: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
                       />
                     </div>
                   </div>
 
-                  {/* Signatures Footer */}
-                  <div className="grid grid-cols-2 gap-4 pt-1.5 border-t border-slate-800 text-center relative z-10">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <div className="h-4 border-b border-slate-600/80 mb-0.5 mx-2"></div>
-                      <span className="text-[6px] font-extrabold text-slate-400 uppercase tracking-wider block">BEARER'S SIGNATURE</span>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Voter Status</label>
+                      <input
+                        type="text"
+                        value={idForm.voterStatus}
+                        onChange={(e) => setIdForm({ ...idForm, voterStatus: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                      />
                     </div>
                     <div>
-                      <div className="h-4 border-b border-slate-600/80 mb-0.5 mx-2 font-serif italic text-[7px] text-gov-gold-400 flex items-center justify-center">
-                        Hon. Barangay Captain
-                      </div>
-                      <span className="text-[6px] font-extrabold text-slate-400 uppercase tracking-wider block">PUNONG BARANGAY</span>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">QR ID Code</label>
+                      <input
+                        type="text"
+                        value={idForm.qrId}
+                        onChange={(e) => setIdForm({ ...idForm, qrId: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-700 dark:text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Residential Address</label>
+                    <input
+                      type="text"
+                      value={idForm.address}
+                      onChange={(e) => setIdForm({ ...idForm, address: e.target.value })}
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Card Purpose</label>
+                    <input
+                      type="text"
+                      value={idForm.purpose}
+                      onChange={(e) => setIdForm({ ...idForm, purpose: e.target.value })}
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Emergency Hotline</label>
+                    <input
+                      type="text"
+                      value={idForm.emergencyHotline}
+                      onChange={(e) => setIdForm({ ...idForm, emergencyHotline: e.target.value })}
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 focus:outline-none focus:border-gov-blue-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Date Issued</label>
+                      <input
+                        type="date"
+                        value={idForm.issueDate}
+                        onChange={(e) => setIdForm({ ...idForm, issueDate: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Photo Image URL</label>
+                      <input
+                        type="text"
+                        placeholder="https://..."
+                        value={idForm.photoUrl}
+                        onChange={(e) => setIdForm({ ...idForm, photoUrl: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Signatory Name</label>
+                      <input
+                        type="text"
+                        value={idForm.signatoryName}
+                        onChange={(e) => setIdForm({ ...idForm, signatoryName: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Signatory Title</label>
+                      <input
+                        type="text"
+                        value={idForm.signatoryTitle}
+                        onChange={(e) => setIdForm({ ...idForm, signatoryTitle: e.target.value })}
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                      />
                     </div>
                   </div>
                 </div>
+              )}
 
-              </div>
+              {/* Right Column: Live Printable ID Card Sheet Preview */}
+              <div className={`${isEditingIDForm ? 'lg:col-span-8' : 'lg:col-span-12'} bg-slate-100/80 dark:bg-slate-950/80 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center overflow-y-auto max-h-[72vh]`}>
+                
+                {/* Print Instruction Banner */}
+                <div className="w-full bg-gov-blue-50 dark:bg-gov-blue-950/40 border border-gov-blue-200 dark:border-gov-blue-800/40 rounded-2xl p-3 mb-4 flex items-center gap-3 text-xs text-gov-blue-900 dark:text-gov-blue-200">
+                  <Sparkles size={16} className="text-gov-gold-500 dark:text-gov-gold-400 shrink-0" />
+                  <span>
+                    <strong>Ready for Lamination:</strong> Standard CR80 ISO Security ID format (85.6mm × 54mm). Click <strong>"Print ID Card"</strong> to print.
+                  </span>
+                </div>
 
-              {/* Cut & Lamination Indicator (Visible only when printed) */}
-              <div className="hidden print:block text-center text-[8px] text-slate-500 font-bold tracking-widest uppercase border-t border-dashed border-slate-400 pt-2 mt-2 w-full">
-                ✂️ CUT ALONG EDGES FOR STANDARD CR80 CARD LAMINATION • LINGKODBRGYAI OFFICIAL
+                {/* ID Card Front & Back Container (PRINTABLE CONTAINER) */}
+                <div id="printable-id-card-sheet" className="flex flex-col items-center justify-center gap-6 my-2 w-full">
+                  
+                  <div className="flex flex-col md:flex-row items-center justify-center gap-6 overflow-x-auto w-full py-2">
+                    
+                    {/* ========== FRONT SIDE ========== */}
+                    <div className="w-[380px] h-[240px] shrink-0 bg-gradient-to-br from-gov-blue-950 via-slate-900 to-indigo-950 border-2 border-gov-gold-500/80 rounded-2xl p-3.5 shadow-2xl relative overflow-hidden text-slate-100 flex flex-col justify-between">
+                      
+                      {/* Security Guilloché Background Accent */}
+                      <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#eab308_1px,transparent_1px)] [background-size:12px_12px]"></div>
+                      <div className="absolute top-[-20px] right-[-20px] w-36 h-36 bg-gov-gold-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+                      {/* Top Letterhead */}
+                      <div className="flex items-center justify-between border-b border-gov-gold-500/40 pb-1.5 relative z-10">
+                        <div className="leading-none">
+                          <span className="text-[7px] font-extrabold uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
+                          <h4 className="text-[9.5px] font-black uppercase tracking-wide text-white mt-0.5">BARANGAY SAN ISIDRO • BAY, LAGUNA</h4>
+                          <span className="text-[6px] font-bold text-slate-400 uppercase tracking-wider block">RESIDENT IDENTIFICATION CARD</span>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/50 shrink-0 ml-2">
+                          OFFICIAL
+                        </span>
+                      </div>
+
+                      {/* Body Content */}
+                      <div className="flex gap-3 items-stretch flex-1 mt-2 relative z-10 min-h-0">
+                        {/* Photo */}
+                        <div className="flex flex-col items-center shrink-0">
+                          <div className="w-[72px] h-[82px] bg-slate-800 border-2 border-gov-gold-400/90 rounded-xl overflow-hidden shadow-md flex items-center justify-center relative">
+                            {idForm.photoUrl ? (
+                              <img src={idForm.photoUrl} alt="Resident" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-slate-400 p-1">
+                                <UserCheck size={30} className="text-gov-gold-400" />
+                                <span className="text-[6px] font-extrabold mt-0.5 text-slate-300 text-center">VERIFIED</span>
+                              </div>
+                            )}
+                            <div className="absolute bottom-0 inset-x-0 bg-gov-blue-900/95 text-center py-0.5 text-[6px] font-black text-gov-gold-300 tracking-wide truncate px-0.5">
+                              {idForm.qrId || 'RES-2026'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Resident Details */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
+                            <span className="text-[6px] font-extrabold text-gov-gold-400 uppercase tracking-widest block leading-none mb-0.5">FULL NAME</span>
+                            <h3 className="text-[11.5px] font-black text-white uppercase tracking-tight leading-tight break-words">
+                              {idForm.residentName || 'Resident User'}
+                            </h3>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-[8px] mt-1">
+                            <div>
+                              <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none">CIVIL STATUS</span>
+                              <span className="font-extrabold text-slate-200 text-[8px]">{idForm.gender} • {idForm.civilStatus}</span>
+                            </div>
+                            <div>
+                              <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none">VOTER STATUS</span>
+                              <span className="font-extrabold text-emerald-400 text-[8px]">{idForm.voterStatus}</span>
+                            </div>
+                          </div>
+
+                          <div className="mt-1">
+                            <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none mb-0.5">RESIDENTIAL ADDRESS</span>
+                            <p className="text-[7.5px] font-bold text-slate-300 leading-tight line-clamp-2">
+                              {idForm.address || 'Barangay Lawrence, Laguna, Philippines'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Footer */}
+                      <div className="pt-1 flex items-center justify-between border-t border-gov-gold-500/30 relative z-10">
+                        <div>
+                          <span className="text-[5.5px] font-bold text-slate-400 uppercase block leading-none">CONTROL NO.</span>
+                          <span className="font-mono font-black text-gov-gold-400 text-[7.5px]">{idForm.docNo}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[5.5px] font-bold text-slate-400 uppercase block leading-none">DATE ISSUED</span>
+                          <span className="font-extrabold text-slate-200 text-[7.5px]">
+                            {idForm.issueDate ? new Date(idForm.issueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ========== BACK SIDE ========== */}
+                    <div className="w-[380px] h-[240px] shrink-0 bg-slate-950 border-2 border-slate-700/80 rounded-2xl p-3.5 flex flex-col justify-between relative overflow-hidden shadow-2xl text-slate-200">
+                      
+                      {/* Watermark */}
+                      <div className="absolute top-2 left-2 opacity-5 pointer-events-none font-black text-6xl text-slate-500">
+                        LAGUNA
+                      </div>
+
+                      {/* Header & Notice */}
+                      <div className="relative z-10">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                          <span className="font-black text-gov-gold-400 uppercase text-[9px] tracking-wider">BARANGAY RESIDENT CREDENTIAL</span>
+                          <span className="text-[7px] font-bold text-slate-500 uppercase">PHILIPPINES LGU</span>
+                        </div>
+                        <p className="text-[6.5px] text-slate-400 leading-tight pt-1">
+                          This official identification card certifies that the bearer is a recognized resident of Barangay Lawrence, Laguna. If found, please return to the Barangay Hall or the nearest police station.
+                        </p>
+                      </div>
+
+                      {/* Center Section: Info & QR Code */}
+                      <div className="flex items-center justify-between gap-3 py-1 relative z-10 flex-1">
+                        <div className="flex-1 space-y-1.5 text-left min-w-0">
+                          <div>
+                            <span className="text-[6px] uppercase font-bold text-slate-500 block">CARD PURPOSE</span>
+                            <span className="text-[8px] font-extrabold text-slate-200 block leading-tight">{idForm.purpose || 'Official Resident Identification'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[6px] uppercase font-bold text-slate-500 block">DIGITAL QR HASH</span>
+                            <span className="text-[7.5px] font-mono text-gov-gold-400 font-bold break-all">{(idCertToPrint.qr_hash || idForm.docNo).slice(0, 20)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[6px] uppercase font-bold text-slate-500 block">EMERGENCY HOTLINE</span>
+                            <span className="text-[8px] font-extrabold text-rose-400">{idForm.emergencyHotline}</span>
+                          </div>
+                          <div>
+                            <span className="text-[6px] uppercase font-bold text-slate-500 block">RESIDENTIAL ADDRESS</span>
+                            <span className="text-[7px] font-bold text-slate-300 leading-tight line-clamp-2 block">{idForm.address || 'Barangay Lawrence, Laguna'}</span>
+                          </div>
+                        </div>
+
+                        {/* Live Cryptographic QR Code */}
+                        <div className="w-[76px] h-[76px] bg-white p-1 rounded-xl flex items-center justify-center shrink-0 border border-slate-600 shadow-md">
+                          <img
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`${window.location.origin}/verify/document/${idCertToPrint.qr_hash || idForm.docNo}`)}`}
+                            alt="Security QR Code"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Signatures Footer */}
+                      <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-slate-800 text-center relative z-10">
+                        <div>
+                          <div className="h-4 border-b border-slate-600/80 mb-0.5 mx-1"></div>
+                          <span className="text-[5.5px] font-extrabold text-slate-400 uppercase tracking-wider block">BEARER'S SIGNATURE</span>
+                        </div>
+                        <div>
+                          <div className="h-4 border-b border-slate-600/80 mb-0.5 mx-1 font-serif italic text-[6.5px] text-gov-gold-400 flex items-center justify-center overflow-hidden">
+                            {idForm.signatoryName}
+                          </div>
+                          <span className="text-[5.5px] font-extrabold text-slate-400 uppercase tracking-wider block">{idForm.signatoryTitle}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Cut & Lamination Indicator (Visible only when printed) */}
+                  <div className="hidden print:block text-center text-[8px] text-slate-500 font-bold tracking-widest uppercase border-t border-dashed border-slate-400 pt-2 mt-2 w-full">
+                    ✂️ CUT ALONG EDGES FOR STANDARD CR80 CARD LAMINATION • LINGKODBRGYAI OFFICIAL
+                  </div>
+
+                </div>
+
               </div>
 
             </div>
 
             {/* Modal Actions */}
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 border-t border-slate-800 gap-4">
-              <span className="text-[11px] text-slate-400 font-medium">Standard CR80 Printable Format (85.6mm × 54mm)</span>
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800 gap-3 shrink-0">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Standard CR80 Printable Format (85.6mm × 54mm)</span>
+              <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => setIsIDModalOpen(false)}
-                  className="px-6 py-2.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                  className="px-5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
                 >
                   Close
                 </button>
                 <button
+                  type="button"
                   onClick={() => window.print()}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white text-xs font-black shadow-lg shadow-gov-blue-600/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer border border-white/20"
+                  className="flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white text-xs font-black shadow-lg shadow-gov-blue-600/30 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer border border-white/20"
                 >
-                  <ArrowDownToLine size={16} />
-                  Print ID Card
+                  <Printer size={15} />
+                  <span>Print ID Card Now</span>
                 </button>
               </div>
             </div>
@@ -1198,23 +1420,23 @@ export const Certificates: React.FC = () => {
 
       {/* 10. Modal - Printable & Live Editable Official Certificate */}
       {isPrintModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-6xl w-full shadow-2xl p-4 sm:p-6 text-white relative animate-scale-up space-y-4 my-auto max-h-[95vh] flex flex-col">
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl max-w-6xl w-full shadow-2xl p-4 sm:p-6 text-slate-900 dark:text-white relative animate-scale-up space-y-4 my-auto max-h-[95vh] flex flex-col">
             
             {/* Modal Top Control Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-tr from-gov-blue-600 to-indigo-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-gov-blue-600/30">
                   <Printer size={20} />
                 </div>
                 <div>
-                  <h3 className="text-base font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  <h3 className="text-base font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
                     Printable Official Certificate
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-gov-blue-500/20 text-gov-blue-400 border border-gov-blue-500/40">
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-gov-blue-500/10 dark:bg-gov-blue-500/20 text-gov-blue-600 dark:text-gov-blue-400 border border-gov-blue-500/40">
                       LIVE EDITOR &amp; PREVIEW
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-400 font-medium">Edit document fields in real-time before printing or downloading</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Edit document fields in real-time before printing or downloading</p>
                 </div>
               </div>
 
@@ -1224,8 +1446,8 @@ export const Certificates: React.FC = () => {
                   onClick={() => setIsEditingPrintForm(!isEditingPrintForm)}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isEditingPrintForm
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                      ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
                   }`}
                 >
                   <Edit3 size={14} />
@@ -1233,7 +1455,7 @@ export const Certificates: React.FC = () => {
                 </button>
                 <button 
                   onClick={() => setIsPrintModalOpen(false)} 
-                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
                 >
                   <X size={18} />
                 </button>
@@ -1245,130 +1467,130 @@ export const Certificates: React.FC = () => {
               
               {/* Left Column: Live Field Editor Controls */}
               {isEditingPrintForm && (
-                <div className="lg:col-span-4 bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3 shrink-0 text-xs overflow-y-auto max-h-[72vh]">
-                  <h4 className="text-xs font-black uppercase text-gov-gold-400 tracking-wider flex items-center gap-1.5 border-b border-slate-800 pb-2">
+                <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 shrink-0 text-xs overflow-y-auto max-h-[72vh]">
+                  <h4 className="text-xs font-black uppercase text-gov-gold-600 dark:text-gov-gold-400 tracking-wider flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2">
                     <Edit3 size={14} /> Live Field Editor
                   </h4>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Document Control No.</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Document Control No.</label>
                     <input
                       type="text"
                       value={printForm.docNo}
                       onChange={(e) => setPrintForm({ ...printForm, docNo: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl font-mono text-xs font-bold text-gov-gold-400 focus:outline-none focus:border-gov-blue-500"
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-xs font-bold text-gov-gold-600 dark:text-gov-gold-400 focus:outline-none focus:border-gov-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Resident Full Name</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Resident Full Name</label>
                     <input
                       type="text"
                       value={printForm.residentName}
                       onChange={(e) => setPrintForm({ ...printForm, residentName: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-gov-blue-500"
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Civil Status</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Civil Status</label>
                       <input
                         type="text"
                         value={printForm.civilStatus}
                         onChange={(e) => setPrintForm({ ...printForm, civilStatus: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500"
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Citizenship</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Citizenship</label>
                       <input
                         type="text"
                         value={printForm.citizenship}
                         onChange={(e) => setPrintForm({ ...printForm, citizenship: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500"
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Address</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Address</label>
                     <input
                       type="text"
                       value={printForm.address}
                       onChange={(e) => setPrintForm({ ...printForm, address: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500"
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Certificate Header Title</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Certificate Header Title</label>
                     <input
                       type="text"
                       value={printForm.type}
                       onChange={(e) => setPrintForm({ ...printForm, type: e.target.value })}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-gov-blue-500"
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Purpose / Requested Intent</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Purpose / Requested Intent</label>
                     <textarea
                       value={printForm.purpose}
                       onChange={(e) => setPrintForm({ ...printForm, purpose: e.target.value })}
                       rows={2}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500 resize-none"
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500 resize-none"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Official Remarks</label>
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Official Remarks</label>
                     <textarea
                       value={printForm.remarks}
                       onChange={(e) => setPrintForm({ ...printForm, remarks: e.target.value })}
                       rows={2}
-                      className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-gov-blue-500 resize-none"
+                      className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500 resize-none"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">O.R. Number</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">O.R. Number</label>
                       <input
                         type="text"
                         value={printForm.orNo}
                         onChange={(e) => setPrintForm({ ...printForm, orNo: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono text-slate-700 dark:text-slate-300 focus:outline-none focus:border-gov-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Fee Paid (₱)</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Fee Paid (₱)</label>
                       <input
                         type="number"
                         value={printForm.fee}
                         onChange={(e) => setPrintForm({ ...printForm, fee: parseFloat(e.target.value) || 0 })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 focus:outline-none focus:border-gov-blue-500"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Signatory Name</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Signatory Name</label>
                       <input
                         type="text"
                         value={printForm.signatoryName}
                         onChange={(e) => setPrintForm({ ...printForm, signatoryName: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-gov-blue-500"
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-gov-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Signatory Title</label>
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Signatory Title</label>
                       <input
                         type="text"
                         value={printForm.signatoryTitle}
                         onChange={(e) => setPrintForm({ ...printForm, signatoryTitle: e.target.value })}
-                        className="w-full p-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-gov-blue-500"
+                        className="w-full p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-600 dark:text-slate-300 focus:outline-none focus:border-gov-blue-500"
                       />
                     </div>
                   </div>
@@ -1376,15 +1598,13 @@ export const Certificates: React.FC = () => {
               )}
 
               {/* Right Column: Live Printable Certificate Document Preview */}
-              <div className={`${isEditingPrintForm ? 'lg:col-span-8' : 'lg:col-span-12'} bg-slate-950/80 p-4 sm:p-6 rounded-2xl border border-slate-800 flex flex-col items-center overflow-y-auto max-h-[72vh]`}>
+              <div className={`${isEditingPrintForm ? 'lg:col-span-8' : 'lg:col-span-12'} bg-slate-100/80 dark:bg-slate-950/80 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center overflow-y-auto max-h-[72vh]`}>
                 
                 {/* Official Certificate Printable Container */}
                 <div 
                   id="printable-certificate-sheet" 
                   className="w-full max-w-[210mm] min-h-[275mm] bg-white text-slate-950 p-8 sm:p-12 shadow-2xl relative flex flex-col justify-between border-8 border-double border-gov-blue-950 my-auto text-left font-serif"
                 >
-                  {/* Subtle Security Seal Watermark — removed */}
-
                   <div className="space-y-6 relative z-10">
                     
                     {/* Header Letterhead */}
@@ -1502,13 +1722,13 @@ export const Certificates: React.FC = () => {
             </div>
 
             {/* Modal Bottom Actions Bar */}
-            <div className="flex flex-col sm:flex-row items-center justify-between pt-3 border-t border-slate-800 gap-3 shrink-0">
-              <span className="text-xs text-slate-400 font-medium">Standard A4 Printable Official Document</span>
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-3 border-t border-slate-200 dark:border-slate-800 gap-3 shrink-0">
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Standard A4 Printable Official Document</span>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsPrintModalOpen(false)}
-                  className="px-5 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                  className="px-5 py-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-extrabold transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
                 >
                   Close
                 </button>

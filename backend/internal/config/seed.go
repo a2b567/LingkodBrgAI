@@ -10,30 +10,66 @@ import (
 )
 
 func SeedDatabase(db *gorm.DB) error {
-	var userCount int64
-	db.Model(&models.User{}).Count(&userCount)
-	if userCount > 0 {
-		log.Println("Database already has users. Skipping seed...")
-		return nil
-	}
-
-	log.Println("Seeding initial Super Admin account...")
-
 	hashPassword := func(pw string) string {
 		hash, _ := bcrypt.GenerateFromPassword([]byte(pw), bcrypt.DefaultCost)
 		return string(hash)
 	}
 
-	// Create only the Super Admin account — no demo residents or fake staff
-	admin := models.User{
-		Username:     "admin",
-		Email:        "admin@barangay.gov",
-		PasswordHash: hashPassword("Admin@2026!"),
-		Role:         "Super Admin",
-		IsVerified:   true,
+	defaultUsers := []models.User{
+		{
+			Username:     "admin",
+			Email:        "admin@barangay.gov",
+			PasswordHash: hashPassword("Admin@2026!"),
+			Role:         "Super Admin",
+			IsVerified:   true,
+		},
+		{
+			Username:     "captain",
+			Email:        "captain@barangay.gov",
+			PasswordHash: hashPassword("Captain@2026!"),
+			Role:         "Barangay Captain",
+			IsVerified:   true,
+		},
+		{
+			Username:     "secretary",
+			Email:        "secretary@barangay.gov",
+			PasswordHash: hashPassword("Secretary@2026!"),
+			Role:         "Secretary",
+			IsVerified:   true,
+		},
+		{
+			Username:     "healthworker",
+			Email:        "health@barangay.gov",
+			PasswordHash: hashPassword("Health@2026!"),
+			Role:         "Health Worker",
+			IsVerified:   true,
+		},
+		{
+			Username:     "treasurer",
+			Email:        "treasurer@barangay.gov",
+			PasswordHash: hashPassword("Treasurer@2026!"),
+			Role:         "Treasurer",
+			IsVerified:   true,
+		},
 	}
-	if err := db.Create(&admin).Error; err != nil {
-		return err
+
+	for _, u := range defaultUsers {
+		var existingUser models.User
+		err := db.Where("username = ?", u.Username).First(&existingUser).Error
+		if err != nil {
+			if err := db.Create(&u).Error; err != nil {
+				log.Printf("Failed to seed user %s: %v", u.Username, err)
+			} else {
+				log.Printf("Seeded default account: %s (%s)", u.Username, u.Role)
+			}
+		} else {
+			// Update password hash and role to ensure default credentials match
+			db.Model(&existingUser).Updates(map[string]interface{}{
+				"password_hash": u.PasswordHash,
+				"role":          u.Role,
+				"is_verified":   true,
+			})
+		}
 	}
 
 	// Seed a default active license (required for system to operate)
@@ -54,11 +90,5 @@ func SeedDatabase(db *gorm.DB) error {
 		db.Create(&defaultLicense)
 	}
 
-	log.Println("Initial Super Admin account seeded successfully.")
-	log.Println("  Username: admin")
-	log.Println("  Email:    admin@barangay.gov")
-	log.Println("  Password: Admin@2026!")
-	log.Println("  Role:     Super Admin")
-	log.Println("IMPORTANT: Change the default password after first login!")
 	return nil
 }

@@ -24,8 +24,6 @@ export const QueueMonitor: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const defaultMonitorQueueSlots: QueueSlot[] = [];
-
   // Poll queue state from localStorage or fallback to empty
   useEffect(() => {
     const loadQueue = () => {
