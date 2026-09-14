@@ -191,6 +191,29 @@ export const api = {
       ),
   },
 
+  staffAccounts: {
+    list: () =>
+      withFallback(
+        () => client.get<{ data: any[]; total: number }>('/users/staff').then(r => r.data),
+        () => ({ data: [], total: 0 })
+      ),
+    create: (data: { username: string; email: string; password: string; role: string }) =>
+      withFallback(
+        () => client.post<{ message: string; user: any }>('/users/staff', data).then(r => r.data),
+        () => ({ message: 'Staff account created (offline mock)', user: { ...data, id: `mock-${Date.now()}`, is_verified: true } })
+      ),
+    update: (id: string, data: { username?: string; email?: string; role?: string; password?: string }) =>
+      withFallback(
+        () => client.put<{ message: string }>(`/users/staff/${id}`, data).then(r => r.data),
+        () => ({ message: 'Staff account updated (offline mock)' })
+      ),
+    delete: (id: string) =>
+      withFallback(
+        () => client.delete<{ message: string }>(`/users/staff/${id}`).then(r => r.data),
+        () => ({ message: 'Staff account deleted (offline mock)' })
+      ),
+  },
+
   residents: {
     list: (params?: any) =>
       withFallback(

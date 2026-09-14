@@ -403,3 +403,263 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 		"message": "Password reset successfully. You can now log in.",
 	})
 }
+
+// ── Staff Account Management ─────────────────────────────────────────────────
+
+// ListStaffAccounts returns all users whose role is NOT 'Resident'
+func (h *AuthHandler) ListStaffAccounts(c *gin.Context) {
+	db := config.DB
+	var users []models.User
+	if err := db.Where("role != ?", "Resident").Order("created_at desc").Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch staff accounts"})
+		return
+	}
+
+	type StaffRow struct {
+		ID         string     `json:"id"`
+		Username   string     `json:"username"`
+		Email      string     `json:"email"`
+		Role       string     `json:"role"`
+		IsVerified bool       `json:"is_verified"`
+		CreatedAt  string     `json:"created_at"`
+	}
+
+	result := make([]StaffRow, 0, len(users))
+	for _, u := range users {
+		result = append(result, StaffRow{
+			ID:         u.ID.String(),
+			Username:   u.Username,
+			Email:      u.Email,
+			Role:       u.Role,
+			IsVerified: u.IsVerified,
+			CreatedAt:  u.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": result, "total": len(result)})
+}
+
+type CreateStaffRequest struct {
+	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
+	Role     string `json:"role" binding:"required"`
+}
+
+var allowedStaffRoles = map[string]bool{
+	"Barangay Captain": true,
+	"Secretary":        true,
+	"Treasurer":        true,
+	"Health Worker":    true,
+	"Staff":            true,
+	"Super Admin":      true,
+}
+
+// CreateStaffAccount creates a staff/officer user account (no resident profile)
+func (h *AuthHandler) CreateStaffAccount(c *gin.Context) {
+	var req CreateStaffRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !allowedStaffRoles[req.Role] {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid staff role. Allowed: Barangay Captain, Secretary, Treasurer, Health Worker, Staff, Super Admin"})
+		return
+	}
+
+	if err := validatePasswordStrength(req.Password); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := config.DB
+	var count int64
+	db.Model(&models.User{}).Where("username = ? OR email = ?", req.Username, req.Email).Count(&count)
+	if count > 0 {
+		c.JSON(http.StatusConflict, gin.H{"error": "Username or Email already exists"})
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Password encryption failed"})
+		return
+	}
+
+	user := models.User{
+		Username:     req.Username,
+		Email:        req.Email,
+		PasswordHash: string(hashedPassword),
+		Role:         req.Role,
+		IsVerified:   true, // Staff accounts are pre-verified
+	}
+
+	if err := db.Create(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create staff account"})
+		return
+	}
+
+	// Audit log
+	callerIDVal, _ := c.Get("userID")
+	if callerID, ok := callerIDVal.(uuid.UUID); ok {
+		db.Create(&models.AuditLog{
+			UserID:    &callerID,
+			Action:    "CREATE_STAFF_ACCOUNT",
+			Details:   fmt.Sprintf("Created staff account: %s (%s) with role %s", user.Username, user.Email, user.Role),
+			IPAddress: c.ClientIP(),
+		})
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Staff account created successfully.",
+		"user": gin.H{
+			"id":         user.ID,
+			"username":   user.Username,
+			"email":      user.Email,
+			"role":       user.Role,
+			"is_verified": user.IsVerified,
+		},
+	})
+}
+
+type UpdateStaffRequest struct {
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+	Password string `json:"password"` // Optional: only update if non-empty
+}
+
+// UpdateStaffAccount updates a staff user's details
+func (h *AuthHandler) UpdateStaffAccount(c *gin.Context) {
+	targetID := c.Param("id")
+	parsedID, err := uuid.Parse(targetID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req UpdateStaffRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := config.DB
+	var user models.User
+	if err := db.First(&user, "id = ?", parsedID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Staff account not found"})
+		return
+	}
+
+	if user.Role == "Resident" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot modify resident accounts from this endpoint"})
+		return
+	}
+
+	updates := map[string]interface{}{}
+	if req.Username != "" && req.Username != user.Username {
+		var cnt int64
+		db.Model(&models.User{}).Where("username = ? AND id != ?", req.Username, parsedID).Count(&cnt)
+		if cnt > 0 {
+			c.JSON(http.StatusConflict, gin.H{"error": "Username already taken"})
+			return
+		}
+		updates["username"] = req.Username
+	}
+	if req.Email != "" && req.Email != user.Email {
+		var cnt int64
+		db.Model(&models.User{}).Where("email = ? AND id != ?", req.Email, parsedID).Count(&cnt)
+		if cnt > 0 {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already taken"})
+			return
+		}
+		updates["email"] = req.Email
+	}
+	if req.Role != "" && allowedStaffRoles[req.Role] {
+		updates["role"] = req.Role
+	}
+	if req.Password != "" {
+		if err := validatePasswordStrength(req.Password); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Password encryption failed"})
+			return
+		}
+		updates["password_hash"] = string(hashed)
+	}
+
+	if len(updates) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No valid fields to update"})
+		return
+	}
+
+	if err := db.Model(&user).Updates(updates).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update staff account"})
+		return
+	}
+
+	// Audit log
+	callerIDVal, _ := c.Get("userID")
+	if callerID, ok := callerIDVal.(uuid.UUID); ok {
+		db.Create(&models.AuditLog{
+			UserID:    &callerID,
+			Action:    "UPDATE_STAFF_ACCOUNT",
+			Details:   fmt.Sprintf("Updated staff account ID: %s", parsedID.String()),
+			IPAddress: c.ClientIP(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Staff account updated successfully."})
+}
+
+// DeleteStaffAccount permanently removes a staff user account
+func (h *AuthHandler) DeleteStaffAccount(c *gin.Context) {
+	targetID := c.Param("id")
+	parsedID, err := uuid.Parse(targetID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	// Prevent self-deletion
+	callerIDVal, _ := c.Get("userID")
+	if callerID, ok := callerIDVal.(uuid.UUID); ok {
+		if callerID == parsedID {
+			c.JSON(http.StatusForbidden, gin.H{"error": "You cannot delete your own account"})
+			return
+		}
+	}
+
+	db := config.DB
+	var user models.User
+	if err := db.First(&user, "id = ?", parsedID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Staff account not found"})
+		return
+	}
+
+	if user.Role == "Resident" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete resident accounts from this endpoint"})
+		return
+	}
+
+	if err := db.Unscoped().Delete(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete staff account"})
+		return
+	}
+
+	// Audit log
+	if callerID, ok := callerIDVal.(uuid.UUID); ok {
+		db.Create(&models.AuditLog{
+			UserID:    &callerID,
+			Action:    "DELETE_STAFF_ACCOUNT",
+			Details:   fmt.Sprintf("Deleted staff account: %s (%s) with role %s", user.Username, user.Email, user.Role),
+			IPAddress: c.ClientIP(),
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Staff account deleted successfully."})
+}

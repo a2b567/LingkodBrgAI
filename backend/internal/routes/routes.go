@@ -183,6 +183,16 @@ func SetupRouter() *gin.Engine {
 
 			// License Key Generation
 			staffOnly.POST("/licenses/generate", licenseHandler.Generate)
+
+			// Staff Account Management (Super Admin + Barangay Captain only)
+			adminOnly := staffOnly.Group("")
+			adminOnly.Use(middleware.RequireRoles("Super Admin", "Barangay Captain"))
+			{
+				adminOnly.GET("/users/staff", authHandler.ListStaffAccounts)
+				adminOnly.POST("/users/staff", authHandler.CreateStaffAccount)
+				adminOnly.PUT("/users/staff/:id", authHandler.UpdateStaffAccount)
+				adminOnly.DELETE("/users/staff/:id", authHandler.DeleteStaffAccount)
+			}
 		}
 	}
 

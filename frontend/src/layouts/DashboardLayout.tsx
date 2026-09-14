@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
   Briefcase, Calendar, Settings, LogOut, Sun, Moon,
-  Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle
+  Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle, UserCog
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
@@ -165,6 +165,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Blotter Records', path: '/blotter', icon: <AlertOctagon size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Staff'] },
     { name: 'Businesses', path: '/businesses', icon: <Briefcase size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff'] },
     { name: 'Settings', path: '/settings', icon: <Settings size={20} />, roles: ['all'] },
+    { name: 'Staff Accounts', path: '/staff-accounts', icon: <UserCog size={20} />, roles: ['Super Admin', 'Barangay Captain'] },
   ];
 
   const allowedItems = navItems.filter(item =>
