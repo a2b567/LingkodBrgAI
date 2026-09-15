@@ -3,7 +3,7 @@ import { api } from '../services/api';
 import { 
   Heart, Search, FileText, Pill, Activity, User, Stethoscope, Droplet,
   Clock, CheckCircle2, SearchX, Package, AlertTriangle, PackagePlus, Trash2,
-  Eye, Volume2, Sparkles, Filter, RefreshCw, UserPlus
+  Eye, Volume2, Filter, UserPlus
 } from 'lucide-react';
 
 interface HealthRecord {
@@ -45,59 +45,6 @@ export const HealthRecords: React.FC = () => {
   const [records, setRecords] = useState<HealthRecord[]>([]);
   const [view, setView] = useState<'records' | 'queue' | 'stock'>('records');
   const [selectedPatientChart, setSelectedPatientChart] = useState<HealthRecord | null>(null);
-
-  // Default sample medical records
-  const initialSampleRecords: HealthRecord[] = [
-    {
-      id: 'HR-2026-001',
-      resident_name: 'Maria Clara Santos',
-      age: 32,
-      blood_type: 'O+',
-      allergies: 'Penicillin',
-      conditions: 'Mild Hypertension',
-      last_checkup: '2026-09-10',
-      status: 'Under Observation',
-      dispensedItems: [{ medicineName: 'Paracetamol (Biogesic)', quantity: 10, date: '2026-09-10' }]
-    },
-    {
-      id: 'HR-2026-002',
-      resident_name: 'Pedro Luna (Senior)',
-      age: 68,
-      blood_type: 'A+',
-      allergies: 'None',
-      conditions: 'Type 2 Diabetes, Joint Pain',
-      last_checkup: '2026-09-12',
-      status: 'Healthy',
-      dispensedItems: [
-        { medicineName: 'Losartan', quantity: 30, date: '2026-09-12' },
-        { medicineName: 'Vitamin C (Ascorbic Acid)', quantity: 30, date: '2026-09-12' }
-      ]
-    },
-    {
-      id: 'HR-2026-003',
-      resident_name: 'Rosa Benitez',
-      age: 24,
-      blood_type: 'B+',
-      allergies: 'Latex',
-      conditions: 'Routine Prenatal Consultation',
-      last_checkup: '2026-09-14',
-      status: 'Healthy',
-      dispensedItems: [{ medicineName: 'Vitamin C (Ascorbic Acid)', quantity: 30, date: '2026-09-14' }]
-    },
-    {
-      id: 'HR-2026-004',
-      resident_name: 'Juan Dela Cruz',
-      age: 45,
-      blood_type: 'O-',
-      allergies: 'Aspirin, Shellfish',
-      conditions: 'Acute Pharyngitis, High Fever',
-      last_checkup: '2026-09-14',
-      status: 'Critical',
-      dispensedItems: [{ medicineName: 'Amoxicillin', quantity: 21, date: '2026-09-14' }]
-    }
-  ];
-
-  // --- Health Record Form ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<Partial<HealthRecord>>({
     resident_name: '', blood_type: 'O+', allergies: '', conditions: '', last_checkup: '', status: 'Healthy'
@@ -116,10 +63,6 @@ export const HealthRecords: React.FC = () => {
       setMedicineStock([]);
     });
   }, []);
-
-  const seedDemoRecords = () => {
-    setRecords(initialSampleRecords);
-  };
 
   const filteredRecords = records.filter(r => {
     const matchesSearch = r.resident_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -494,14 +437,7 @@ export const HealthRecords: React.FC = () => {
                 <option value="AB-">AB-</option>
               </select>
 
-              {records.length === 0 && (
-                <button
-                  onClick={seedDemoRecords}
-                  className="px-3 py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-xs font-black hover:bg-rose-500/20 transition-colors flex items-center gap-1.5"
-                >
-                  <RefreshCw size={14} /> Seed Sample Patients
-                </button>
-              )}
+
             </div>
           </div>
 
@@ -606,13 +542,7 @@ export const HealthRecords: React.FC = () => {
                     <td colSpan={7} className="px-6 py-16 text-center text-slate-400 dark:text-slate-500">
                       <FileText size={40} className="mx-auto mb-3 opacity-30" />
                       <p className="font-extrabold text-sm text-slate-700 dark:text-slate-300">No medical records match your criteria.</p>
-                      <p className="text-xs text-slate-500 mt-1">Try adjusting your search terms or click below to seed demo patient records.</p>
-                      <button
-                        onClick={seedDemoRecords}
-                        className="mt-4 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-2xl text-xs font-black shadow-lg shadow-rose-600/30 transition-all inline-flex items-center gap-2 cursor-pointer"
-                      >
-                        <Sparkles size={15} /> Seed Sample Patient Records
-                      </button>
+                      <p className="text-xs text-slate-500 mt-1">Try adjusting your search terms or click "+ New Patient Record" above.</p>
                     </td>
                   </tr>
                 )}
