@@ -411,24 +411,8 @@ export const Dashboard: React.FC = () => {
   };
 
   // Health data compilations
-  const defaultHealthRecords = [
-    { id: 'HR-2026-001', resident_name: 'Maria Clara Santos', age: 32, blood_type: 'O+', status: 'Under Observation' },
-    { id: 'HR-2026-002', resident_name: 'Pedro Luna (Senior)', age: 68, blood_type: 'A+', status: 'Healthy' },
-    { id: 'HR-2026-003', resident_name: 'Rosa Benitez', age: 24, blood_type: 'B+', status: 'Healthy' },
-    { id: 'HR-2026-004', resident_name: 'Juan Dela Cruz', age: 45, blood_type: 'O-', status: 'Critical' },
-  ];
-
-  const defaultStockData = [
-    { id: 'MS-001', name: 'Paracetamol 500mg', category: 'Analgesic', stock: 120, unit: 'tablets', minStock: 20 },
-    { id: 'MS-002', name: 'Amoxicillin 500mg', category: 'Antibiotic', stock: 12, unit: 'capsules', minStock: 15 },
-    { id: 'MS-003', name: 'Vitamin C', category: 'Supplement', stock: 200, unit: 'tablets', minStock: 30 },
-    { id: 'MS-004', name: 'Flu Vaccine', category: 'Vaccine', stock: 4, unit: 'vials', minStock: 5 },
-    { id: 'MS-005', name: 'Losartan 50mg', category: 'Antihypertensive', stock: 85, unit: 'tablets', minStock: 10 },
-    { id: 'MS-006', name: 'Cetirizine 10mg', category: 'Antihistamine', stock: 45, unit: 'tablets', minStock: 10 },
-  ];
-
-  const effectiveHealthRecords = healthRecordsList.length > 0 ? healthRecordsList : defaultHealthRecords;
-  const effectiveMedicineStock = medicineStockList.length > 0 ? medicineStockList : defaultStockData;
+  const effectiveHealthRecords = healthRecordsList;
+  const effectiveMedicineStock = medicineStockList;
 
   const isHealthWorker = user?.role === 'Health Worker';
 
