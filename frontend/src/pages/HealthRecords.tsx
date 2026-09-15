@@ -105,20 +105,16 @@ export const HealthRecords: React.FC = () => {
 
   useEffect(() => {
     api.health.listRecords().then(data => {
-      if (Array.isArray(data) && data.length > 0) {
-        setRecords(data);
-      } else {
-        setRecords(initialSampleRecords);
-      }
+      setRecords(Array.isArray(data) ? data : []);
     }).catch(() => {
-      setRecords(initialSampleRecords);
+      setRecords([]);
     });
 
     api.health.listStock().then(data => {
-      if (Array.isArray(data) && data.length > 0) {
-        setMedicineStock(data);
-      }
-    }).catch(console.error);
+      setMedicineStock(Array.isArray(data) ? data : []);
+    }).catch(() => {
+      setMedicineStock([]);
+    });
   }, []);
 
   const seedDemoRecords = () => {
@@ -203,16 +199,7 @@ export const HealthRecords: React.FC = () => {
   const totalMedicinesDispensed = records.reduce((total, record) =>
     total + (record.dispensedItems?.reduce((sum, item) => sum + item.quantity, 0) || 0), 0);
 
-  // --- Medicine Stock / Inventory ---
-  const defaultStock: MedicineStock[] = [
-    { id: 'MS-001', name: 'Paracetamol (Biogesic 500mg)', category: 'Analgesic', stock: 120, unit: 'tablets', minStock: 20 },
-    { id: 'MS-002', name: 'Amoxicillin 500mg', category: 'Antibiotic', stock: 12, unit: 'capsules', minStock: 15 },
-    { id: 'MS-003', name: 'Vitamin C (Ascorbic Acid)', category: 'Supplement', stock: 200, unit: 'tablets', minStock: 30 },
-    { id: 'MS-004', name: 'Flu Vaccine (Influenza)', category: 'Vaccine', stock: 4, unit: 'vials', minStock: 5 },
-    { id: 'MS-005', name: 'Losartan 50mg', category: 'Antihypertensive', stock: 85, unit: 'tablets', minStock: 10 },
-    { id: 'MS-006', name: 'Cetirizine 10mg', category: 'Antihistamine', stock: 45, unit: 'tablets', minStock: 10 },
-  ];
-  const [medicineStock, setMedicineStock] = useState<MedicineStock[]>(defaultStock);
+  const [medicineStock, setMedicineStock] = useState<MedicineStock[]>([]);
   const [stockForm, setStockForm] = useState({ name: '', category: 'Analgesic', quantity: 50, unit: 'tablets', minStock: 10 });
   const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
 
@@ -274,13 +261,7 @@ export const HealthRecords: React.FC = () => {
   };
 
   // --- FCFS Clinic Queue ---
-  const defaultQueueItems: QueueItem[] = [
-    { id: 'Q-101', residentName: 'PEDRO LUNA (PWD Priority)', service: 'Consultation', queueNumber: 1, timestamp: Date.now() - 1200000, status: 'waiting', isPriority: true },
-    { id: 'Q-102', residentName: 'ROSA BENITEZ', service: 'Vaccination', queueNumber: 2, timestamp: Date.now() - 900000, status: 'waiting', isPriority: false },
-    { id: 'Q-103', residentName: 'RAMON BAUTISTA', service: 'Medicine Pickup', queueNumber: 3, timestamp: Date.now() - 300000, status: 'waiting', isPriority: false }
-  ];
-
-  const [queueList, setQueueList] = useState<QueueItem[]>(defaultQueueItems);
+  const [queueList, setQueueList] = useState<QueueItem[]>([]);
   const [queueForm, setQueueForm] = useState({ residentName: '', service: 'Checkup', isPriority: false });
 
   const handleAddToQueue = (e: React.FormEvent) => {

@@ -31,22 +31,7 @@ func cleanDB(db *gorm.DB, name string) {
 	db.Exec("DELETE FROM audit_logs")
 	db.Exec("DELETE FROM ai_logs")
 
-	fmt.Printf("Cleaned operational tables in %s successfully.\n", name)
-
-	// Seed clean default medicine inventory
-	defaultStock := []models.MedicineStock{
-		{Name: "Paracetamol (Biogesic 500mg)", Category: "Analgesic", Stock: 120, Unit: "tablets", MinStock: 20},
-		{Name: "Amoxicillin 500mg", Category: "Antibiotic", Stock: 12, Unit: "capsules", MinStock: 15},
-		{Name: "Vitamin C (Ascorbic Acid)", Category: "Supplement", Stock: 200, Unit: "tablets", MinStock: 30},
-		{Name: "Flu Vaccine (Influenza)", Category: "Vaccine", Stock: 4, Unit: "vials", MinStock: 5},
-		{Name: "Losartan 50mg", Category: "Antihypertensive", Stock: 85, Unit: "tablets", MinStock: 10},
-		{Name: "Cetirizine 10mg", Category: "Antihistamine", Stock: 45, Unit: "tablets", MinStock: 10},
-	}
-
-	for _, stock := range defaultStock {
-		db.Create(&stock)
-	}
-	fmt.Printf("Seeded clean default medicine inventory in %s.\n", name)
+	fmt.Printf("Cleaned operational tables in %s successfully (0 operational records remaining).\n", name)
 }
 
 func main() {
