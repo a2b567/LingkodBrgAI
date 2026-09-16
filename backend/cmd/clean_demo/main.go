@@ -15,23 +15,51 @@ func cleanDB(db *gorm.DB, name string) {
 	}
 	fmt.Printf("\n--- Cleaning demo data in %s ---\n", name)
 
-	// Clean transactional and demo tables (preserve users & licenses)
-	db.Exec("DELETE FROM certificates")
-	db.Exec("DELETE FROM blotters")
-	db.Exec("DELETE FROM businesses")
-	db.Exec("DELETE FROM appointments")
-	db.Exec("DELETE FROM dispensed_items")
-	db.Exec("DELETE FROM health_records")
-	db.Exec("DELETE FROM medicine_stocks")
-	db.Exec("DELETE FROM notifications")
-	db.Exec("DELETE FROM payments")
-	db.Exec("DELETE FROM queue_tickets")
-	db.Exec("DELETE FROM households")
-	db.Exec("DELETE FROM residents")
-	db.Exec("DELETE FROM audit_logs")
-	db.Exec("DELETE FROM ai_logs")
+	tables := []string{
+		"dispensed_items",
+		"health_records",
+		"medicine_stocks",
+		"queue_tickets",
+		"certificates",
+		"blotters",
+		"businesses",
+		"appointments",
+		"notifications",
+		"payments",
+		"households",
+		"residents",
+		"audit_logs",
+		"ai_logs",
+	}
 
-	fmt.Printf("Cleaned operational tables in %s successfully (0 operational records remaining).\n", name)
+	for _, table := range tables {
+		res := db.Exec(fmt.Sprintf("DELETE FROM %s", table))
+		if res.Error != nil {
+			fmt.Printf("⚠ Warning deleting from %s: %v\n", table, res.Error)
+		} else {
+			fmt.Printf("✓ Cleaned table %-20s -> %d rows deleted\n", table, res.RowsAffected)
+		}
+	}
+
+	// Remove non-staff user accounts (preserve staff accounts: Super Admin, Barangay Captain, Secretary, Health Worker, Treasurer, Staff, Admin)
+	resUser := db.Exec("DELETE FROM users WHERE role = 'Resident' OR (role NOT IN ('Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Treasurer', 'Staff', 'Admin') AND username NOT IN ('admin', 'captain', 'secretary', 'healthworker', 'treasurer'))")
+	if resUser.Error != nil {
+		fmt.Printf("⚠ Warning deleting non-staff users: %v\n", resUser.Error)
+	} else {
+		fmt.Printf("✓ Cleaned non-staff users -> %d rows deleted\n", resUser.RowsAffected)
+	}
+
+	// Re-seed default staff accounts and active license
+	if err := config.SeedDatabase(db); err != nil {
+		log.Printf("⚠ SeedDatabase warning on %s: %v", name, err)
+	}
+
+	var staffUsers []models.User
+	db.Find(&staffUsers)
+	fmt.Printf("\n--- Verified Active Staff Accounts (%d Users) ---\n", len(staffUsers))
+	for _, u := range staffUsers {
+		fmt.Printf("✓ User: %-15s | Role: %-20s | Verified: %v\n", u.Username, u.Role, u.IsVerified)
+	}
 }
 
 func main() {
@@ -45,19 +73,6 @@ func main() {
 	cleanDB(db, "Primary DB")
 	if config.CloudDB != nil && config.CloudDB != db {
 		cleanDB(config.CloudDB, "Cloud DB")
-	}
-
-	// 2. Ensure all 5 default staff accounts & licenses are intact and updated
-	if err := config.SeedDatabase(db); err != nil {
-		log.Printf("SeedDatabase warning: %v", err)
-	}
-
-	// 3. Print verified staff users in database
-	var staffUsers []models.User
-	db.Find(&staffUsers)
-	fmt.Printf("\n--- Verified Active Database Staff Accounts (%d Users) ---\n", len(staffUsers))
-	for _, u := range staffUsers {
-		fmt.Printf("✓ User: %-15s | Role: %-20s | Verified: %v\n", u.Username, u.Role, u.IsVerified)
 	}
 
 	fmt.Println("\nAll database operational data cleaned & default staff accounts verified!")

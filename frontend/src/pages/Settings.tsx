@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, Moon, Sun, Shield, QrCode, Check, UserCheck, Megaphone, Plus, Trash2, X, Globe, ImagePlus, Trash, CreditCard, Save } from 'lucide-react';
+import { Lock, Moon, Sun, Shield, QrCode, Check, UserCheck, Megaphone, Plus, Trash2, X, Globe, ImagePlus, Trash, CreditCard, Save, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { api } from '../services/api';
@@ -148,6 +148,14 @@ export const Settings: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
     }, 1200);
+  };
+
+  const handleResetQueueData = () => {
+    if (!window.confirm('⚠️ This will CLEAR all queue tickets and session data. This cannot be undone. Continue?')) return;
+    localStorage.removeItem('lingkod_queue_slots');
+    localStorage.removeItem('lingkod_landing_announcements');
+    localStorage.removeItem('cert_fees');
+    window.location.reload();
   };
 
   const handleLandingSave = () => {
@@ -836,6 +844,34 @@ export const Settings: React.FC = () => {
             >
               <Save size={14} />
               Save Certificate Fees
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Danger Zone - Reset Data */}
+      {isStaff && (
+        <div className="rounded-2xl border-2 border-red-400/40 dark:border-red-500/30 bg-red-50/50 dark:bg-red-900/10 p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-red-100 dark:bg-red-500/20">
+              <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-red-700 dark:text-red-400 tracking-wide uppercase">Danger Zone — Reset Queue Data</h3>
+              <p className="text-xs text-red-600/80 dark:text-red-400/70 mt-0.5">Clear all local queue tickets and session data. Use this to start fresh.</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 rounded-xl px-4 py-3 border border-red-200 dark:border-red-500/20">
+            <div>
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Clear Queue &amp; Session Data</p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Removes all queue tickets stored in this browser. Page will reload.</p>
+            </div>
+            <button
+              onClick={handleResetQueueData}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs transition-colors shadow-sm whitespace-nowrap ml-4"
+            >
+              <RotateCcw size={13} />
+              Reset Queue Data
             </button>
           </div>
         </div>

@@ -70,8 +70,23 @@ func main() {
 		}
 	}
 
-	// Make sure default accounts are updated and intact
+	// Delete non-staff users
+	resUser := db.Exec("DELETE FROM users WHERE role = 'Resident' OR (role NOT IN ('Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Treasurer', 'Staff', 'Admin') AND username NOT IN ('admin', 'captain', 'secretary', 'healthworker', 'treasurer'))")
+	if resUser.Error != nil {
+		fmt.Printf("Error wiping non-staff users: %v\n", resUser.Error)
+	} else {
+		fmt.Printf("✓ Wiped non-staff users -> %d rows deleted\n", resUser.RowsAffected)
+	}
+
+	// Re-seed staff accounts and active license
 	config.SeedDatabase(db)
 
-	fmt.Println("\nNeon PostgreSQL operational data completely wiped! Accounts verified.")
+	var staffUsers []models.User
+	db.Find(&staffUsers)
+	fmt.Printf("\n--- Verified Active Staff Accounts (%d Users) ---\n", len(staffUsers))
+	for _, u := range staffUsers {
+		fmt.Printf("✓ User: %-15s | Role: %-20s | Verified: %v\n", u.Username, u.Role, u.IsVerified)
+	}
+
+	fmt.Println("\nNeon PostgreSQL operational data completely wiped! Staff accounts verified.")
 }
