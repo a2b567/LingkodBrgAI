@@ -208,7 +208,7 @@ export const AIFloatingPanel: React.FC = () => {
     : ["Request certificate status", "How to file a blotter", "Check upcoming holidays", "Schedule appointment"];
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
+    <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 flex flex-col items-end">
       {/* Floating Toggle Button */}
       {!isOpen && (
         <button
