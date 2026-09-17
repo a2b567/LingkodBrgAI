@@ -18,6 +18,7 @@ import { KioskCertificates } from './pages/KioskCertificates';
 import { QueueSchedule } from './pages/QueueSchedule';
 import { QueueMonitor } from './pages/QueueMonitor';
 import { HealthRecords } from './pages/HealthRecords';
+import { ClinicQueueView } from './pages/ClinicQueueView';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { StaffAccounts } from './pages/StaffAccounts';
 
@@ -131,6 +132,15 @@ export const App: React.FC = () => {
           element={
             <ProtectedRoute allowedRoles={['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff']}>
               <HealthRecords />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/clinic-queue" 
+          element={
+            <ProtectedRoute>
+              <ClinicQueueView />
             </ProtectedRoute>
           } 
         />

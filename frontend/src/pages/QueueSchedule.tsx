@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Calendar as CalendarIcon, Clock, Volume2, VolumeX, Monitor, Plus, 
-  ChevronLeft, ChevronRight, CheckCircle2, Zap, FileText, X, PhoneCall, Sparkles
+  ChevronLeft, ChevronRight, CheckCircle2, Zap, FileText, X, PhoneCall, Sparkles,
+  Trash2, RotateCcw
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
@@ -196,6 +197,20 @@ export const QueueSchedule: React.FC = () => {
     updateSlots(updated);
   };
 
+  const handleClearAllQueue = () => {
+    if (window.confirm("⚠️ Clear ALL queue tickets? This will reset the waiting queue to 0.")) {
+      localStorage.setItem('lingkod_queue_slots', JSON.stringify([]));
+      setQueueSlots([]);
+    }
+  };
+
+  const handleDeleteSlot = (id: string) => {
+    if (window.confirm("Are you sure you want to remove this ticket from the queue?")) {
+      const updated = queueSlots.filter(s => s.id !== id);
+      updateSlots(updated);
+    }
+  };
+
   return (
     <div className="space-y-6 relative z-10">
       
@@ -248,6 +263,15 @@ export const QueueSchedule: React.FC = () => {
               >
                 {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
                 {voiceEnabled ? 'Voice ON' : 'Voice OFF'}
+              </button>
+
+              <button
+                onClick={handleClearAllQueue}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30 rounded-2xl font-bold text-xs transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="Clear and reset all queue tickets"
+              >
+                <RotateCcw size={15} />
+                Clear Queue
               </button>
 
               <Link
@@ -624,6 +648,13 @@ export const QueueSchedule: React.FC = () => {
                             <X size={14} />
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDeleteSlot(slot.id)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Ticket"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     )}
                   </div>

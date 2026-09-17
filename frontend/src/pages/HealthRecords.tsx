@@ -203,9 +203,20 @@ export const HealthRecords: React.FC = () => {
     setQueueList(prev => prev.filter(q => q.id !== id));
   };
 
-  // --- FCFS Clinic Queue ---
-  const [queueList, setQueueList] = useState<QueueItem[]>([]);
-  const [queueForm, setQueueForm] = useState({ residentName: '', service: 'Checkup', isPriority: false });
+  // --- FCFS Clinic Queue (synced to localStorage for resident live view) ---
+  const CLINIC_QUEUE_KEY = 'lingkod_clinic_queue';
+  const [queueList, setQueueList] = useState<QueueItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('lingkod_clinic_queue');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [queueForm, setQueueForm] = useState({ residentName: '', service: 'General Checkup', isPriority: false });
+
+  // Persist to localStorage whenever queueList changes
+  useEffect(() => {
+    try { localStorage.setItem(CLINIC_QUEUE_KEY, JSON.stringify(queueList)); } catch {}
+  }, [queueList]);
 
   const handleAddToQueue = (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,8 +230,8 @@ export const HealthRecords: React.FC = () => {
       status: 'waiting',
       isPriority: queueForm.isPriority
     };
-    setQueueList([...queueList, newItem]);
-    setQueueForm({ residentName: '', service: 'Checkup', isPriority: false });
+    setQueueList(prev => [...prev, newItem]);
+    setQueueForm({ residentName: '', service: 'General Checkup', isPriority: false });
   };
 
   const announceCallQueue = (item: QueueItem) => {
@@ -235,7 +246,7 @@ export const HealthRecords: React.FC = () => {
   };
 
   const markAsServed = (id: string) =>
-    setQueueList(queueList.map(item => item.id === id ? { ...item, status: 'served' } : item));
+    setQueueList(prev => prev.map(item => item.id === id ? { ...item, status: 'served' } : item));
 
   const activeQueue = queueList.filter(q => q.status === 'waiting').sort((a, b) => {
     if (a.isPriority && !b.isPriority) return -1;

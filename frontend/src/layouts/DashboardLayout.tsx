@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
   Briefcase, Calendar, Settings, LogOut, Sun, Moon,
-  Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle, UserCog
+  Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle, UserCog, Stethoscope
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
@@ -159,6 +159,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Residents', path: '/residents', icon: <Users size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Households', path: '/households', icon: <Home size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Health Records', path: '/health-records', icon: <Activity size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff'] },
+    { name: 'Clinic Queue', path: '/clinic-queue', icon: <Stethoscope size={20} />, roles: ['Resident'] },
     { name: 'Certificates', path: '/certificates', icon: <FileText size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
     { name: 'Appointments', path: '/appointments', icon: <Calendar size={20} />, roles: ['all'] },
     { name: 'Certificates Schedule', path: '/queue-schedule', icon: <ListOrdered size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
