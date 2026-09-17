@@ -155,7 +155,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   }, []);
 
   const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Health Worker', 'Staff'] },
+    { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['all'] },
     { name: 'Residents', path: '/residents', icon: <Users size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Households', path: '/households', icon: <Home size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Health Records', path: '/health-records', icon: <Activity size={20} />, roles: ['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff'] },
@@ -379,10 +379,98 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Core Page content wrapper */}
-        <main className="flex-1 p-4 sm:p-6 relative z-10 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 md:p-6 pb-24 md:pb-8 relative z-10 overflow-y-auto">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar for Mobile Users */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-2 py-1.5 flex items-center justify-around shadow-2xl safe-area-bottom">
+        {user?.role === 'Resident' ? (
+          <>
+            <Link
+              to="/dashboard"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all ${
+                location.pathname === '/dashboard'
+                  ? 'text-gov-blue-600 dark:text-gov-blue-400 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 font-semibold hover:text-slate-600'
+              }`}
+            >
+              <LayoutDashboard size={19} className={location.pathname === '/dashboard' ? 'stroke-[2.5]' : 'stroke-2'} />
+              <span className="text-[10px] mt-0.5">Home</span>
+            </Link>
+
+            <Link
+              to="/clinic-queue"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all relative ${
+                location.pathname === '/clinic-queue'
+                  ? 'text-rose-600 dark:text-rose-400 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 font-semibold hover:text-slate-600'
+              }`}
+            >
+              <div className="relative">
+                <Stethoscope size={19} className={location.pathname === '/clinic-queue' ? 'stroke-[2.5]' : 'stroke-2'} />
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              </div>
+              <span className="text-[10px] mt-0.5">Clinic</span>
+            </Link>
+
+            <Link
+              to="/certificates"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all ${
+                location.pathname === '/certificates'
+                  ? 'text-gov-blue-600 dark:text-gov-blue-400 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 font-semibold hover:text-slate-600'
+              }`}
+            >
+              <FileText size={19} className={location.pathname === '/certificates' ? 'stroke-[2.5]' : 'stroke-2'} />
+              <span className="text-[10px] mt-0.5">Certs</span>
+            </Link>
+
+            <Link
+              to="/appointments"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all ${
+                location.pathname === '/appointments'
+                  ? 'text-amber-600 dark:text-amber-400 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 font-semibold hover:text-slate-600'
+              }`}
+            >
+              <Calendar size={19} className={location.pathname === '/appointments' ? 'stroke-[2.5]' : 'stroke-2'} />
+              <span className="text-[10px] mt-0.5">Book</span>
+            </Link>
+
+            <Link
+              to="/settings"
+              className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-2xl transition-all ${
+                location.pathname === '/settings'
+                  ? 'text-gov-blue-600 dark:text-gov-blue-400 font-extrabold scale-105'
+                  : 'text-slate-400 dark:text-slate-500 font-semibold hover:text-slate-600'
+              }`}
+            >
+              <Settings size={19} className={location.pathname === '/settings' ? 'stroke-[2.5]' : 'stroke-2'} />
+              <span className="text-[10px] mt-0.5">Settings</span>
+            </Link>
+          </>
+        ) : (
+          allowedItems.slice(0, 5).map((item, idx) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={idx}
+                to={item.path}
+                className={`flex flex-col items-center justify-center py-1 px-2 rounded-2xl transition-all ${
+                  isActive
+                    ? 'text-gov-blue-600 dark:text-gov-blue-400 font-extrabold scale-105'
+                    : 'text-slate-400 dark:text-slate-500 font-semibold hover:text-slate-600'
+                }`}
+              >
+                {item.icon}
+                <span className="text-[9px] mt-0.5 truncate max-w-[50px]">{item.name}</span>
+              </Link>
+            );
+          })
+        )}
+      </nav>
 
       {/* Floating Pop-up Toast Notification (Top-Right Corner) */}
       {popupToast && (

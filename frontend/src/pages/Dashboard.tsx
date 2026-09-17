@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { api } from '../services/api';
 import type { DashboardStats } from '../types';
+import { ResidentDashboard } from '../components/ResidentDashboard';
 
 const parseMarkdown = (text: string) => {
   if (!text) return null;
@@ -63,11 +64,9 @@ export const Dashboard: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (user && user.role === 'Resident') {
-      navigate('/appointments');
-    }
-  }, [user, navigate]);
+  if (user && user.role === 'Resident') {
+    return <ResidentDashboard />;
+  }
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);

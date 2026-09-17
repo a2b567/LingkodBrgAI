@@ -186,7 +186,8 @@ export const Appointments: React.FC = () => {
           </h4>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop Table View (Hidden on Mobile) */}
+        <div className="hidden md:block overflow-x-auto">
           {isLoading ? (
             <div className="p-10 text-center text-xs font-bold text-slate-500 dark:text-slate-400">Loading appointment logs...</div>
           ) : appointments.length === 0 ? (
@@ -270,6 +271,81 @@ export const Appointments: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+
+        {/* Mobile Card View (Visible ONLY on Mobile) */}
+        <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+          {isLoading ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-500">Loading appointment logs...</div>
+          ) : appointments.length === 0 ? (
+            <div className="p-8 text-center text-xs font-bold text-slate-500">No appointments scheduled.</div>
+          ) : (
+            appointments.map((app) => (
+              <div key={app.id} className="p-4 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-black text-sm text-gov-blue-700 dark:text-gov-blue-300 bg-gov-blue-50 dark:bg-gov-blue-950/40 px-2.5 py-0.5 rounded-lg border border-gov-blue-500/20">
+                    Queue #{app.queue_number}
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide ${
+                    app.status === 'Completed'
+                      ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 dark:text-emerald-400'
+                      : app.status === 'Confirmed'
+                      ? 'bg-gov-blue-50 text-gov-blue-600 dark:bg-gov-blue-950/20 dark:text-gov-blue-400'
+                      : app.status === 'Pending'
+                      ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20 dark:text-amber-400'
+                      : 'bg-rose-50 text-rose-600 dark:bg-rose-950/20 dark:text-rose-400'
+                  }`}>
+                    {app.status}
+                  </span>
+                </div>
+
+                <div>
+                  <h5 className="font-bold text-xs text-slate-900 dark:text-white">{app.purpose}</h5>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {app.resident ? `${app.resident.first_name} ${app.resident.last_name}` : 'Resident User'}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 text-[11px] font-medium text-slate-600 dark:text-slate-300 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-1">
+                    <CalendarIcon size={12} className="text-gov-blue-500" />
+                    <span>{new Date(app.appointment_date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock size={12} className="text-gov-blue-500" />
+                    <span>{app.time_slot}</span>
+                  </div>
+                </div>
+
+                {app.status === 'Pending' && (
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      onClick={() => handleUpdateStatus(app.id, 'Confirmed')}
+                      className="flex-1 py-1.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1 shadow-sm"
+                    >
+                      <Check size={14} />
+                      <span>Confirm</span>
+                    </button>
+                    <button
+                      onClick={() => handleUpdateStatus(app.id, 'Cancelled')}
+                      className="flex-1 py-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1 border border-rose-200 dark:border-rose-900/40"
+                    >
+                      <X size={14} />
+                      <span>Cancel</span>
+                    </button>
+                  </div>
+                )}
+                {app.status === 'Confirmed' && isStaff && (
+                  <button
+                    onClick={() => handleUpdateStatus(app.id, 'Completed')}
+                    className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors font-bold shadow-sm"
+                  >
+                    Mark as Completed
+                  </button>
+                )}
+              </div>
+            ))
           )}
         </div>
       </div>
