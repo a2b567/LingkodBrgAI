@@ -4,6 +4,7 @@ import { LogIn, KeyRound, User as UserIcon, Loader2, Mail, ShieldAlert } from 'l
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { VisualCaptcha } from '../components/VisualCaptcha';
+import { GoogleAuthModal } from '../components/GoogleAuthModal';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
@@ -47,10 +48,10 @@ export const Login: React.FC = () => {
   const loginStore = useAuthStore(state => state.login);
   const navigate = useNavigate();
 
-  // --- CAPTCHA State ---
-  const [captchaCode, setCaptchaCode] = useState('');
+  // --- CAPTCHA & Google SSO State ---
   const [captchaInput, setCaptchaInput] = useState('');
   const [captchaError, setCaptchaError] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   // Password Complexity Verification Rules
   const meetsLength = newPassword.length >= 8;
@@ -59,33 +60,9 @@ export const Login: React.FC = () => {
   const passwordsMatch = newPassword !== '' && newPassword === confirmPassword;
 
   // Google SSO Handler
-  const handleGoogleAuth = async () => {
-    const email = prompt('Enter your Google Account Email (or press OK to use default):', 'resident.user@gmail.com');
-    if (email === null) return;
-
-    setIsLoading(true);
+  const handleGoogleAuth = () => {
     setError('');
-
-    try {
-      const cleanEmail = email.trim() || 'resident.user@gmail.com';
-      const googleUser = {
-        id: 'g_' + Math.floor(Math.random() * 899999 + 100000),
-        username: cleanEmail.split('@')[0] || 'Google Resident',
-        email: cleanEmail,
-        role: 'Resident',
-        is_verified: true,
-        first_name: 'Google',
-        last_name: 'User',
-      };
-
-      const token = 'mock_google_jwt_token_' + Date.now();
-      loginStore(token, googleUser as any);
-      navigate('/appointments');
-    } catch (err: any) {
-      setError('Google Single Sign-On failed.');
-    } finally {
-      setIsLoading(false);
-    }
+    setShowGoogleModal(true);
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -94,9 +71,9 @@ export const Login: React.FC = () => {
     setInfo('');
 
     // Validate CAPTCHA first
-    if (captchaInput.trim().toLowerCase() !== captchaCode.toLowerCase()) {
+    if (!captchaInput) {
       setCaptchaError(true);
-      setError('Incorrect CAPTCHA characters. Please enter the new characters shown in the picture.');
+      setError('Please verify that you are not a robot before proceeding.');
       return;
     }
     setCaptchaError(false);
@@ -446,9 +423,8 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* ── Visual Picture CAPTCHA Security Widget ── */}
+            {/* ── Visual CAPTCHA Security Widget ── */}
             <VisualCaptcha
-              onCodeChange={setCaptchaCode}
               value={captchaInput}
               onChange={(val) => { setCaptchaInput(val); setCaptchaError(false); }}
               error={captchaError}
@@ -538,6 +514,12 @@ export const Login: React.FC = () => {
           DEV: LAWREENE B ARANAS
         </div>
       </div>
+
+      {/* Official Google SSO Account Chooser Modal */}
+      <GoogleAuthModal
+        isOpen={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+      />
     </div>
   );
 };

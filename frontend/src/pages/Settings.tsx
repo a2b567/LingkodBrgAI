@@ -1,36 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, Moon, Sun, Shield, QrCode, Check, UserCheck, Megaphone, Plus, Trash2, X, Globe, ImagePlus, Trash, CreditCard, Save, RotateCcw, AlertTriangle } from 'lucide-react';
+import {
+  Lock, Moon, Sun, QrCode, Check, Megaphone, Plus, Trash2, Globe,
+  ImagePlus, Trash, Save, RotateCcw, AlertTriangle, KeyRound,
+  User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso
+} from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { api } from '../services/api';
+import { PageHeader, Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Input, Badge, Modal } from '../components/ui';
+
+type ActiveTab = 'profile' | 'security' | 'portal' | 'fees' | 'danger';
 
 export const Settings: React.FC = () => {
   const { user } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const isStaff = user && user.role !== 'Resident';
 
-  // Profile Update States
+  const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
+
+  // Profile
   const [username, setUsername] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
   const [profilePassword, setProfilePassword] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
 
-  // Password Security States
+  // Password
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState('');
+  const [passwordErrorMsg, setPasswordErrorMsg] = useState('');
 
-  // Landing Page Configuration States
+  // Landing Page Config
   const [address, setAddress] = useState(localStorage.getItem('brgy_address') || 'Brgy. Hall, Main Road, Laguna');
   const [hotline, setHotline] = useState(localStorage.getItem('brgy_hotline') || '(049) 123-4567');
   const [landingEmail, setLandingEmail] = useState(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');
   const [businessHours, setBusinessHours] = useState(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
   const [landingSuccessMsg, setLandingSuccessMsg] = useState('');
 
-  // Hero Background Image
+  // Hero Background
   const [heroBgPreview, setHeroBgPreview] = useState<string | null>(localStorage.getItem('brgy_hero_bg') || null);
   const heroBgInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,12 +62,11 @@ export const Settings: React.FC = () => {
     if (heroBgInputRef.current) heroBgInputRef.current.value = '';
   };
 
-  // Default initial announcements
   const defaultAnnouncements = [
     {
       id: '1',
       title: 'Annual Dental & Medical Mission',
-      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the Lawrence Barangay Covered Court. Pediatric consults, dental extraction services, and free basic wellness check-ups are open for all residents.',
+      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the Lawrence Barangay Covered Court.',
       category: 'Health Advisory',
       badge: 'Active',
       author: 'Barangay Health Council',
@@ -67,7 +76,7 @@ export const Settings: React.FC = () => {
     {
       id: '2',
       title: 'Online Portal Official Launch',
-      content: 'We have officially launched the new LingkodBrgAI Barangay Management Information System! Citizens can now create their electronic profiles, secure residency clearances, file blotter reports, and arrange lobby appointments completely online.',
+      content: 'We have officially launched the new LingkodBrgAI Barangay Management Information System!',
       category: 'LGU Announcement',
       badge: 'General',
       author: 'Office of the Captain',
@@ -77,7 +86,7 @@ export const Settings: React.FC = () => {
     {
       id: '3',
       title: 'Livelihood & Business Clearance Seminar',
-      content: 'In partnership with the Department of Trade and Industry (DTI), the barangay will host a livelihood capacity-building seminar on micro-entrepreneurship and fast-tracking local commercial business permits. Registration is free.',
+      content: 'In partnership with the DTI, the barangay will host a livelihood capacity-building seminar on micro-entrepreneurship.',
       category: 'Livelihood Advisory',
       badge: 'Seminar',
       author: 'Barangay Secretary Office',
@@ -86,7 +95,6 @@ export const Settings: React.FC = () => {
     }
   ];
 
-  // Announcements State initialized from localStorage
   const [announcements, setAnnouncements] = useState<Array<{ id: string; title: string; content: string; date: string; category?: string; badge?: string; author?: string; initials?: string }>>(() => {
     try {
       const saved = localStorage.getItem('lingkod_landing_announcements');
@@ -100,7 +108,6 @@ export const Settings: React.FC = () => {
   const [annContent, setAnnContent] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
-  // Certificate Fee Management
   const defaultCertFees = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
   const [certFees, setCertFees] = useState<Record<string, number>>(() => {
     try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
@@ -122,32 +129,29 @@ export const Settings: React.FC = () => {
     e.preventDefault();
     setIsUpdatingProfile(true);
     setProfileSuccessMsg('');
-
     setTimeout(() => {
       setIsUpdatingProfile(false);
       setProfileSuccessMsg("Profile information updated successfully.");
       setProfilePassword('');
-    }, 1200);
+      setTimeout(() => setProfileSuccessMsg(''), 4000);
+    }, 1000);
   };
 
   const handlePasswordUpdate = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsUpdatingPassword(true);
+    setPasswordErrorMsg('');
     setPasswordSuccessMsg('');
-
-    if (newPassword !== confirmPassword) {
-      alert("New passwords do not match!");
-      setIsUpdatingPassword(false);
-      return;
-    }
-
+    if (newPassword.length < 6) { setPasswordErrorMsg("New password must be at least 6 characters long."); return; }
+    if (newPassword !== confirmPassword) { setPasswordErrorMsg("New passwords do not match!"); return; }
+    setIsUpdatingPassword(true);
     setTimeout(() => {
       setIsUpdatingPassword(false);
       setPasswordSuccessMsg("Your account password has been updated successfully.");
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }, 1200);
+      setTimeout(() => setPasswordSuccessMsg(''), 4000);
+    }, 1000);
   };
 
   const handleResetQueueData = () => {
@@ -163,15 +167,14 @@ export const Settings: React.FC = () => {
     localStorage.setItem('brgy_hotline', hotline);
     localStorage.setItem('brgy_email', landingEmail);
     localStorage.setItem('brgy_hours', businessHours);
-    setLandingSuccessMsg("Landing page configuration saved successfully.");
-    setTimeout(() => setLandingSuccessMsg(''), 3000);
+    setLandingSuccessMsg("Portal contact configuration saved successfully.");
+    setTimeout(() => setLandingSuccessMsg(''), 4000);
   };
 
   const handleAddAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!annTitle || !annContent) return;
     setIsBroadcasting(true);
-
     const newAnn = {
       id: Date.now().toString(),
       title: annTitle,
@@ -182,11 +185,7 @@ export const Settings: React.FC = () => {
       initials: user?.role === 'Secretary' ? 'BS' : 'BC',
       date: `Issued ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
     };
-
-    try {
-      await api.notifications.broadcastAnnouncement({ title: annTitle, content: annContent });
-    } catch (err: any) {}
-
+    try { await api.notifications.broadcastAnnouncement({ title: annTitle, content: annContent }); } catch (err: any) {}
     const updated = [newAnn, ...announcements];
     setAnnouncements(updated);
     localStorage.setItem('lingkod_landing_announcements', JSON.stringify(updated));
@@ -214,670 +213,572 @@ export const Settings: React.FC = () => {
       setFeePasswordError('Current password is required to save fee changes.');
       return;
     }
-
     setIsSavingFees(true);
     setFeePasswordError('');
-
     setTimeout(() => {
       localStorage.setItem('cert_fees', JSON.stringify(certFees));
       setIsSavingFees(false);
       setIsFeePasswordModalOpen(false);
-      setCertFeeSuccessMsg('Certificate fees updated successfully.');
+      setCertFeeSuccessMsg('Official certificate fees updated successfully.');
       setFeePassword('');
-      setTimeout(() => setCertFeeSuccessMsg(''), 3000);
+      setTimeout(() => setCertFeeSuccessMsg(''), 4000);
     }, 600);
   };
 
   const res = user?.resident;
 
+  const navTabs: Array<{ id: ActiveTab; label: string; icon: React.ReactNode; staffOnly?: boolean; color?: string }> = [
+    { id: 'profile', label: 'My Profile', icon: <User size={15} /> },
+    { id: 'security', label: 'Security', icon: <Shield size={15} /> },
+    { id: 'portal', label: 'Portal & Public Page', icon: <Globe size={15} />, staffOnly: true },
+    { id: 'fees', label: 'Certificate Fees', icon: <PhilippinePeso size={15} />, staffOnly: true },
+    { id: 'danger', label: 'Maintenance', icon: <Settings2 size={15} />, staffOnly: true },
+  ];
+
+  const visibleTabs = navTabs.filter(tab => !tab.staffOnly || isStaff);
+
   return (
-    <div className="space-y-6 relative z-10 max-w-5xl">
-      <div>
-        <h2 className="text-2xl font-extrabold tracking-normal text-slate-900 dark:text-white">ACCOUNT SETTINGS</h2>
-        <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Manage user profile preferences, display modes, and security configurations</p>
-      </div>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      <PageHeader
+        title="Settings & Administration"
+        subtitle="Configure profile credentials, security protocols, system display, and barangay operations."
+        badge={<Badge variant="default">{user?.role || 'Staff'}</Badge>}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        {/* Profile Card & QR ID */}
-        <div className="md:col-span-1 space-y-6">
-          
-          {/* User profile details */}
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm text-center relative overflow-hidden flex flex-col items-center">
-            <div className="w-16 h-16 bg-gov-blue-100 dark:bg-gov-blue-950/80 text-gov-blue-700 dark:text-gov-blue-300 font-black rounded-3xl flex items-center justify-center text-xl uppercase mb-3 border border-gov-blue-200/20">
-              {user?.username.slice(0, 2)}
-            </div>
-            
-            <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{user?.username}</h4>
-            <span className="text-[10px] text-slate-500 dark:text-slate-300 font-bold tracking-wide">{user?.email}</span>
-            
-            <div className="mt-3.5 bg-gov-blue-50 dark:bg-gov-blue-950/60 text-gov-blue-700 dark:text-gov-blue-300 border border-gov-blue-100 dark:border-gov-blue-800 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-xl">
-              {user?.role} ACCOUNT
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
 
-            <div className="w-full border-t border-slate-100 dark:border-slate-800/80 my-4 pt-4 text-left text-[11px] space-y-2 text-slate-600 dark:text-slate-200">
-              <div className="flex justify-between">
-                <span>Account Status:</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400">Verified</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Verification OTP:</span>
-                <span className="font-mono font-bold text-slate-700 dark:text-slate-200">Cleared</span>
-              </div>
+        {/* ── Left Column ── */}
+        <div className="lg:col-span-1 space-y-4">
+
+          {/* User Identity Card */}
+          <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 flex flex-col items-center text-center shadow-card">
+            {/* Decorative gradient top bar */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-gov-blue-500 via-gov-blue-400 to-gov-blue-600 rounded-t-2xl" />
+            <div className="w-16 h-16 rounded-2xl bg-gov-blue-600 text-white font-black flex items-center justify-center text-xl uppercase shadow-lg mt-2 select-none">
+              {user?.username ? user.username.slice(0, 2) : 'US'}
+            </div>
+            <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate max-w-full mt-3">
+              {user?.username}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-full mt-0.5">
+              {user?.email}
+            </p>
+            <div className="mt-3">
+              <Badge variant="info" dot>{user?.role}</Badge>
             </div>
           </div>
 
-          {/* Barangay Resident QR ID Badge */}
-          {res && (
-            <div className="bg-gradient-to-tr from-gov-blue-900 to-gov-blue-950 text-white p-5 rounded-3xl border border-gov-gold-500/20 shadow-lg relative overflow-hidden flex flex-col items-center">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gov-gold-400/5 rounded-full blur-xl"></div>
-              <QrCode className="text-gov-gold-400 mb-2.5 animate-pulse-subtle" size={32} />
-              
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-gov-gold-400">Barangay Resident ID</h4>
-              <p className="font-bold text-xs mt-1.5">{res.first_name} {res.last_name}</p>
-              <span className="text-[9px] font-mono text-slate-300 mt-0.5">{res.qr_id}</span>
-              
-              {/* Fake QR Image placeholder with nice style */}
-              <div className="w-28 h-28 bg-white p-2 rounded-2xl border border-gov-gold-400/20 mt-4 flex items-center justify-center">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(res.qr_id || `QR-RES-${res.id}`)}`} 
-                  alt="Resident QR Code" 
-                  onError={(e) => {
-                    e.currentTarget.src = `http://localhost:8080/uploads/qr/${res.id}.png`;
-                  }}
-                  className="w-full h-full object-contain rounded-lg"
-                />
-              </div>
-              <span className="text-[8px] text-slate-300 mt-2.5 text-center leading-normal">Show QR Code during verification inspections.</span>
-            </div>
-          )}
-        </div>
-
-        {/* Display Settings, Profile Info, Security, and Landing Page Config */}
-        <div className="md:col-span-2 space-y-6">
-          
-          {/* Card 1: PORTAL CONFIGURATIONS */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm space-y-4">
-            <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 tracking-widest flex items-center gap-2">
-              <Shield size={16} className="text-gov-blue-600 dark:text-gov-blue-400" />
-              PORTAL CONFIGURATIONS
-            </h4>
-
-            <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200/40 dark:border-slate-800/80 rounded-2xl">
-              <div>
-                <span className="text-xs font-bold block text-slate-900 dark:text-white">Display System Theme</span>
-                <span className="text-[10px] text-slate-600 dark:text-slate-300 leading-normal">Toggle dark mode overlay layout.</span>
-              </div>
-              <button
-                onClick={toggleTheme}
-                className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                title="Toggle Theme"
-              >
-                {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
-              </button>
-            </div>
-          </div>
-
-          {/* Card 2: UPDATE PROFILE INFORMATION */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm">
-            <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 tracking-widest flex items-center gap-2 mb-4">
-              <UserCheck size={16} className="text-gov-blue-600 dark:text-gov-blue-400" />
-              UPDATE PROFILE INFORMATION
-            </h4>
-
-            {profileSuccessMsg && (
-              <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/60 dark:text-emerald-400 text-xs font-semibold rounded-2xl mb-4 flex items-center gap-2">
-                <Check size={16} />
-                {profileSuccessMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleProfileUpdate} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">USERNAME / NAME</label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">EMAIL ADDRESS</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">CURRENT PASSWORD (REQUIRED FOR CHANGES)</label>
-                <input
-                  type="password"
-                  value={profilePassword}
-                  onChange={(e) => setProfilePassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder:text-slate-500"
-                />
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isUpdatingProfile}
-                  className="px-5 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 shadow-sm"
-                >
-                  {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Card 3: UPDATE ACCOUNT SECURITY */}
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm">
-            <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 tracking-widest flex items-center gap-2 mb-4">
-              <Lock size={16} className="text-rose-600 dark:text-rose-400" />
-              UPDATE ACCOUNT SECURITY
-            </h4>
-
-            {passwordSuccessMsg && (
-              <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/60 dark:text-emerald-400 text-xs font-semibold rounded-2xl mb-4 flex items-center gap-2">
-                <Check size={16} />
-                {passwordSuccessMsg}
-              </div>
-            )}
-
-            <form onSubmit={handlePasswordUpdate} className="space-y-4">
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">CURRENT PASSWORD</label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  placeholder="Enter current login password..."
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder:text-slate-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">NEW PASSWORD</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    placeholder="At least 6 characters..."
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder:text-slate-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">CONFIRM NEW PASSWORD</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    placeholder="Re-enter new password..."
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder:text-slate-500"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={isUpdatingPassword}
-                  className="px-5 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 shadow-sm"
-                >
-                  {isUpdatingPassword ? 'Updating password...' : 'Update Password'}
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Card 4: LANDING PAGE CONFIGURATION (Officers / Staff Only) */}
-          {isStaff && (
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm space-y-6">
-              <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-200 tracking-widest flex items-center gap-2">
-                <Globe size={16} className="text-gov-blue-600 dark:text-gov-blue-400" />
-                LANDING PAGE CONFIGURATION
-              </h4>
-
-              {landingSuccessMsg && (
-                <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-900/60 dark:text-emerald-400 text-xs font-semibold rounded-2xl flex items-center gap-2">
-                  <Check size={16} />
-                  {landingSuccessMsg}
-                </div>
-              )}
-
-              {/* Hero Background Upload */}
-              <div className="space-y-3 pb-4 border-b border-slate-100 dark:border-slate-800/80">
-                <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
-                  HERO BACKGROUND IMAGE
-                </span>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                  Upload a photo to display as the landing page background. A dark overlay will be applied for readability.
-                </p>
-
-                {heroBgPreview ? (
-                  <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 group">
-                    <img src={heroBgPreview} alt="Hero Background Preview" className="w-full h-36 object-cover" />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        type="button"
-                        onClick={handleRemoveHeroBg}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs transition-colors shadow-lg"
-                      >
-                        <Trash size={14} />
-                        Remove Image
-                      </button>
+          {/* Navigation Menu */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-card">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 px-3 pt-1 pb-2">Navigation</p>
+            <div className="space-y-0.5">
+              {visibleTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const isDanger = tab.id === 'danger';
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                      isActive
+                        ? isDanger
+                          ? 'bg-rose-600 text-white shadow-sm'
+                          : 'bg-gov-blue-600 text-white shadow-sm'
+                        : isDanger
+                          ? 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                          : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      {tab.icon}
+                      <span>{tab.label}</span>
                     </div>
-                    <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      Current Background
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => heroBgInputRef.current?.click()}
-                    className="w-full border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl p-8 flex flex-col items-center gap-2 text-slate-400 dark:text-slate-500 hover:border-gov-blue-400 dark:hover:border-gov-blue-500 hover:text-gov-blue-500 dark:hover:text-gov-blue-400 transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-950/20"
-                  >
-                    <ImagePlus size={28} />
-                    <span className="text-xs font-bold">Click to upload background image</span>
-                    <span className="text-[10px]">JPG, PNG, WEBP — Max 5MB recommended</span>
+                    <ChevronRight size={13} className={isActive ? 'opacity-80' : 'opacity-30'} />
                   </button>
-                )}
-
-                <input
-                  ref={heroBgInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleHeroBgUpload}
-                  className="hidden"
-                />
-
-                {!heroBgPreview && (
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
-                    No background image set — default gradient is used.
-                  </p>
-                )}
-              </div>
-
-              {/* Footer Contact Info */}
-              <div className="space-y-4">
-                <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">
-                  CONTACT INFORMATION (FOOTER)
-                </span>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">ADDRESS</label>
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">HOTLINE</label>
-                    <input
-                      type="text"
-                      value={hotline}
-                      onChange={(e) => setHotline(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">EMAIL</label>
-                    <input
-                      type="email"
-                      value={landingEmail}
-                      onChange={(e) => setLandingEmail(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-200 block mb-1">BUSINESS HOURS</label>
-                    <input
-                      type="text"
-                      value={businessHours}
-                      onChange={(e) => setBusinessHours(e.target.value)}
-                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-1">
-                  <button
-                    type="button"
-                    onClick={handleLandingSave}
-                    className="px-4 py-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
-                  >
-                    Save Contact Settings
-                  </button>
-                </div>
-              </div>
-
-              {/* Public Announcements Section */}
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800/80 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
-                    PUBLIC ANNOUNCEMENTS
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsAnnouncementModalOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-[10px] transition-colors"
-                  >
-                    <Plus size={14} />
-                    Add Announcement
-                  </button>
-                </div>
-
-                {announcements.length === 0 ? (
-                  <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-950/30">
-                    No announcements added yet. Click the button above to add one.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {announcements.map((item) => (
-                      <div
-                        key={item.id}
-                        className="p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl flex items-start justify-between gap-3"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Megaphone size={14} className="text-gov-gold-400" />
-                            <h5 className="font-bold text-xs text-slate-800 dark:text-slate-200">{item.title}</h5>
-                          </div>
-                          <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">{item.content}</p>
-                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium block mt-1">{item.date}</span>
-                        </div>
-                        <button
-                          onClick={() => handleDeleteAnnouncement(item.id)}
-                          className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors"
-                          title="Delete Announcement"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                );
+              })}
             </div>
-          )}
-
-        </div>
-      </div>
-
-      {/* Add Announcement Modal */}
-      {isAnnouncementModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-3xl max-w-md w-full shadow-2xl p-7 relative">
-            
-            {/* Modal Header */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-400/30 flex items-center justify-center">
-                  <Megaphone className="text-amber-500" size={18} />
-                </div>
-                <div>
-                  <h3 className="text-base font-black text-slate-900 dark:text-white leading-tight">
-                    Create Announcement
-                  </h3>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
-                    Publish to Landing Page
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAnnouncementModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddAnnouncement} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
-                  Announcement Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={annTitle}
-                  onChange={(e) => setAnnTitle(e.target.value)}
-                  required
-                  placeholder="e.g. Scheduled Power Interruption, Free Health Clinic..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gov-blue-500/40 focus:border-gov-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
-                  Content Details <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={annContent}
-                  onChange={(e) => setAnnContent(e.target.value)}
-                  required
-                  rows={4}
-                  placeholder="Provide complete information for residents..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gov-blue-500/40 focus:border-gov-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsAnnouncementModalOpen(false)}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isBroadcasting}
-                  className="px-5 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isBroadcasting ? (
-                    <>
-                      <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                      </svg>
-                      Broadcasting...
-                    </>
-                  ) : (
-                    'Broadcast Announcement'
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
 
-      {/* Current Password Security Verification Modal for Certificate Fees */}
-      {isFeePasswordModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-md w-full border border-slate-200 dark:border-slate-700 shadow-2xl space-y-4">
+          {/* Theme Toggle Card */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-card">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3">Interface Theme</p>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-gov-gold-500/10 rounded-xl text-gov-gold-600 dark:text-gov-gold-400 border border-gov-gold-500/20">
-                  <Lock size={18} />
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${theme === 'light' ? 'bg-amber-50 text-amber-500 border border-amber-200' : 'bg-slate-800 text-slate-300 border border-slate-700'}`}>
+                  {theme === 'light' ? <Sun size={15} /> : <Moon size={15} />}
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Security Verification</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Enter your current password to save fee changes</p>
+                  <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 leading-none">
+                    {theme === 'light' ? 'Light Mode' : 'Dark Mode'}
+                  </p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Active</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsFeePasswordModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors"
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
               >
-                <X size={16} />
-              </button>
+                Switch
+              </Button>
             </div>
+          </div>
 
-            <form onSubmit={confirmCertFeeSave} className="space-y-4 pt-1">
-              <div>
-                <label className="text-xs font-bold text-slate-700 dark:text-slate-200 block mb-1.5">
-                  Current Account Password <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="password"
-                  value={feePassword}
-                  onChange={(e) => {
-                    setFeePassword(e.target.value);
-                    setFeePasswordError('');
-                  }}
-                  required
-                  autoFocus
-                  placeholder="Enter current password..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gov-gold-500/40 focus:border-gov-gold-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+          {/* Resident QR Card */}
+          {res && (
+            <div className="rounded-2xl overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-gov-blue-950 to-slate-900 text-white p-5 shadow-lg flex flex-col items-center text-center">
+              <QrCode size={22} className="text-gov-gold-400 mb-2" />
+              <p className="text-[9px] font-bold uppercase tracking-widest text-gov-gold-400">Official Resident ID</p>
+              <p className="font-bold text-xs mt-1.5">{res.first_name} {res.last_name}</p>
+              <span className="text-[9px] font-mono text-slate-400 mt-0.5">{res.qr_id}</span>
+              <div className="w-24 h-24 bg-white p-2 rounded-xl mt-3 flex items-center justify-center shadow-lg">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(res.qr_id || `QR-RES-${res.id}`)}`}
+                  alt="Resident QR Code"
+                  className="w-full h-full object-contain"
                 />
-                {feePasswordError && (
-                  <p className="text-xs font-bold text-red-500 mt-1.5">{feePasswordError}</p>
-                )}
               </div>
-
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsFeePasswordModalOpen(false)}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingFees}
-                  className="px-5 py-2.5 bg-gov-gold-500 hover:bg-gov-gold-600 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
-                >
-                  {isSavingFees ? (
-                    <>
-                      <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                      </svg>
-                      Verifying...
-                    </>
-                  ) : (
-                    'Confirm & Save Fees'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Certificate Fee Management (Staff Only) */}
-      {isStaff && (
-        <div className="glass-card p-6 space-y-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gov-gold-500/10 rounded-xl text-gov-gold-600 dark:text-gov-gold-400 border border-gov-gold-500/20">
-              <CreditCard size={18} />
-            </div>
-            <div>
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white uppercase tracking-wider">Certificate Fee Management</h3>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Set the official processing fee for each document type. Changes apply to all issuance channels.</p>
-            </div>
-          </div>
+        {/* ── Right Column: Tab Content ── */}
+        <div className="lg:col-span-3 space-y-5">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { key: 'Clearance',   label: 'Barangay Clearance',       color: 'border-l-gov-blue-500' },
-              { key: 'Indigency',   label: 'Certificate of Indigency',  color: 'border-l-emerald-500' },
-              { key: 'Residency',   label: 'Certificate of Residency',  color: 'border-l-gov-gold-500' },
-              { key: 'Business',    label: 'Business Clearance',        color: 'border-l-indigo-500' },
-              { key: 'Cedula',      label: 'Cedula (CTC)',              color: 'border-l-rose-500' },
-              { key: 'Barangay ID', label: 'Barangay ID Card',          color: 'border-l-teal-500' },
-            ].map(({ key, label, color }) => (
-              <div key={key} className={`bg-white dark:bg-slate-800/60 rounded-2xl border-l-4 ${color} border border-slate-200 dark:border-slate-700/60 p-4 space-y-2`}>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 block">{label}</label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-extrabold text-slate-700 dark:text-slate-300">₱</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={certFees[key] ?? 0}
-                    onChange={(e) => setCertFees(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
-                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-extrabold text-slate-900 dark:text-white focus:outline-none focus:border-gov-gold-400 dark:focus:border-gov-gold-500 transition-colors"
-                  />
+          {/* ─────────── TAB 1: PROFILE ─────────── */}
+          {activeTab === 'profile' && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/60 border border-gov-blue-200 dark:border-gov-blue-800/60 flex items-center justify-center">
+                    <User size={18} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                  </div>
+                  <div>
+                    <CardTitle>Account Profile Details</CardTitle>
+                    <CardDescription>Update your personal information and contact details.</CardDescription>
+                  </div>
                 </div>
-                {certFees[key] === 0 && (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">✓ Free document</span>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {profileSuccessMsg && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-2">
+                    <CheckCircle2 size={16} className="shrink-0" />
+                    {profileSuccessMsg}
+                  </div>
                 )}
-              </div>
-            ))}
-          </div>
+                <form onSubmit={handleProfileUpdate} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="Full Name / Display Name"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      isRequired
+                      leftIcon={<User size={15} />}
+                      placeholder="e.g. Maria Santos"
+                    />
+                    <Input
+                      label="Official Email Address"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      isRequired
+                      leftIcon={<Mail size={15} />}
+                      placeholder="e.g. maria.santos@barangay.gov.ph"
+                    />
+                  </div>
+                  <Input
+                    label="Current Password (Confirmation)"
+                    type="password"
+                    value={profilePassword}
+                    onChange={(e) => setProfilePassword(e.target.value)}
+                    leftIcon={<Lock size={15} />}
+                    placeholder="Enter password to authorize profile changes..."
+                    helperText="Required to confirm that you are the verified account holder."
+                  />
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <Button type="submit" isLoading={isUpdatingProfile} leftIcon={<Save size={14} />}>
+                      Save Profile Changes
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
 
-          {certFeeSuccessMsg && (
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 px-4 py-2.5 rounded-xl">
-              <Check size={14} /> {certFeeSuccessMsg}
+          {/* ─────────── TAB 2: SECURITY ─────────── */}
+          {activeTab === 'security' && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/60 flex items-center justify-center">
+                    <Shield size={18} className="text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <CardTitle>Security & Password Management</CardTitle>
+                    <CardDescription>Ensure your account remains safe by updating your access passphrase periodically.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {passwordSuccessMsg && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-2">
+                    <CheckCircle2 size={16} className="shrink-0" />
+                    {passwordSuccessMsg}
+                  </div>
+                )}
+                {passwordErrorMsg && (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 text-xs font-semibold rounded-xl flex items-center gap-2">
+                    <AlertTriangle size={16} className="shrink-0" />
+                    {passwordErrorMsg}
+                  </div>
+                )}
+                <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                  <Input
+                    label="Current Password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    isRequired
+                    leftIcon={<Lock size={15} />}
+                    placeholder="Enter your current login password..."
+                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                      label="New Password"
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      isRequired
+                      leftIcon={<KeyRound size={15} />}
+                      placeholder="Minimum 6 characters..."
+                    />
+                    <Input
+                      label="Confirm New Password"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      isRequired
+                      leftIcon={<KeyRound size={15} />}
+                      placeholder="Re-enter new password..."
+                    />
+                  </div>
+
+                  {/* Password strength hint */}
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 rounded-xl">
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1.5">Password Requirements</p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {[
+                        { label: 'At least 6 characters', met: newPassword.length >= 6 },
+                        { label: 'Contains uppercase', met: /[A-Z]/.test(newPassword) },
+                        { label: 'Contains number', met: /\d/.test(newPassword) },
+                        { label: 'Passwords match', met: newPassword === confirmPassword && confirmPassword.length > 0 },
+                      ].map((req, idx) => (
+                        <div key={idx} className={`flex items-center gap-1.5 text-[10px] font-medium ${req.met ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'}`}>
+                          <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ${req.met ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                            {req.met && <Check size={8} strokeWidth={3} className="text-white" />}
+                          </div>
+                          {req.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <Button type="submit" isLoading={isUpdatingPassword} leftIcon={<Save size={14} />}>
+                      Update Password
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─────────── TAB 3: PORTAL ─────────── */}
+          {activeTab === 'portal' && isStaff && (
+            <div className="space-y-5">
+              {/* Contact Info */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-center">
+                      <Globe size={18} className="text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <CardTitle>Public Portal Contact & Operating Hours</CardTitle>
+                      <CardDescription>Configure the contact information displayed on the public citizen landing page.</CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {landingSuccessMsg && (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-2">
+                      <CheckCircle2 size={16} className="shrink-0" />{landingSuccessMsg}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input label="Barangay Hall Address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="e.g. Brgy. Hall, Main Road, Laguna" />
+                    <Input label="Emergency Hotline Phone" value={hotline} onChange={(e) => setHotline(e.target.value)} placeholder="e.g. (049) 123-4567" />
+                    <Input label="Public Inquiries Email" type="email" value={landingEmail} onChange={(e) => setLandingEmail(e.target.value)} placeholder="e.g. info@barangay.gov.ph" />
+                    <Input label="Service Operating Hours" value={businessHours} onChange={(e) => setBusinessHours(e.target.value)} placeholder="e.g. Mon-Fri: 8:00 AM - 5:00 PM" />
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <Button onClick={handleLandingSave} leftIcon={<Save size={14} />}>Save Contact Details</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Hero Banner Upload */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Landing Page Hero Background</CardTitle>
+                  <CardDescription>Upload a custom cover photograph for the public resident portal.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {heroBgPreview ? (
+                    <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 group">
+                      <img src={heroBgPreview} alt="Hero Background Preview" className="w-full h-44 object-cover" />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="danger" size="sm" onClick={handleRemoveHeroBg} leftIcon={<Trash size={13} />}>Remove Background</Button>
+                      </div>
+                      <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-md">Active</div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => heroBgInputRef.current?.click()}
+                      className="w-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl p-10 flex flex-col items-center gap-3 text-slate-400 dark:text-slate-500 hover:border-gov-blue-400 hover:text-gov-blue-600 dark:hover:border-gov-blue-600 dark:hover:text-gov-blue-400 transition-all bg-slate-50/50 dark:bg-slate-900/30 cursor-pointer"
+                    >
+                      <ImagePlus size={28} />
+                      <div className="text-center">
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Click to upload hero banner</p>
+                        <p className="text-[10px] mt-0.5">JPG, PNG, WEBP (Max 5MB recommended)</p>
+                      </div>
+                    </button>
+                  )}
+                  <input ref={heroBgInputRef} type="file" accept="image/*" onChange={handleHeroBgUpload} className="hidden" />
+                </CardContent>
+              </Card>
+
+              {/* Announcements Manager */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Public Announcements Bulletin</CardTitle>
+                    <CardDescription>Broadcast notices and advisories to the landing page and resident feeds.</CardDescription>
+                  </div>
+                  <Button size="sm" onClick={() => setIsAnnouncementModalOpen(true)} leftIcon={<Plus size={13} />}>
+                    New Notice
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {announcements.length === 0 ? (
+                    <div className="py-10 text-center text-xs text-slate-500 dark:text-slate-400">
+                      <Megaphone size={24} className="mx-auto mb-2 opacity-30" />
+                      No announcements posted yet. Click <strong>New Notice</strong> to broadcast one.
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {announcements.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-4 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-xl flex items-start justify-between gap-3 hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                        >
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="w-8 h-8 rounded-lg bg-gov-blue-50 dark:bg-gov-blue-950/60 border border-gov-blue-100 dark:border-gov-blue-800/60 flex items-center justify-center shrink-0 mt-0.5">
+                              <Megaphone size={14} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="font-bold text-xs text-slate-900 dark:text-white truncate">{item.title}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed mt-0.5 line-clamp-2">{item.content}</p>
+                              <span className="text-[10px] text-slate-400 font-medium mt-1 block">{item.date}</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleDeleteAnnouncement(item.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors shrink-0 cursor-pointer"
+                            title="Delete Announcement"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
 
-          <div className="flex justify-end pt-1">
-            <button
-              onClick={handleCertFeeSave}
-              className="flex items-center gap-2 px-5 py-2.5 bg-gov-gold-500 hover:bg-gov-gold-600 text-white rounded-xl font-bold text-xs transition-colors shadow-sm"
-            >
-              <Save size={14} />
-              Save Certificate Fees
-            </button>
+          {/* ─────────── TAB 4: FEES ─────────── */}
+          {activeTab === 'fees' && isStaff && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gov-gold-50 dark:bg-gov-gold-950/30 border border-gov-gold-200 dark:border-gov-gold-800/40 flex items-center justify-center">
+                    <PhilippinePeso size={18} className="text-gov-gold-700 dark:text-gov-gold-400" />
+                  </div>
+                  <div>
+                    <CardTitle>Certificate & Permit Fee Schedule</CardTitle>
+                    <CardDescription>Adjust the official rates charged across counter issuances, online portal, and kiosk terminals.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {certFeeSuccessMsg && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-2">
+                    <CheckCircle2 size={16} className="shrink-0" />{certFeeSuccessMsg}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[
+                    { key: 'Clearance', label: 'Barangay Clearance', accent: 'from-gov-blue-500 to-gov-blue-600', light: 'bg-gov-blue-50 dark:bg-gov-blue-950/30 border-gov-blue-200 dark:border-gov-blue-800/60' },
+                    { key: 'Indigency', label: 'Certificate of Indigency', accent: 'from-emerald-500 to-emerald-600', light: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60' },
+                    { key: 'Residency', label: 'Certificate of Residency', accent: 'from-gov-gold-500 to-gov-gold-600', light: 'bg-gov-gold-50 dark:bg-gov-gold-950/30 border-gov-gold-200 dark:border-gov-gold-800/60' },
+                    { key: 'Business', label: 'Business Clearance', accent: 'from-indigo-500 to-indigo-600', light: 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60' },
+                    { key: 'Cedula', label: 'Cedula (CTC)', accent: 'from-rose-500 to-rose-600', light: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/60' },
+                    { key: 'Barangay ID', label: 'Barangay ID Card', accent: 'from-teal-500 to-teal-600', light: 'bg-teal-50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800/60' },
+                  ].map(({ key, label, accent, light }) => (
+                    <div key={key} className={`rounded-xl border ${light} p-4 space-y-3 relative overflow-hidden`}>
+                      {/* Top accent bar */}
+                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${accent}`} />
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block pt-1">{label}</label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-black text-slate-400 dark:text-slate-500">₱</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={certFees[key] ?? 0}
+                          onChange={(e) => setCertFees(prev => ({ ...prev, [key]: parseFloat(e.target.value) || 0 }))}
+                          className="flex-1 px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30 transition-shadow"
+                        />
+                      </div>
+                      {certFees[key] === 0 && (
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                          <Check size={11} />Free of Charge
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                  <Button onClick={handleCertFeeSave} leftIcon={<Save size={14} />}>Save Fee Schedule</Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─────────── TAB 5: MAINTENANCE ─────────── */}
+          {activeTab === 'danger' && isStaff && (
+            <div className="space-y-5">
+              {/* Warning Banner */}
+              <div className="p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 rounded-2xl flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={17} className="text-rose-600 dark:text-rose-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-rose-800 dark:text-rose-300">System Maintenance Zone</p>
+                  <p className="text-xs text-rose-600 dark:text-rose-400 mt-0.5 leading-relaxed">
+                    Actions in this section are <strong>irreversible</strong> and affect all users. Proceed with caution.
+                  </p>
+                </div>
+              </div>
+
+              <Card className="border-rose-200 dark:border-rose-900/60 bg-white dark:bg-slate-900">
+                <CardHeader>
+                  <CardTitle className="text-rose-700 dark:text-rose-400">System Reset & Cache Maintenance</CardTitle>
+                  <CardDescription>Perform administrative resets on queue states, local test records, and temporary session keys.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50">
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white">Clear Queue & Local Session Data</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Flushes cached queue tickets and restores defaults. The browser window will automatically reload.
+                      </p>
+                    </div>
+                    <Button variant="danger" size="sm" onClick={handleResetQueueData} leftIcon={<RotateCcw size={13} />}>
+                      Purge Queue State
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* Modal: Add Announcement */}
+      <Modal
+        isOpen={isAnnouncementModalOpen}
+        onClose={() => setIsAnnouncementModalOpen(false)}
+        title="Broadcast Public Announcement"
+        description="Publish official news and alerts directly to resident accounts."
+        footer={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setIsAnnouncementModalOpen(false)}>Cancel</Button>
+            <Button size="sm" isLoading={isBroadcasting} onClick={handleAddAnnouncement} leftIcon={<Megaphone size={13} />}>
+              Broadcast Now
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <Input
+            label="Announcement Title"
+            value={annTitle}
+            onChange={(e) => setAnnTitle(e.target.value)}
+            isRequired
+            placeholder="e.g. Scheduled Maintenance, Free Dental Mission"
+          />
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-200">
+              Details & Instructions <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              rows={4}
+              value={annContent}
+              onChange={(e) => setAnnContent(e.target.value)}
+              placeholder="Provide complete details, time, and instructions..."
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 text-sm p-3 focus:outline-none focus:ring-2 focus:ring-gov-blue-500/20 resize-none transition-shadow"
+            />
           </div>
         </div>
-      )}
+      </Modal>
 
-      {/* Danger Zone - Reset Data */}
-      {isStaff && (
-        <div className="rounded-2xl border-2 border-red-400/40 dark:border-red-500/30 bg-red-50/50 dark:bg-red-900/10 p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-red-100 dark:bg-red-500/20">
-              <AlertTriangle size={18} className="text-red-600 dark:text-red-400" />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-red-700 dark:text-red-400 tracking-wide uppercase">Danger Zone — Reset Queue Data</h3>
-              <p className="text-xs text-red-600/80 dark:text-red-400/70 mt-0.5">Clear all local queue tickets and session data. Use this to start fresh.</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-between bg-white/60 dark:bg-slate-800/60 rounded-xl px-4 py-3 border border-red-200 dark:border-red-500/20">
-            <div>
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-200">Clear Queue &amp; Session Data</p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Removes all queue tickets stored in this browser. Page will reload.</p>
-            </div>
-            <button
-              onClick={handleResetQueueData}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs transition-colors shadow-sm whitespace-nowrap ml-4"
-            >
-              <RotateCcw size={13} />
-              Reset Queue Data
-            </button>
-          </div>
+      {/* Modal: Fee Authorization */}
+      <Modal
+        isOpen={isFeePasswordModalOpen}
+        onClose={() => setIsFeePasswordModalOpen(false)}
+        title="Security Authorization Required"
+        description="Please re-enter your administrator password to authorize fee changes."
+        footer={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setIsFeePasswordModalOpen(false)}>Cancel</Button>
+            <Button size="sm" isLoading={isSavingFees} onClick={confirmCertFeeSave} leftIcon={<Check size={13} />}>
+              Confirm & Save
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <Input
+            label="Current Administrator Password"
+            type="password"
+            value={feePassword}
+            onChange={(e) => { setFeePassword(e.target.value); setFeePasswordError(''); }}
+            error={feePasswordError}
+            isRequired
+            autoFocus
+            leftIcon={<Lock size={15} />}
+            placeholder="••••••••••••"
+          />
         </div>
-      )}
-
+      </Modal>
     </div>
   );
 };
-export default Settings;

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { api, callGroqAI } from '../services/api';
 import { VisualCaptcha } from '../components/VisualCaptcha';
+import { GoogleAuthModal } from '../components/GoogleAuthModal';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
@@ -66,56 +67,15 @@ export const Register: React.FC = () => {
   const [privacyError, setPrivacyError] = useState(false);
   const navigate = useNavigate();
 
-  // CAPTCHA State
-  const [captchaCode, setCaptchaCode] = useState('');
+  // CAPTCHA & Google SSO State
   const [captchaInput, setCaptchaInput] = useState('');
   const [captchaError, setCaptchaError] = useState(false);
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   // Google SSO & Registration Handler
-  const handleGoogleAuth = async () => {
-    const email = prompt('Register / Sign In with your Google Account Email:', 'new.resident@gmail.com');
-    if (email === null) return;
-
-    setIsLoading(true);
+  const handleGoogleAuth = () => {
     setError('');
-
-    try {
-      const cleanEmail = email.trim() || 'new.resident@gmail.com';
-      const username = cleanEmail.split('@')[0] || 'Google Resident';
-
-      // Register or complete profile
-      await api.auth.register({
-        username,
-        email: cleanEmail,
-        password: 'GoogleOAuthPassword123!',
-        first_name: 'Google',
-        last_name: 'User',
-        birthdate: '1995-01-01',
-        address: 'Barangay Lawrence',
-        contact_number: '09123456789'
-      }).catch(() => {}); // Ignore if user already registered
-
-      // Auto login
-      const googleUser = {
-        id: 'g_' + Math.floor(Math.random() * 899999 + 100000),
-        username,
-        email: cleanEmail,
-        role: 'Resident',
-        is_verified: true,
-        first_name: 'Google',
-        last_name: 'User',
-      };
-
-      const token = 'mock_google_jwt_token_' + Date.now();
-      localStorage.setItem('lingkodbrgai_token', token);
-      localStorage.setItem('lingkodbrgai_user', JSON.stringify(googleUser));
-      setSuccess(true);
-      setTimeout(() => navigate('/login'), 2000);
-    } catch (err: any) {
-      setError('Google Account Registration failed.');
-    } finally {
-      setIsLoading(false);
-    }
+    setShowGoogleModal(true);
   };
 
   // Single choice handler for PWD vs Senior Citizen
@@ -211,9 +171,9 @@ export const Register: React.FC = () => {
       setPrivacyError(true);
       return;
     }
-    if (captchaInput.trim().toLowerCase() !== captchaCode.toLowerCase()) {
+    if (!captchaInput) {
       setCaptchaError(true);
-      setError('Incorrect CAPTCHA characters. Please enter the new characters shown in the picture.');
+      setError('Please verify that you are not a robot before proceeding.');
       return;
     }
     setCaptchaError(false);
@@ -757,9 +717,8 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* ── Visual Picture CAPTCHA Security Challenge ── */}
+            {/* ── Visual CAPTCHA Security Challenge ── */}
             <VisualCaptcha
-              onCodeChange={setCaptchaCode}
               value={captchaInput}
               onChange={(val) => { setCaptchaInput(val); setCaptchaError(false); }}
               error={captchaError}
@@ -818,6 +777,13 @@ export const Register: React.FC = () => {
           DEV: LAWREENE B ARANAS
         </div>
       </div>
+
+      {/* Official Google SSO Account Chooser Modal */}
+      <GoogleAuthModal
+        isOpen={showGoogleModal}
+        onClose={() => setShowGoogleModal(false)}
+        isRegister={true}
+      />
     </div>
   );
 };

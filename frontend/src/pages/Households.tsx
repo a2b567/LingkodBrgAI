@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Home, Plus, Search, Edit2, Trash2, 
   MapPin, Loader2, Sparkles, UserPlus, XCircle, Users, ShieldAlert,
-  User, DollarSign, Phone, Trash, CheckCircle2, ChevronRight
+  User, DollarSign, Phone, Trash, CheckCircle2, ChevronRight, RefreshCw
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Household, Resident, HouseholdMemberInfo } from '../types';
+import { PageHeader, Badge, Button, EmptyState } from '../components/ui';
+
 
 export const Households: React.FC = () => {
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -237,107 +239,92 @@ export const Households: React.FC = () => {
   const fourPsCount = households.filter(h => h.is_4ps_member).length;
 
   return (
-    <div className="space-y-6 relative z-10">
-      
-      {/* Title */}
-      <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md">
-        <div className="space-y-1">
-          <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight uppercase">
-            Household Profiling & Registry
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
-            Complete RBI profiling: Household Heads, Family Members, Housing Conditions, 4Ps & Socio-Economic Index
-          </p>
-        </div>
-        <button 
-          onClick={handleOpenAdd}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white text-xs font-bold rounded-2xl shadow-md shadow-gov-blue-600/25 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-        >
-          <Plus size={16} />
-          Create Household Profile
-        </button>
-      </div>
+    <div className="space-y-6 relative z-10 max-w-7xl">
 
-      {/* Overview Stat Cards */}
+      {/* Header */}
+      <PageHeader
+        title="Household Registry"
+        subtitle="Complete RBI profiling: Household Heads, Family Members, Housing Conditions, 4Ps & Socio-Economic Index."
+        badge={<Badge variant="neutral">{totalHouseholds} Registered</Badge>}
+        actions={
+          <Button onClick={handleOpenAdd} leftIcon={<Plus size={15} />}>
+            Create Household
+          </Button>
+        }
+      />
+
+      {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gov-blue-500/10 text-gov-blue-500 flex items-center justify-center flex-shrink-0">
-            <Home size={20} />
+        {[
+          { label: 'Total Households', value: totalHouseholds, icon: <Home size={20} />, iconBg: 'bg-gov-blue-50 dark:bg-gov-blue-950/40 text-gov-blue-600 dark:text-gov-blue-400 border-gov-blue-100 dark:border-gov-blue-900/50', valColor: 'text-gov-blue-700 dark:text-gov-blue-300', bar: 'from-gov-blue-400 to-gov-blue-600' },
+          { label: 'Indigent / Poor', value: indigentCount, icon: <ShieldAlert size={20} />, iconBg: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/50', valColor: 'text-rose-600 dark:text-rose-400', bar: 'from-rose-400 to-rose-600' },
+          { label: 'Population (Registered)', value: totalMembers, icon: <Users size={20} />, iconBg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50', valColor: 'text-emerald-700 dark:text-emerald-300', bar: 'from-emerald-400 to-emerald-600' },
+          { label: '4Ps Beneficiaries', value: fourPsCount, icon: <Sparkles size={20} />, iconBg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50', valColor: 'text-amber-600 dark:text-amber-400', bar: 'from-amber-400 to-amber-500' },
+        ].map((stat, i) => (
+          <div key={i} className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-card p-4 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-card-hover transition-all">
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.bar}`} />
+            <div className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 ${stat.iconBg}`}>
+              {stat.icon}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-none mb-1.5">{stat.label}</p>
+              <p className={`text-2xl sm:text-3xl font-black leading-none ${stat.valColor}`}>{stat.value}</p>
+            </div>
           </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">TOTAL HOUSEHOLDS</span>
-            <span className="text-2xl font-black text-slate-900 dark:text-white">{totalHouseholds}</span>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center flex-shrink-0">
-            <ShieldAlert size={20} />
-          </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">INDIGENT / POOR</span>
-            <span className="text-2xl font-black text-rose-500">{indigentCount}</span>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center flex-shrink-0">
-            <Users size={20} />
-          </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">POPULATION (REGISTERED)</span>
-            <span className="text-2xl font-black text-slate-900 dark:text-white">{totalMembers}</span>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center flex-shrink-0">
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 tracking-wider block">4Ps BENEFICIARIES</span>
-            <span className="text-2xl font-black text-amber-500">{fourPsCount}</span>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Query Filters */}
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-800/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full md:w-80">
-          <Search size={16} className="absolute left-3 top-3 text-slate-500 dark:text-slate-300" />
+      {/* ── Search & Filter ── */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-card p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+        <div className="relative flex-1">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search household code, head name, address..."
+            placeholder="Search by household code, head name, or address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-2xl pl-10 pr-4 py-2 text-xs focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30 transition-shadow"
           />
         </div>
-
-        <select 
-          value={poverty} 
-          onChange={(e) => setPoverty(e.target.value)}
-          title="Filter by poverty level"
-          className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 text-xs focus:outline-none w-full md:w-auto text-slate-800 dark:text-white"
+        <div className="flex items-center gap-2">
+          <select
+            value={poverty}
+            onChange={(e) => setPoverty(e.target.value)}
+            title="Filter by poverty level"
+            className="bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30 transition-shadow"
         >
+
           <option value="">All Poverty Levels</option>
           <option value="Non-Poor">Non-Poor</option>
           <option value="Low Income">Low Income</option>
           <option value="Poor">Poor</option>
           <option value="Indigent">Indigent</option>
-        </select>
+          </select>
+          <button
+            onClick={fetchHouseholds}
+            title="Refresh"
+            className="p-2.5 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-500 hover:text-gov-blue-600 dark:hover:text-gov-blue-400 transition-colors"
+          >
+            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
-      {/* Grid of Household Panels */}
+      {/* ── Household Grid ── */}
       {isLoading ? (
-        <div className="p-12 text-center text-slate-500 dark:text-slate-400 flex flex-col items-center gap-2">
-          <Loader2 size={32} className="animate-spin text-gov-blue-500" />
-          <p className="text-xs">Fetching household records...</p>
+        <div className="py-16 text-center flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-[3px] border-gov-blue-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Fetching household records...</p>
         </div>
       ) : households.length === 0 ? (
-        <div className="p-12 text-center text-slate-500 dark:text-slate-400">
-          <Home size={48} className="mx-auto mb-3 opacity-30" />
-          <p className="text-xs font-semibold">No household profiles found.</p>
-        </div>
+        <EmptyState
+          icon={<Home size={36} className="text-slate-300 dark:text-slate-700" />}
+          title="No household profiles found"
+          description={search || poverty ? 'Try adjusting your search or filter.' : 'Click "Create Household" to register the first household profile.'}
+          action={!search && !poverty ? <Button onClick={handleOpenAdd} leftIcon={<Plus size={14} />} size="sm">Create Household</Button> : undefined}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {households.map((h) => {
             const headName = h.head 
               ? `${h.head.first_name} ${h.head.last_name}` 
@@ -348,21 +335,29 @@ export const Households: React.FC = () => {
             const memberCount = (h.members?.length || 0) + (h.family_members_list?.length || 0);
 
             return (
-              <div key={h.id} className="bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800/80 rounded-3xl p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden group">
-                
+              <div key={h.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-card flex flex-col justify-between hover:shadow-card-hover transition-all hover:-translate-y-0.5 relative overflow-hidden group">
+                {/* Top accent bar */}
+                <div className={`absolute top-0 left-0 right-0 h-1 ${
+                  h.poverty_level === 'Indigent' ? 'bg-gradient-to-r from-rose-400 to-rose-600'
+                  : h.poverty_level === 'Poor' ? 'bg-gradient-to-r from-orange-400 to-orange-600'
+                  : h.poverty_level === 'Low Income' ? 'bg-gradient-to-r from-amber-400 to-amber-500'
+                  : 'bg-gradient-to-r from-gov-blue-400 to-gov-blue-600'
+                }`} />
+
+                <div className="p-5">
                 {/* Header */}
                 <div className="space-y-1">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] bg-gov-blue-50 dark:bg-gov-blue-950/40 text-gov-blue-700 dark:text-gov-blue-300 font-bold px-2 py-0.5 rounded tracking-wide uppercase">
+                    <span className="text-[10px] bg-gov-blue-50 dark:bg-gov-blue-950/40 text-gov-blue-700 dark:text-gov-blue-300 font-bold px-2.5 py-0.5 rounded-lg tracking-wide uppercase border border-gov-blue-100 dark:border-gov-blue-900/60">
                       {h.household_number}
                     </span>
                     <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleOpenEdit(h)} title="Edit Household Profile" className="p-1 text-slate-500 hover:text-gov-blue-600 dark:text-slate-400 dark:hover:text-gov-blue-400 transition-colors"><Edit2 size={13} /></button>
-                      <button onClick={() => handleDelete(h.id)} title="Delete Household" className="p-1 text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition-colors"><Trash2 size={13} /></button>
+                      <button onClick={() => handleOpenEdit(h)} title="Edit" className="p-1.5 rounded-lg bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-600 dark:text-gov-blue-400 hover:bg-gov-blue-100 border border-gov-blue-100 dark:border-gov-blue-900/60 transition-colors"><Edit2 size={12} /></button>
+                      <button onClick={() => handleDelete(h.id)} title="Delete" className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 border border-rose-100 dark:border-rose-900/60 transition-colors"><Trash2 size={12} /></button>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-xs font-black text-slate-800 dark:text-white mt-3">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-white mt-3">
                     <Home size={14} className="text-gov-blue-500 flex-shrink-0" />
                     <span className="truncate">Head: {headName}</span>
                   </div>
@@ -415,15 +410,15 @@ export const Households: React.FC = () => {
                 </div>
 
                 {/* Poverty Indicator and Assignment button */}
-                <div className="mt-5 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between">
-                  <span className={`inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-lg border ${
                     h.poverty_level === 'Indigent' 
-                      ? 'bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400' 
+                      ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60' 
                       : h.poverty_level === 'Poor'
-                      ? 'bg-orange-50 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400'
+                      ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/60'
                       : h.poverty_level === 'Low Income'
-                      ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400'
-                      : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400'
+                      ? 'bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/60'
+                      : 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60'
                   }`}>
                     <Sparkles size={10} />
                     {h.poverty_level}
@@ -437,6 +432,8 @@ export const Households: React.FC = () => {
                     Link Resident
                   </button>
                 </div>
+
+                </div>{/* close p-5 inner div */}
 
               </div>
             );

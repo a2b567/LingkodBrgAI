@@ -258,41 +258,44 @@ export const HealthRecords: React.FC = () => {
   const inputCls = 'w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:outline-none focus:border-rose-500 text-slate-900 dark:text-white transition-all';
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in pb-24">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 border-b border-slate-200/80 dark:border-slate-800/80 pb-6">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-[1.5rem] bg-gradient-to-tr from-rose-500 via-pink-500 to-rose-600 flex items-center justify-center text-white shadow-xl shadow-rose-500/30 ring-4 ring-rose-500/10 shrink-0">
-            <Activity size={28} className="animate-pulse" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800 flex items-center justify-center shrink-0 shadow-subtle">
+            <Activity size={22} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Health & Medical Center</h2>
-              <span className="text-[10px] font-extrabold bg-rose-500/10 text-rose-600 dark:text-rose-400 px-2.5 py-0.5 rounded-full border border-rose-500/20 uppercase tracking-widest">
-                RA 10173 Privacy Guarded
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Health & Medical Center
+              </h1>
+              <span className="hidden sm:inline-flex text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+                RA 10173 Protected
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-bold mt-1">
-              Barangay San Isidro Resident Medical Records, Live Clinic Queue & Pharmacy Stock
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Barangay San Isidro Patient Records, Active Clinic Queue & Pharmacy Stock
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
+        {/* View Switcher Tabs & Actions */}
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap shrink-0">
           {/* Segmented View Switcher */}
-          <div className="inline-flex p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-inner gap-1">
+          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl gap-1">
             <button
               onClick={() => setView('records')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 view === 'records'
-                  ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30 font-black'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              <FileText size={15} strokeWidth={2.5} />
+              <FileText size={14} />
               <span>Medical Records</span>
-              <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${
-                view === 'records' ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                view === 'records' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
               }`}>
                 {records.length}
               </span>
@@ -300,16 +303,16 @@ export const HealthRecords: React.FC = () => {
 
             <button
               onClick={() => setView('queue')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all cursor-pointer relative ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 view === 'queue'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 font-black'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              <Clock size={15} strokeWidth={2.5} />
+              <Clock size={14} />
               <span>Clinic Queue</span>
               {activeQueue.length > 0 && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-500 text-white animate-pulse">
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                   {activeQueue.length}
                 </span>
               )}
@@ -317,16 +320,16 @@ export const HealthRecords: React.FC = () => {
 
             <button
               onClick={() => setView('stock')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all cursor-pointer relative ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 view === 'stock'
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 font-black'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              <Package size={15} strokeWidth={2.5} />
+              <Package size={14} />
               <span>Pharmacy Stock</span>
               {lowStockCount > 0 && (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-500 text-white">
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
                   {lowStockCount}
                 </span>
               )}
@@ -337,20 +340,20 @@ export const HealthRecords: React.FC = () => {
           {view === 'records' && (
             <button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white rounded-2xl font-black text-xs shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.02] active:scale-95 border border-rose-500/50 uppercase tracking-wider whitespace-nowrap cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-semibold text-xs transition-colors shadow-subtle cursor-pointer"
             >
-              <UserPlus size={16} strokeWidth={2.5} />
-              New Patient Record
+              <UserPlus size={15} />
+              <span>New Patient Record</span>
             </button>
           )}
 
           {view === 'stock' && (
             <button
               onClick={() => setIsAddStockModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-black text-xs shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-95 border border-emerald-500/50 uppercase tracking-wider whitespace-nowrap cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-xs transition-colors shadow-subtle cursor-pointer"
             >
-              <PackagePlus size={16} strokeWidth={2.5} />
-              Add Medicine
+              <PackagePlus size={15} />
+              <span>Add Medicine</span>
             </button>
           )}
         </div>

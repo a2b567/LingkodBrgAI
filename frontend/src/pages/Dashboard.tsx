@@ -43,7 +43,7 @@ const parseMarkdown = (text: string) => {
       };
       if (isBullet) {
         return (
-          <li key={lineIdx} className="ml-3 list-disc mt-1 list-inside text-slate-700 dark:text-slate-100 font-medium">
+          <li key={lineIdx} className="ml-3 list-disc mt-1 list-inside text-current font-medium">
             {formatInline(line.trim().slice(2))}
           </li>
         );
@@ -52,7 +52,7 @@ const parseMarkdown = (text: string) => {
         return <div key={lineIdx} className="h-1.5"></div>;
       }
       return (
-        <p key={lineIdx} className="mt-1 text-slate-700 dark:text-slate-100 font-medium">
+        <p key={lineIdx} className="mt-1 text-current font-medium">
           {formatInline(line)}
         </p>
       );
@@ -634,16 +634,16 @@ export const Dashboard: React.FC = () => {
             </div>
             <div className="truncate">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h4 className="text-xs sm:text-sm font-black uppercase text-gov-gold-600 dark:text-gov-gold-400 tracking-wider flex items-center gap-1.5 truncate">
-                  <Sparkles size={14} className="text-gov-gold-500 dark:text-gov-gold-300 flex-shrink-0" />
+                <h4 className="text-xs sm:text-sm font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider flex items-center gap-1.5 truncate">
+                  <Sparkles size={14} className="text-amber-600 dark:text-amber-300 flex-shrink-0" />
                   AI STRATEGIC CHAT ASSISTANT
                 </h4>
-                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400 rounded-full animate-ping"></span>
+                <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
+                  <span className="w-1.5 h-1.5 bg-emerald-600 dark:bg-emerald-400 rounded-full animate-ping"></span>
                   Groq AI Active
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">Barangay Lawrence Smart Operations Officer • Fast Groq AI Engine</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium truncate mt-0.5">Barangay Lawrence Smart Operations Officer • Fast Groq AI Engine</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -651,14 +651,14 @@ export const Dashboard: React.FC = () => {
               type="button"
               onClick={handleResetChat} 
               disabled={isGeneratingInsight || isSending || isChatMinimized}
-              className="text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/15 text-gov-gold-600 dark:text-gov-gold-400 hover:text-gov-gold-700 dark:hover:text-gov-gold-300 rounded-xl border border-gov-gold-300 dark:border-gov-gold-500/25 hover:border-gov-gold-400 dark:hover:border-gov-gold-400/50 transition-all duration-200 disabled:opacity-30 active:scale-95 shadow-sm"
+              className="text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950/70 text-amber-800 hover:text-amber-900 dark:text-amber-300 rounded-xl border border-amber-300 dark:border-amber-700/60 transition-all duration-200 disabled:opacity-30 active:scale-95 shadow-sm cursor-pointer"
             >
               Reset Chat
             </button>
             <button
               type="button"
               onClick={() => setIsChatMinimized(prev => !prev)}
-              className="p-1.5 rounded-xl bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-all duration-200 active:scale-95 border border-slate-200 dark:border-slate-700/50 hover:border-slate-300 dark:hover:border-slate-600/80 flex items-center justify-center"
+              className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all duration-200 active:scale-95 border border-slate-300 dark:border-slate-700 flex items-center justify-center cursor-pointer"
               title={isChatMinimized ? 'Expand' : 'Minimize'}
             >
               {isChatMinimized ? <ChevronDown size={16} /> : <ChevronUp size={16} />}

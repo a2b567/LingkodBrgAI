@@ -239,6 +239,18 @@ export const Certificates: React.FC = () => {
     }
   };
 
+  const handleTogglePayment = async (cert: Certificate) => {
+    const nextStatus = cert.payment_status === 'Paid' ? 'Unpaid' : 'Paid';
+    try {
+      await api.certificates.update(cert.id, {
+        payment_status: nextStatus
+      });
+      fetchCerts();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Failed to update payment status");
+    }
+  };
+
 
   // Handle signature drawing
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -646,7 +658,7 @@ export const Certificates: React.FC = () => {
                   <th className="p-4">Resident</th>
                   <th className="p-4">Type</th>
                   <th className="p-4">Purpose</th>
-                  <th className="p-4">Fee</th>
+                  <th className="p-4">Fee & Payment</th>
                   <th className="p-4">Requested On</th>
                   <th className="p-4">Status</th>
                   <th className="p-4 text-right">Actions</th>
@@ -669,8 +681,37 @@ export const Certificates: React.FC = () => {
                       <span className="font-extrabold text-slate-900 dark:text-slate-200">{cert.type}</span>
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400 truncate max-w-[180px] font-medium">{cert.purpose}</td>
-                    <td className="p-4 font-extrabold text-slate-900 dark:text-slate-200">
-                      {cert.fee > 0 ? `₱${cert.fee.toFixed(2)}` : <span className="text-emerald-600 dark:text-emerald-400 font-bold">Free</span>}
+                    <td className="p-4">
+                      <div className="space-y-1">
+                        <div className="font-extrabold text-slate-900 dark:text-slate-200">
+                          {cert.fee > 0 ? `₱${cert.fee.toFixed(2)}` : <span className="text-emerald-600 dark:text-emerald-400 font-bold">Free</span>}
+                        </div>
+                        {cert.fee > 0 ? (
+                          isStaff ? (
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePayment(cert)}
+                              title={cert.payment_status === 'Paid' ? "Click to toggle Unpaid" : "Click to mark as Paid (Cash/GCash received)"}
+                              className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider transition-all cursor-pointer ${
+                                cert.payment_status === 'Paid'
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100'
+                                  : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100'
+                              }`}
+                            >
+                              <span className={`w-1.5 h-1.5 rounded-full ${cert.payment_status === 'Paid' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
+                              {cert.payment_status === 'Paid' ? 'Paid' : 'Unpaid (Click to Pay)'}
+                            </button>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wider ${
+                              cert.payment_status === 'Paid'
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200'
+                            }`}>
+                              {cert.payment_status === 'Paid' ? 'Paid' : 'Unpaid at Counter'}
+                            </span>
+                          )
+                        ) : null}
+                      </div>
                     </td>
                     <td className="p-4 text-slate-600 dark:text-slate-400 font-medium">
                       {new Date(cert.request_date).toLocaleDateString()}
@@ -800,11 +841,26 @@ export const Certificates: React.FC = () => {
                 <div className="space-y-1 text-xs text-slate-600 dark:text-slate-300">
                   <p><strong className="text-slate-400">Resident:</strong> {cert.resident ? `${cert.resident.first_name} ${cert.resident.last_name}` : 'Resident User'}</p>
                   <p><strong className="text-slate-400">Purpose:</strong> {cert.purpose}</p>
-                  <div className="flex items-center justify-between pt-1 text-[11px]">
+                  <div className="flex items-center justify-between pt-1 text-[11px] gap-2">
                     <span className="text-slate-400">{new Date(cert.request_date).toLocaleDateString()}</span>
-                    <span className="font-extrabold text-slate-900 dark:text-white">
-                      Fee: {cert.fee > 0 ? `₱${cert.fee.toFixed(2)}` : 'Free'}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-extrabold text-slate-900 dark:text-white">
+                        {cert.fee > 0 ? `₱${cert.fee.toFixed(2)}` : 'Free'}
+                      </span>
+                      {cert.fee > 0 && isStaff && (
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePayment(cert)}
+                          className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                            cert.payment_status === 'Paid'
+                              ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200'
+                              : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200'
+                          }`}
+                        >
+                          {cert.payment_status === 'Paid' ? 'Paid' : 'Unpaid'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 

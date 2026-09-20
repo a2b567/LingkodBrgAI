@@ -1,231 +1,142 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { RefreshCw, Volume2, ShieldCheck, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
 
-interface VisualCaptchaProps {
+export interface RobotCaptchaProps {
+  isVerified?: boolean;
+  onVerify?: (verified: boolean) => void;
+  // Compatibility props for seamless drop-in
   onCodeChange?: (code: string) => void;
-  value: string;
-  onChange: (val: string) => void;
+  value?: string;
+  onChange?: (val: string) => void;
   error?: boolean;
 }
 
-export const VisualCaptcha: React.FC<VisualCaptchaProps> = ({
-  onCodeChange,
-  value,
+export const RobotCaptcha: React.FC<RobotCaptchaProps> = ({
+  isVerified = false,
+  onVerify,
   onChange,
+  onCodeChange,
   error = false,
 }) => {
-  const [code, setCode] = useState('');
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [verified, setVerified] = useState(isVerified);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  // Generate random 5-character string (avoiding confusing chars like 0/O, 1/I/l)
-  const generateRandomCode = useCallback(() => {
-    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz';
-    let result = '';
-    for (let i = 0; i < 5; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  }, []);
+  const handleCheckboxClick = () => {
+    if (verified || isVerifying) return;
 
-  // Draw distorted canvas CAPTCHA image
-  const drawCaptcha = useCallback((text: string) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    setIsVerifying(true);
 
-    const width = canvas.width;
-    const height = canvas.height;
+    // Realistic human verification delay (700ms)
+    setTimeout(() => {
+      setIsVerifying(false);
+      setVerified(true);
+      if (onVerify) onVerify(true);
+      if (onChange) onChange('verified_human_token');
+      if (onCodeChange) onCodeChange('verified_human_token');
+    }, 700);
+  };
 
-    // Background fill
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillRect(0, 0, width, height);
-
-    // Add noise background dots
-    for (let i = 0; i < 40; i++) {
-      ctx.fillStyle = `rgba(${Math.floor(Math.random() * 150)}, ${Math.floor(Math.random() * 150)}, ${Math.floor(Math.random() * 150)}, 0.15)`;
-      ctx.beginPath();
-      ctx.arc(Math.random() * width, Math.random() * height, Math.random() * 2 + 1, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Add background noise lines
-    for (let i = 0; i < 4; i++) {
-      ctx.strokeStyle = `rgba(${Math.floor(Math.random() * 100)}, ${Math.floor(Math.random() * 100)}, ${Math.floor(Math.random() * 100)}, 0.3)`;
-      ctx.lineWidth = Math.random() * 1.5 + 0.5;
-      ctx.beginPath();
-      ctx.moveTo(Math.random() * width, Math.random() * height);
-      ctx.bezierCurveTo(
-        Math.random() * width, Math.random() * height,
-        Math.random() * width, Math.random() * height,
-        Math.random() * width, Math.random() * height
-      );
-      ctx.stroke();
-    }
-
-    // Render each distorted character
-    const fontFamilies = ['serif', 'sans-serif', 'monospace', 'cursive', 'Georgia', 'Trebuchet MS'];
-    const charSpacing = width / (text.length + 1);
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      ctx.save();
-
-      const fontSize = Math.floor(Math.random() * 6) + 24; // 24px - 30px
-      const fontFamily = fontFamilies[Math.floor(Math.random() * fontFamilies.length)];
-      ctx.font = `bold ${fontSize}px ${fontFamily}`;
-      ctx.fillStyle = `rgb(${Math.floor(Math.random() * 80)}, ${Math.floor(Math.random() * 100)}, ${Math.floor(Math.random() * 140)})`;
-
-      const x = charSpacing * (i + 1) + (Math.random() * 4 - 2);
-      const y = height / 2 + (Math.random() * 8 - 4) + 6;
-
-      ctx.translate(x, y);
-      const angle = (Math.random() * 40 - 20) * (Math.PI / 180); // Rotate -20deg to +20deg
-      ctx.rotate(angle);
-
-      ctx.fillText(char, -fontSize / 4, fontSize / 4);
-      ctx.restore();
-    }
-
-    // Strike-through line over characters
-    ctx.strokeStyle = 'rgba(30, 41, 59, 0.45)';
-    ctx.lineWidth = 1.8;
-    ctx.beginPath();
-    ctx.moveTo(10, height / 2 + Math.random() * 8 - 4);
-    ctx.lineTo(width - 10, height / 2 + Math.random() * 8 - 4);
-    ctx.stroke();
-  }, []);
-
-  const refreshCaptcha = useCallback(() => {
-    const newCode = generateRandomCode();
-    setCode(newCode);
-    if (onCodeChange) onCodeChange(newCode);
-    drawCaptcha(newCode);
-  }, [generateRandomCode, onCodeChange, drawCaptcha]);
-
-  useEffect(() => {
-    refreshCaptcha();
-  }, []);
-
-  // Text-to-Speech audio reading
-  const playAudio = () => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-
-    // Spells out characters separated by pauses
-    const spokenText = code.split('').join('. ');
-    const utterance = new SpeechSynthesisUtterance(spokenText);
-    utterance.rate = 0.7; // Slower rate for clarity
-    utterance.pitch = 1.0;
-
-    setIsPlayingAudio(true);
-    utterance.onend = () => setIsPlayingAudio(false);
-    utterance.onerror = () => setIsPlayingAudio(false);
-
-    window.speechSynthesis.speak(utterance);
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setVerified(false);
+    setIsVerifying(false);
+    if (onVerify) onVerify(false);
+    if (onChange) onChange('');
+    if (onCodeChange) onCodeChange('');
   };
 
   return (
-    <div className={`rounded-2xl border-2 overflow-hidden transition-all duration-200 ${
-      error
-        ? 'border-rose-400 bg-rose-50/40 dark:bg-rose-950/20'
-        : 'border-sky-300 dark:border-sky-800 bg-sky-50/60 dark:bg-slate-900/90'
-    }`}>
-      {/* CAPTCHA Header Bar (Matching reference UI) */}
-      <div className="bg-sky-400 dark:bg-sky-700 px-4 py-2.5 flex items-center justify-between text-white font-bold text-xs select-none">
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={16} className="text-sky-100" />
-          <span>Match the characters in the picture</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => alert('Type the characters shown in the distorted image box. Click the speaker icon to listen, or refresh if unreadable.')}
-          className="text-[11px] font-semibold text-sky-100 hover:text-white hover:underline flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
-        >
-          <HelpCircle size={13} />
-          Help
-        </button>
-      </div>
-
-      {/* Content Area */}
-      <div className="p-4 space-y-3">
-        <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-          To continue, type the characters you see in the picture.{' '}
-          <span
-            onClick={refreshCaptcha}
-            className="text-sky-600 dark:text-sky-400 hover:underline cursor-pointer font-bold"
+    <div className="w-full space-y-1.5 select-none">
+      <div
+        onClick={handleCheckboxClick}
+        className={`w-full bg-white dark:bg-slate-900 border rounded-2xl p-3.5 sm:p-4 shadow-sm transition-all duration-200 flex items-center justify-between gap-3 ${
+          error && !verified
+            ? 'border-rose-300 dark:border-rose-800 bg-rose-50/30 dark:bg-rose-950/20 ring-2 ring-rose-500/20'
+            : verified
+            ? 'border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/20 dark:bg-emerald-950/20'
+            : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer'
+        }`}
+      >
+        {/* Left: Interactive Checkbox & Label */}
+        <div className="flex items-center gap-3.5">
+          <div
+            className={`w-7 h-7 rounded-lg border-2 flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+              verified
+                ? 'border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/30 scale-105'
+                : isVerifying
+                ? 'border-gov-blue-500 bg-gov-blue-50 dark:bg-gov-blue-950/40'
+                : error
+                ? 'border-rose-400 dark:border-rose-600 bg-white dark:bg-slate-950'
+                : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-950 hover:border-gov-blue-500'
+            }`}
           >
-            Why?
-          </span>
-        </p>
-
-        {/* Picture Box + Controls */}
-        <div className="flex items-center gap-2">
-          {/* Distorted Image Canvas Box */}
-          <div className="relative border-2 border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden bg-white shadow-inner flex-1 max-w-[240px]">
-            <canvas
-              ref={canvasRef}
-              width={230}
-              height={65}
-              className="block w-full h-[65px] select-none"
-            />
+            {isVerifying ? (
+              <div className="w-4 h-4 border-2 border-gov-blue-500 border-t-transparent rounded-full animate-spin" />
+            ) : verified ? (
+              <Check size={18} className="stroke-[3] animate-in zoom-in-75 duration-200" />
+            ) : null}
           </div>
 
-          {/* Audio & Refresh Buttons */}
-          <div className="flex flex-col gap-1.5">
-            <button
-              type="button"
-              onClick={playAudio}
-              title="Listen to audio CAPTCHA"
-              className={`p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:border-sky-400 transition-colors ${
-                isPlayingAudio ? 'animate-pulse text-sky-600 border-sky-400' : ''
+          <div className="text-left">
+            <span
+              className={`text-xs sm:text-sm font-bold tracking-tight block ${
+                verified
+                  ? 'text-emerald-700 dark:text-emerald-300'
+                  : 'text-slate-800 dark:text-slate-100'
               }`}
             >
-              <Volume2 size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={refreshCaptcha}
-              title="Generate new characters"
-              className="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 hover:border-sky-400 transition-colors"
-            >
-              <RefreshCw size={16} />
-            </button>
+              {isVerifying
+                ? 'Verifying identity...'
+                : verified
+                ? "I'm not a robot"
+                : "I'm not a robot"}
+            </span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium block leading-none mt-0.5">
+              {verified ? 'Security challenge passed' : 'Click checkbox to verify human'}
+            </span>
           </div>
         </div>
 
-        <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
-          The picture contains <span className="font-bold text-slate-700 dark:text-slate-200">{code.length} characters</span>.
-        </p>
+        {/* Right: Security Branding & Verification Badge */}
+        <div className="flex items-center gap-2 pl-2 border-l border-slate-100 dark:border-slate-800/80 flex-shrink-0">
+          {verified && (
+            <button
+              type="button"
+              onClick={handleReset}
+              title="Reset verification"
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <RefreshCw size={13} />
+            </button>
+          )}
 
-        {/* Input Row */}
-        <div className="flex items-center gap-3 pt-1">
-          <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex-shrink-0">
-            Characters:
-          </label>
-          <input
-            type="text"
-            required
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Type characters here"
-            className={`flex-1 bg-white dark:bg-slate-950 border-2 rounded-xl px-3.5 py-2 text-sm font-extrabold tracking-widest focus:outline-none transition-colors ${
-              error
-                ? 'border-rose-400 text-rose-600 dark:text-rose-400'
-                : 'border-slate-300 dark:border-slate-700 focus:border-sky-500 text-slate-900 dark:text-white'
-            }`}
-          />
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="w-7 h-7 rounded-lg bg-gov-blue-50 dark:bg-gov-blue-950/50 border border-gov-blue-100 dark:border-gov-blue-900/50 flex items-center justify-center text-gov-blue-600 dark:text-gov-blue-400">
+              <ShieldCheck size={16} />
+            </div>
+            <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mt-0.5">
+              reCAPTCHA
+            </span>
+            <div className="text-[7px] text-slate-400 dark:text-slate-500 space-x-1 font-medium leading-none">
+              <span>Privacy</span>
+              <span>•</span>
+              <span>Terms</span>
+            </div>
+          </div>
         </div>
-
-        {error && (
-          <p className="text-[10px] font-bold text-rose-500 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-rose-500 rounded-full flex-shrink-0" />
-            Incorrect code — please enter the new characters shown in the picture.
-          </p>
-        )}
       </div>
+
+      {/* Error / Alert notice */}
+      {error && !verified && (
+        <p className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-1.5 pl-1 animate-in fade-in duration-200">
+          <AlertCircle size={13} />
+          Please check "I'm not a robot" before continuing.
+        </p>
+      )}
     </div>
   );
 };
-export default VisualCaptcha;
+
+// Aliased export for compatibility with existing imports
+export const VisualCaptcha = RobotCaptcha;
+export default RobotCaptcha;

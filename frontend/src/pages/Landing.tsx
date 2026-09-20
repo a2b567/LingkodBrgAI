@@ -463,12 +463,12 @@ export const Landing: React.FC = () => {
                 </div>
 
                 {/* Visual Widget 2: Calendar status */}
-                <div className="col-span-4 bg-gradient-to-tr from-gov-blue-600 to-gov-blue-800 dark:from-gov-blue-700 dark:to-slate-800 p-4 rounded-3xl text-white flex flex-col justify-between shadow-lg">
-                  <Calendar size={18} className="opacity-90" />
+                <div className="col-span-4 bg-gradient-to-tr from-gov-blue-600 to-gov-blue-800 dark:from-gov-blue-600 dark:to-gov-blue-800 p-4 rounded-3xl text-white flex flex-col justify-between shadow-lg">
+                  <Calendar size={18} className="text-white opacity-90" />
                   <div>
-                    <h5 className="text-[8px] font-extrabold tracking-widest uppercase opacity-85">TUESDAY</h5>
-                    <p className="text-lg font-black leading-tight">LOW</p>
-                    <p className="text-[8px] font-bold opacity-85">CONGESTION RISK</p>
+                    <h5 className="text-[8px] font-extrabold tracking-widest uppercase text-white/90">TUESDAY</h5>
+                    <p className="text-lg font-black leading-tight text-white">LOW</p>
+                    <p className="text-[8px] font-bold text-white/90">CONGESTION RISK</p>
                   </div>
                 </div>
 

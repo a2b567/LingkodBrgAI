@@ -155,10 +155,10 @@ export const Appointments: React.FC = () => {
               key={idx} 
               className={`p-3.5 rounded-2xl border text-center relative overflow-hidden ${
                 item.congestion_risk === 'High' 
-                  ? 'bg-rose-50/50 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/60 dark:text-rose-400' 
+                  ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300' 
                   : item.congestion_risk === 'Medium'
-                  ? 'bg-amber-50/50 border-amber-200 text-amber-700 dark:bg-amber-950/20 dark:border-amber-900/60 dark:text-amber-400'
-                  : 'bg-emerald-50/50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/60 dark:text-emerald-400'
+                  ? 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300'
+                  : 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300'
               }`}
             >
               <span className="text-[10px] font-bold block text-slate-700 dark:text-slate-300">

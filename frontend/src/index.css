@@ -1,11 +1,12 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
-@variant dark (.dark &);
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   body {
-    @apply antialiased selection:bg-gov-blue-500 selection:text-white transition-colors duration-300;
+    @apply antialiased selection:bg-gov-blue-500 selection:text-white transition-colors duration-200;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -83,97 +84,6 @@
 .dark body {
   background-color: #020617;
   color: #f8fafc;
-}
-
-/* Guaranteed Dark Mode Surface Backgrounds */
-.dark .bg-white {
-  background-color: #0f172a !important;
-}
-
-.dark .bg-white\/95,
-.dark .bg-white\/90,
-.dark .bg-white\/80,
-.dark .bg-white\/70,
-.dark .bg-white\/60,
-.dark .bg-white\/50,
-.dark .bg-white\/40 {
-  background-color: rgba(15, 23, 42, 0.85) !important;
-}
-
-.dark .bg-slate-50 {
-  background-color: #020617 !important;
-}
-
-.dark .bg-slate-50\/50,
-.dark .bg-slate-50\/80 {
-  background-color: rgba(2, 6, 23, 0.6) !important;
-}
-
-.dark .bg-slate-100 {
-  background-color: #1e293b !important;
-}
-
-.dark .bg-slate-100\/50,
-.dark .bg-slate-100\/80 {
-  background-color: rgba(30, 41, 59, 0.6) !important;
-}
-
-/* Guaranteed High Contrast Text in Dark Mode */
-.dark .text-slate-900,
-.dark .text-gov-blue-900,
-.dark .text-gov-blue-950,
-.dark .text-slate-800 {
-  color: #f8fafc !important;
-}
-
-.dark .text-slate-700,
-.dark .text-slate-650,
-.dark .text-slate-600 {
-  color: #e2e8f0 !important;
-}
-
-.dark .text-slate-550,
-.dark .text-slate-500,
-.dark .text-slate-450,
-.dark .text-slate-400 {
-  color: #cbd5e1 !important;
-}
-
-/* Dark Mode Inputs, Selects & Placeholders */
-.dark input, 
-.dark select, 
-.dark textarea {
-  color: #f8fafc !important;
-  background-color: rgba(15, 23, 42, 0.85) !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
-}
-
-.dark input::placeholder, 
-.dark textarea::placeholder {
-  color: #94a3b8 !important;
-  opacity: 0.9 !important;
-}
-
-.dark select option {
-  background-color: #0f172a !important;
-  color: #f8fafc !important;
-}
-
-/* Dark Mode Table Headers & Cells */
-.dark th {
-  color: #cbd5e1 !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-.dark td {
-  color: #f1f5f9 !important;
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
-/* Dark Mode Labels */
-.dark label {
-  color: #e2e8f0 !important;
-  font-weight: 700;
 }
 
 /* Gradient Background Glows */
