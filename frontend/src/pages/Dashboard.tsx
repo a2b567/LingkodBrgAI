@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
-  Users, Home, Bell, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send, Monitor, Clock, PhoneCall, CheckCircle2,
+  Users, Home, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send, Monitor, Clock, PhoneCall, CheckCircle2,
   Activity, Pill, HeartPulse, Stethoscope, Package, Plus
 } from 'lucide-react';
 import { 
@@ -153,12 +153,6 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  // Notification state
-  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; content: string; type: string; is_read: boolean }>>([]);
-  const [showNotifPanel, setShowNotifPanel] = useState(false);
-
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
   const streamIntervalRef = React.useRef<any>(null);
   const initialInsightFetched = React.useRef(false);
   const messagesContainerRef = React.useRef<HTMLDivElement>(null);
@@ -229,52 +223,6 @@ export const Dashboard: React.FC = () => {
     }, 20);
   };
 
-  // Add notification bell to header
-  const NotificationBell = () => (
-    <div className="relative inline-block">
-      <button
-        type="button"
-        className="relative flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-        onClick={() => setShowNotifPanel(!showNotifPanel)}
-        aria-label="Notifications"
-      >
-        <Bell size={20} />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full border-2 border-white dark:border-gray-800">
-            {unreadCount}
-          </span>
-        )}
-      </button>
-      {showNotifPanel && (
-        <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-20">
-          <div className="p-3 border-b border-slate-200 dark:border-slate-700 font-semibold text-sm text-slate-700 dark:text-slate-300">
-            Notifications
-          </div>
-          <ul className="max-h-64 overflow-y-auto">
-            {notifications.length === 0 && (
-              <li className="p-3 text-sm text-slate-500 dark:text-slate-400">No notifications</li>
-            )}
-            {notifications.map(notif => (
-              <li
-                key={notif.id}
-                className={`p-3 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer ${notif.is_read ? '' : 'bg-slate-100 dark:bg-slate-700'}`}
-                onClick={() => handleMarkRead(notif.id)}
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <p className="font-medium text-sm text-slate-800 dark:text-slate-200">{notif.title}</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 truncate">{notif.content}</p>
-                  </div>
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{notif.type}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-
   const generateInitialInsight = async (currentStats: DashboardStats) => {
     setIsGeneratingInsight(true);
     setMessages([]);
@@ -301,19 +249,6 @@ export const Dashboard: React.FC = () => {
     generateInitialInsight(stats!);
   };
 
-  // Fetch notifications on mount
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await api.notifications.list();
-        setNotifications(res);
-      } catch (err) {
-        console.error('Failed to fetch notifications', err);
-      }
-    };
-    fetchNotifications();
-  }, []);
-
   // Fetch dashboard statistics on mount
   useEffect(() => {
     const fetchStats = async () => {
@@ -334,15 +269,7 @@ export const Dashboard: React.FC = () => {
     fetchStats();
   }, []);
 
-  // Mark a notification as read
-  const handleMarkRead = async (id: string) => {
-    try {
-      await api.notifications.read(id);
-      setNotifications(prev => prev.map(n => (n.id === id ? { ...n, is_read: true } : n)));
-    } catch (err) {
-      console.error('Failed to mark notification read', err);
-    }
-  };
+
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,8 +393,6 @@ export const Dashboard: React.FC = () => {
           <h2 className="text-2xl font-extrabold tracking-normal text-slate-900 dark:text-white uppercase">COMMUNITY DASHBOARD</h2>
           <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold tracking-wide">Real-time demographic statistics & analytics</p>
         </div>
-        {/* Notification bell */}
-        <NotificationBell />
       </div>
 
       {/* Health Worker Dedicated Analytics Banner */}

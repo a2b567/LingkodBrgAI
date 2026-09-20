@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, Shield, X, Loader2 } from 'lucide-react';
+import { Shield, X, Loader2, Mail, User } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
 
@@ -37,36 +37,21 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
 }) => {
   const loginStore = useAuthStore((state) => state.login);
   const navigate = useNavigate();
-  const [isCustomMode, setIsCustomMode] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [customEmail, setCustomEmail] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedEmail, setSelectedEmail] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const defaultAccounts = [
-    {
-      name: 'Ryan Mendoza',
-      email: 'ryan.mendoza@gmail.com',
-      avatarColor: 'bg-emerald-600',
-      initials: 'RM',
-    },
-    {
-      name: 'San Isidro Citizen',
-      email: 'resident.sanisidro@gmail.com',
-      avatarColor: 'bg-gov-blue-600',
-      initials: 'SC',
-    },
-  ];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
 
-  const handleSelectAccount = async (name: string, email: string) => {
-    setSelectedEmail(email);
     setIsLoading(true);
 
     // Simulate authentic Google OAuth Token Exchange
     setTimeout(() => {
-      const nameParts = name.trim().split(' ');
+      const nameParts = (name.trim() || email.split('@')[0]).split(' ');
       const firstName = nameParts[0] || 'Google';
       const lastName = nameParts.slice(1).join(' ') || 'User';
 
@@ -88,13 +73,6 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
     }, 850);
   };
 
-  const handleCustomSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customEmail) return;
-    const name = customName.trim() || customEmail.split('@')[0];
-    handleSelectAccount(name, customEmail);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div
@@ -112,7 +90,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                 {isRegister ? 'Register with Google' : 'Sign in with Google'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Choose an account to continue to LingkodBrgy
+                Continue to LingkodBrgy Resident Portal
               </p>
             </div>
           </div>
@@ -131,104 +109,64 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
             <div className="py-8 text-center space-y-3">
               <Loader2 size={32} className="mx-auto text-gov-blue-600 animate-spin" />
               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Signing in with {selectedEmail}...
+                Connecting with Google Account...
               </p>
               <p className="text-[11px] text-slate-400">Authenticating secure session token</p>
             </div>
-          ) : !isCustomMode ? (
-            <>
-              {/* Account selection list */}
-              <div className="space-y-2">
-                {defaultAccounts.map((acc, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSelectAccount(acc.name, acc.email)}
-                    className="w-full flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-gov-blue-400 dark:hover:border-gov-blue-500 hover:bg-gov-blue-50/40 dark:hover:bg-gov-blue-950/20 transition-all text-left group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-9 h-9 rounded-full ${acc.avatarColor} text-white font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm`}
-                      >
-                        {acc.initials}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                          {acc.name}
-                        </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          {acc.email}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-gov-blue-600 dark:text-gov-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                      Continue →
-                    </span>
-                  </button>
-                ))}
-
-                {/* Use another account option */}
-                <button
-                  type="button"
-                  onClick={() => setIsCustomMode(true)}
-                  className="w-full flex items-center gap-3 p-3.5 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors text-left cursor-pointer"
-                >
-                  <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center flex-shrink-0">
-                    <UserPlus size={16} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Use another Google account
-                    </p>
-                    <p className="text-[10px] text-slate-400">Enter custom Gmail or Workspace address</p>
-                  </div>
-                </button>
-              </div>
-            </>
           ) : (
-            /* Custom account entry form */
-            <form onSubmit={handleCustomSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Full Name (Optional)
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Juan Dela Cruz"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <User size={15} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                   Google Email Address
                 </label>
-                <input
-                  type="email"
-                  required
-                  placeholder="name@gmail.com"
-                  value={customEmail}
-                  onChange={(e) => setCustomEmail(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                    <Mail size={15} />
+                  </div>
+                  <input
+                    type="email"
+                    required
+                    placeholder="yourname@gmail.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setIsCustomMode(false)}
+                  onClick={onClose}
                   className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
-                  Back
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={!customEmail}
-                  className="flex-1 py-2.5 rounded-xl bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                  disabled={!email.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  Sign In
+                  <GoogleLogo />
+                  <span>{isRegister ? 'Complete Registration' : 'Continue'}</span>
                 </button>
               </div>
             </form>
@@ -238,8 +176,7 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-start gap-2 text-[10px] text-slate-400 dark:text-slate-500 leading-relaxed">
             <Shield size={14} className="text-emerald-500 flex-shrink-0 mt-0.5" />
             <p>
-              To continue, Google will share your verified name, email address, and profile photo with
-              LingkodBrgy for citizen identification.
+              Google will securely verify your email address with LingkodBrgy for citizen authentication.
             </p>
           </div>
         </div>

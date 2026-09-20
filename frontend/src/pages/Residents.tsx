@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Plus, Search, Edit2, Trash2, FileSpreadsheet, QrCode,
-  XCircle, UserX, UserCheck, Loader2, Upload, CheckCircle2, Sparkles, Save
+  XCircle, UserX, UserCheck, Loader2, Upload, CheckCircle2, Sparkles, Save,
+  Eye, EyeOff
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Resident } from '../types';
+import { usePrivacyStore } from '../store/privacyStore';
+import { maskEmail, maskAddress } from '../utils/privacy';
 
 export const Residents: React.FC = () => {
+  const { isPrivacyMode, isItemRevealed, toggleRevealItem } = usePrivacyStore();
   const [residents, setResidents] = useState<Resident[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -420,75 +424,95 @@ export const Residents: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50 text-xs">
-                {residents.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/10">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
-                          {r.profile_photo ? (
-                            <img src={`http://localhost:8080${r.profile_photo}`} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[10px] font-black text-slate-500 dark:text-slate-400">{r.first_name[0]}{r.last_name[0]}</span>
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="font-bold">{r.last_name}, {r.first_name} {r.middle_name || ''}</p>
-                            {r.is_pregnant && <span title="Pregnant" className="text-[10px]">🤰</span>}
-                            {r.is_senior && <span title="Senior Citizen" className="text-[10px]">👴</span>}
-                            {r.is_pwd && <span title="Person with Disability" className="text-[9px] bg-blue-600 text-white px-1 rounded font-bold">♿ PWD</span>}
+                {residents.map((r) => {
+                  const isRevealed = isItemRevealed(r.id);
+                  const displayEmail = isRevealed ? (r.email || 'No email') : maskEmail(r.email);
+                  const displayAddress = isRevealed ? (r.address || '—') : maskAddress(r.address);
+
+                  return (
+                    <tr key={r.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/10">
+                      <td className="p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
+                            {r.profile_photo ? (
+                              <img src={`http://localhost:8080${r.profile_photo}`} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400">{r.first_name[0]}{r.last_name[0]}</span>
+                            )}
                           </div>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400">{r.email || 'No email'}</span>
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold">{r.last_name}, {r.first_name} {r.middle_name || ''}</p>
+                              {r.is_pregnant && <span title="Pregnant" className="text-[10px]">🤰</span>}
+                              {r.is_senior && <span title="Senior Citizen" className="text-[10px]">👴</span>}
+                              {r.is_pwd && <span title="Person with Disability" className="text-[9px] bg-blue-600 text-white px-1 rounded font-bold">♿ PWD</span>}
+                            </div>
+                            <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                              {displayEmail}
+                              {isPrivacyMode && !isRevealed && (
+                                <span className="text-[8px] bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 px-1 rounded font-mono">PROTECTED</span>
+                              )}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <p className="font-semibold">{r.age} yrs old</p>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">{r.gender}</span>
-                    </td>
-                    <td className="p-4 max-w-xs truncate font-medium text-slate-600 dark:text-slate-300">
-                      {r.address}
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
-                        r.voter_status === 'Registered' 
-                          ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400' 
-                          : 'bg-slate-50 dark:bg-slate-800/80 text-slate-500'
-                      }`}>
-                        {r.voter_status === 'Registered' ? <UserCheck size={10} /> : <UserX size={10} />}
-                        {r.voter_status}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center font-bold">
-                      {r.residency_status}
-                    </td>
-                    <td className="p-4 text-center">
-                      <button 
-                        onClick={() => setQrModal(r)}
-                        className="p-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-black dark:hover:text-slate-100 transition-colors inline-flex items-center gap-1 text-[10px] font-bold"
-                      >
-                        <QrCode size={14} className="text-gov-blue-500" />
-                        {r.qr_id}
-                      </button>
-                    </td>
-                    <td className="p-4 text-right space-x-2">
-                      <button 
-                        onClick={() => handleOpenEdit(r)}
-                        title="Edit Resident"
-                        className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-gov-blue-600 transition-colors inline-flex"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(r.id)}
-                        title="Delete Resident"
-                        className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg text-slate-500 hover:text-rose-500 dark:text-slate-400 transition-colors inline-flex"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-4">
+                        <p className="font-semibold">{r.age} yrs old</p>
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-medium">{r.gender}</span>
+                      </td>
+                      <td className="p-4 max-w-xs truncate font-medium text-slate-600 dark:text-slate-300">
+                        {displayAddress}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold ${
+                          r.voter_status === 'Registered' 
+                            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400' 
+                            : 'bg-slate-50 dark:bg-slate-800/80 text-slate-500'
+                        }`}>
+                          {r.voter_status === 'Registered' ? <UserCheck size={10} /> : <UserX size={10} />}
+                          {r.voter_status}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center font-bold">
+                        {r.residency_status}
+                      </td>
+                      <td className="p-4 text-center">
+                        <button 
+                          onClick={() => setQrModal(r)}
+                          className="p-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-black dark:hover:text-slate-100 transition-colors inline-flex items-center gap-1 text-[10px] font-bold"
+                        >
+                          <QrCode size={14} className="text-gov-blue-500" />
+                          {r.qr_id}
+                        </button>
+                      </td>
+                      <td className="p-4 text-right space-x-1.5">
+                        {isPrivacyMode && (
+                          <button
+                            onClick={() => toggleRevealItem(r.id)}
+                            title={isRevealed ? "Mask Citizen PII" : "Reveal Citizen PII (Authorized)"}
+                            className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg text-slate-400 hover:text-blue-500 transition-colors inline-flex cursor-pointer"
+                          >
+                            {isRevealed ? <EyeOff size={14} className="text-blue-500" /> : <Eye size={14} />}
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => handleOpenEdit(r)}
+                          title="Edit Resident"
+                          className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-gov-blue-600 transition-colors inline-flex cursor-pointer"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(r.id)}
+                          title="Delete Resident"
+                          className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg text-slate-500 hover:text-rose-500 dark:text-slate-400 transition-colors inline-flex cursor-pointer"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

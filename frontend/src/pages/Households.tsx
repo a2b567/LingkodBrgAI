@@ -2,14 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { 
   Home, Plus, Search, Edit2, Trash2, 
   MapPin, Loader2, Sparkles, UserPlus, XCircle, Users, ShieldAlert,
-  User, DollarSign, Phone, Trash, CheckCircle2, ChevronRight, RefreshCw
+  User, DollarSign, Phone, Trash, CheckCircle2, ChevronRight, RefreshCw,
+  Eye, EyeOff
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Household, Resident, HouseholdMemberInfo } from '../types';
 import { PageHeader, Badge, Button, EmptyState } from '../components/ui';
+import { usePrivacyStore } from '../store/privacyStore';
+import { maskAddress } from '../utils/privacy';
 
 
 export const Households: React.FC = () => {
+  const { isPrivacyMode, isItemRevealed, toggleRevealItem } = usePrivacyStore();
   const [households, setHouseholds] = useState<Household[]>([]);
   const [residents, setResidents] = useState<Resident[]>([]); // For member assignment dropdown
   const [isLoading, setIsLoading] = useState(true);
@@ -326,6 +330,7 @@ export const Households: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {households.map((h) => {
+            const isRevealed = isItemRevealed(h.id);
             const headName = h.head 
               ? `${h.head.first_name} ${h.head.last_name}` 
               : h.head_first_name 
@@ -333,6 +338,8 @@ export const Households: React.FC = () => {
               : 'No assigned head';
 
             const memberCount = (h.members?.length || 0) + (h.family_members_list?.length || 0);
+            const displayAddress = isRevealed ? (h.address || 'No address specified') : maskAddress(h.address);
+            const displayIncome = isRevealed ? (h.total_family_income ? `₱${h.total_family_income}/mo` : null) : (h.total_family_income ? '₱ ••,•••/mo' : null);
 
             return (
               <div key={h.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-card flex flex-col justify-between hover:shadow-card-hover transition-all hover:-translate-y-0.5 relative overflow-hidden group">
@@ -352,6 +359,11 @@ export const Households: React.FC = () => {
                       {h.household_number}
                     </span>
                     <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isPrivacyMode && (
+                        <button onClick={() => toggleRevealItem(h.id)} title={isRevealed ? "Mask Info" : "Reveal Info"} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-500 transition-colors">
+                          {isRevealed ? <EyeOff size={12} className="text-blue-500" /> : <Eye size={12} />}
+                        </button>
+                      )}
                       <button onClick={() => handleOpenEdit(h)} title="Edit" className="p-1.5 rounded-lg bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-600 dark:text-gov-blue-400 hover:bg-gov-blue-100 border border-gov-blue-100 dark:border-gov-blue-900/60 transition-colors"><Edit2 size={12} /></button>
                       <button onClick={() => handleDelete(h.id)} title="Delete" className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 border border-rose-100 dark:border-rose-900/60 transition-colors"><Trash2 size={12} /></button>
                     </div>
@@ -364,13 +376,13 @@ export const Households: React.FC = () => {
 
                   <p className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1.5 mt-1 font-medium truncate">
                     <MapPin size={12} className="flex-shrink-0 text-slate-400" />
-                    {h.address || 'No address specified'}
+                    {displayAddress}
                   </p>
 
-                  {(h.housing_tenure || h.total_family_income) && (
+                  {(h.housing_tenure || displayIncome) && (
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 pt-1">
                       {h.housing_tenure && <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">🏠 {h.housing_tenure}</span>}
-                      {h.total_family_income && <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded font-mono">₱{h.total_family_income}/mo</span>}
+                      {displayIncome && <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded font-mono">{displayIncome}</span>}
                     </div>
                   )}
                 </div>

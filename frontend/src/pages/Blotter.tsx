@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { AlertOctagon, Plus, Cpu, Sparkles, Calendar, Scale, Search, ShieldAlert, CheckCircle2, Clock, X } from 'lucide-react';
+import { AlertOctagon, Plus, Cpu, Sparkles, Calendar, Scale, Search, ShieldAlert, CheckCircle2, Clock, X, Eye, EyeOff } from 'lucide-react';
 import { api } from '../services/api';
 import type { Blotter } from '../types';
+import { usePrivacyStore } from '../store/privacyStore';
+import { maskName } from '../utils/privacy';
 
 const formatHearingSchedule = (sched: any): string => {
   if (!sched) return '';
@@ -53,6 +55,7 @@ const convertToISODateTime = (dateStr: string, timeStr: string): string => {
 };
 
 export const BlotterPage: React.FC = () => {
+  const { isPrivacyMode, isItemRevealed, toggleRevealItem } = usePrivacyStore();
   const [cases, setCases] = useState<Blotter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -303,17 +306,32 @@ export const BlotterPage: React.FC = () => {
                   schedules = [];
                 }
 
+                const isRevealed = isItemRevealed(c.id);
+                const displayComplainant = isRevealed ? c.complainant : maskName(c.complainant);
+                const displayRespondent = isRevealed ? c.respondent : maskName(c.respondent);
+
                 return (
                   <div key={c.id} className="bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 hover:border-slate-300 dark:hover:border-slate-700 transition-all flex flex-col md:flex-row gap-6 relative overflow-hidden group shadow-xs">
                     <div className="flex-1 space-y-4">
                       {/* Case details header */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="space-y-1">
-                          <span className="font-mono font-black text-xs text-gov-blue-700 dark:text-gov-blue-400 block">
-                            {c.case_number}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-xs text-gov-blue-700 dark:text-gov-blue-400 block">
+                              {c.case_number}
+                            </span>
+                            {isPrivacyMode && (
+                              <button
+                                onClick={() => toggleRevealItem(c.id)}
+                                title={isRevealed ? "Mask Confidential Identities" : "Reveal Confidential Identities (Authorized)"}
+                                className="p-1 text-slate-400 hover:text-blue-500 rounded"
+                              >
+                                {isRevealed ? <EyeOff size={13} className="text-blue-500" /> : <Eye size={13} />}
+                              </button>
+                            )}
+                          </div>
                           <h4 className="font-extrabold text-base text-slate-900 dark:text-white">
-                            {c.complainant} <span className="text-slate-500 dark:text-slate-400 font-semibold text-xs">VS</span> {c.respondent}
+                            {displayComplainant} <span className="text-slate-500 dark:text-slate-400 font-semibold text-xs">VS</span> {displayRespondent}
                           </h4>
                           <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium block">
                             Incident Date: {new Date(c.incident_date).toLocaleDateString()} • Filed: {new Date(c.filing_date).toLocaleDateString()}

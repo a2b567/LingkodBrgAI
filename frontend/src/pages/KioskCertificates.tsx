@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Signature, Loader2, Pointer, Maximize2, Minimize2, Languages,
   Award, HeartHandshake, Home, Building2, CreditCard, UserCheck, CheckCircle2,
-  Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool
+  Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool, Lock
 } from 'lucide-react';
 import { api } from '../services/api';
+import { KioskAdminLockModal } from '../components/KioskAdminLockModal';
 import './KioskCertificates.css';
 
 export const KioskCertificates: React.FC = () => {
@@ -13,6 +14,7 @@ export const KioskCertificates: React.FC = () => {
   const [certType, setCertType] = useState('Clearance');
   const [fee, setFee] = useState(150);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isAdminLockOpen, setIsAdminLockOpen] = useState(false);
 
   const [servingTicket, setServingTicket] = useState('---');
   const [nextTicket, setNextTicket] = useState('---');
@@ -155,6 +157,17 @@ export const KioskCertificates: React.FC = () => {
   };
 
   useEffect(() => {
+    // Trap browser navigation inside kiosk sandbox for resident privacy
+    window.history.pushState(null, '', window.location.href);
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+      if (step > 0) {
+        setStep(0);
+        clearAll();
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+
     let idleTimer: ReturnType<typeof setTimeout>;
     const resetTimer = () => {
       clearTimeout(idleTimer);
@@ -168,10 +181,11 @@ export const KioskCertificates: React.FC = () => {
     events.forEach(e => document.addEventListener(e, resetTimer));
     resetTimer();
     return () => {
+      window.removeEventListener('popstate', handlePopState);
       clearTimeout(idleTimer);
       events.forEach(e => document.removeEventListener(e, resetTimer));
     };
-  }, []);
+  }, [step]);
 
   useEffect(() => {
     const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
@@ -521,6 +535,15 @@ export const KioskCertificates: React.FC = () => {
             title="Toggle Fullscreen"
           >
             {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </button>
+
+          <button
+            onClick={() => setIsAdminLockOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-white rounded-2xl text-xs font-black uppercase tracking-wider border border-slate-700/80 shadow-md transition-all active:scale-95 cursor-pointer"
+            title="Admin Access / Exit Kiosk"
+          >
+            <Lock size={15} className="text-amber-400" />
+            <span className="hidden sm:inline">Admin Exit</span>
           </button>
         </div>
       </header>
@@ -2287,6 +2310,12 @@ export const KioskCertificates: React.FC = () => {
       <footer className="py-4 text-center text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 relative z-20 border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
         LingkodBrgyAi • SELF-SERVICE KIOSK PORTAL • BARANGAY LAWRENCE
       </footer>
+
+      {/* Admin Authorization PIN Modal */}
+      <KioskAdminLockModal
+        isOpen={isAdminLockOpen}
+        onClose={() => setIsAdminLockOpen(false)}
+      />
     </div>
   );
 };

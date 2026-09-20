@@ -3,10 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
   Briefcase, Calendar, Settings, LogOut, Sun, Moon,
-  Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle, UserCog, Stethoscope
+  Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle, UserCog, Stethoscope,
+  ShieldCheck, Eye, EyeOff
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
+import { usePrivacyStore } from '../store/privacyStore';
 import { AIFloatingPanel } from '../components/AIFloatingPanel';
 import { api } from '../services/api';
 import type { Notification } from '../types';
@@ -18,6 +20,7 @@ interface LayoutProps {
 export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
+  const { isPrivacyMode, togglePrivacyMode } = usePrivacyStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [liveAnnouncement, setLiveAnnouncement] = useState<{ title: string; content: string } | null>(null);
@@ -303,6 +306,22 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
               Connected
             </span>
 
+            {/* Privacy Shield & PII Encryption / Masking Toggle */}
+            <button
+              type="button"
+              onClick={togglePrivacyMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                isPrivacyMode
+                  ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/60 shadow-xs'
+                  : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+              }`}
+              title={isPrivacyMode ? "Privacy Mode Active: Sensitive PII (phones, emails, addresses, finances) masked under DPA RA 10173" : "Privacy Mode Inactive: Sensitive data unmasked"}
+            >
+              <ShieldCheck size={14} className={isPrivacyMode ? "text-blue-600 dark:text-blue-400" : "text-slate-400"} />
+              <span className="hidden sm:inline">{isPrivacyMode ? "Privacy Mask ON" : "Privacy Mask OFF"}</span>
+              {isPrivacyMode ? <EyeOff size={13} className="opacity-70" /> : <Eye size={13} className="opacity-70" />}
+            </button>
+
             {/* Notification Bell */}
             <div className="relative">
               <button
@@ -412,64 +431,65 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-3 py-2 flex items-center justify-around shadow-lg">
+      {/* Mobile Bottom Navigation Bar (Native App Style) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 px-2 py-2 flex items-center justify-around shadow-[0_-8px_20px_rgba(0,0,0,0.08)]">
         {user?.role === 'Resident' ? (
           <>
             <Link
               to="/dashboard"
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-xs font-semibold ${
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl text-xs font-bold transition-all active:scale-90 ${
                 location.pathname === '/dashboard'
-                  ? 'text-gov-blue-600 dark:text-gov-blue-400'
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60'
                   : 'text-slate-400 hover:text-slate-600 dark:text-slate-500'
               }`}
             >
-              <LayoutDashboard size={18} />
-              <span className="text-[10px] mt-0.5">Home</span>
-            </Link>
-            <Link
-              to="/clinic-queue"
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-xs font-semibold ${
-                location.pathname === '/clinic-queue'
-                  ? 'text-gov-blue-600 dark:text-gov-blue-400'
-                  : 'text-slate-400 hover:text-slate-600 dark:text-slate-500'
-              }`}
-            >
-              <Stethoscope size={18} />
-              <span className="text-[10px] mt-0.5">Clinic</span>
+              <LayoutDashboard size={19} />
+              <span className="text-[10px] font-black mt-0.5 tracking-tight">Home</span>
             </Link>
             <Link
               to="/certificates"
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-xs font-semibold ${
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl text-xs font-bold transition-all active:scale-90 ${
                 location.pathname === '/certificates'
-                  ? 'text-gov-blue-600 dark:text-gov-blue-400'
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60'
                   : 'text-slate-400 hover:text-slate-600 dark:text-slate-500'
               }`}
             >
-              <FileText size={18} />
-              <span className="text-[10px] mt-0.5">Certs</span>
+              <FileText size={19} />
+              <span className="text-[10px] font-black mt-0.5 tracking-tight">Docs</span>
+            </Link>
+            <Link
+              to="/clinic-queue"
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl text-xs font-bold transition-all active:scale-90 relative ${
+                location.pathname === '/clinic-queue'
+                  ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60'
+                  : 'text-slate-400 hover:text-slate-600 dark:text-slate-500'
+              }`}
+            >
+              <Stethoscope size={19} />
+              <span className="text-[10px] font-black mt-0.5 tracking-tight">Clinic</span>
+              <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
             </Link>
             <Link
               to="/appointments"
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-xs font-semibold ${
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl text-xs font-bold transition-all active:scale-90 ${
                 location.pathname === '/appointments'
-                  ? 'text-gov-blue-600 dark:text-gov-blue-400'
+                  ? 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60'
                   : 'text-slate-400 hover:text-slate-600 dark:text-slate-500'
               }`}
             >
-              <Calendar size={18} />
-              <span className="text-[10px] mt-0.5">Book</span>
+              <Calendar size={19} />
+              <span className="text-[10px] font-black mt-0.5 tracking-tight">Book</span>
             </Link>
             <Link
               to="/settings"
-              className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl text-xs font-semibold ${
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl text-xs font-bold transition-all active:scale-90 ${
                 location.pathname === '/settings'
-                  ? 'text-gov-blue-600 dark:text-gov-blue-400'
+                  ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60'
                   : 'text-slate-400 hover:text-slate-600 dark:text-slate-500'
               }`}
             >
-              <Settings size={18} />
-              <span className="text-[10px] mt-0.5">Settings</span>
+              <Settings size={19} />
+              <span className="text-[10px] font-black mt-0.5 tracking-tight">Profile</span>
             </Link>
           </>
         ) : (

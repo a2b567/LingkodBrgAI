@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Volume2, VolumeX, Sparkles, Clock, CheckCircle2, Zap, ShieldAlert } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Clock, CheckCircle2, Zap, ShieldAlert, Lock } from 'lucide-react';
+import { KioskAdminLockModal } from '../components/KioskAdminLockModal';
 
 interface QueueSlot {
   id: string;
@@ -17,6 +18,7 @@ export const QueueMonitor: React.FC = () => {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [queueSlots, setQueueSlots] = useState<QueueSlot[]>([]);
   const [lastAnnouncedTicket, setLastAnnouncedTicket] = useState<string | null>(null);
+  const [isAdminLockOpen, setIsAdminLockOpen] = useState(false);
 
   // Update clock every second
   useEffect(() => {
@@ -104,6 +106,15 @@ export const QueueMonitor: React.FC = () => {
           >
             {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             <span>{voiceEnabled ? 'AI Voice ON' : 'AI Voice OFF'}</span>
+          </button>
+
+          <button
+            onClick={() => setIsAdminLockOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 text-slate-400 hover:text-white rounded-2xl text-xs font-black uppercase tracking-wider border border-slate-800 shadow-md transition-all active:scale-95 cursor-pointer"
+            title="Admin Exit / Dashboard Access"
+          >
+            <Lock size={14} className="text-amber-400" />
+            <span>Admin</span>
           </button>
 
           <div className="text-right">
@@ -232,6 +243,12 @@ export const QueueMonitor: React.FC = () => {
         <Clock size={12} />
         LingkodBrgyAi • AI VOICE ANNOUNCEMENT SYSTEM CONNECTED
       </footer>
+
+      {/* Admin Security PIN Modal */}
+      <KioskAdminLockModal
+        isOpen={isAdminLockOpen}
+        onClose={() => setIsAdminLockOpen(false)}
+      />
     </div>
   );
 };
