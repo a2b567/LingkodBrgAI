@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, KeyRound, User as UserIcon, Loader2, Mail, ShieldAlert } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { VisualCaptcha } from '../components/VisualCaptcha';
 import { GoogleAuthModal } from '../components/GoogleAuthModal';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
@@ -52,11 +53,12 @@ export const Login: React.FC = () => {
   const [captchaInput, setCaptchaInput] = useState('');
   const [captchaError, setCaptchaError] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const captchaRef = useRef<ReCAPTCHA>(null);
 
   // Password Complexity Verification Rules
   const meetsLength = newPassword.length >= 8;
   const meetsCase = /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword);
-  const meetsDigitSpecial = /[0-9]/.test(newPassword) && /[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/.test(newPassword);
+  const meetsDigitSpecial = /[0-9]/.test(newPassword) && /[!@#$%^&*()_+\-=\[\]{}|;':",./\<>?]/.test(newPassword);
   const passwordsMatch = newPassword !== '' && newPassword === confirmPassword;
 
   // Google SSO Handler
@@ -70,10 +72,10 @@ export const Login: React.FC = () => {
     setError('');
     setInfo('');
 
-    // Validate CAPTCHA first
-    if (!captchaInput) {
+    // Validate CAPTCHA first — must have a real reCAPTCHA token
+    if (!captchaInput || captchaInput.length < 10) {
       setCaptchaError(true);
-      setError('Please verify that you are not a robot before proceeding.');
+      setError('Please complete the CAPTCHA verification before proceeding.');
       return;
     }
     setCaptchaError(false);
@@ -98,6 +100,9 @@ export const Login: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.error || 'Invalid credentials or connection issue.');
       setCaptchaError(true);
+      // Reset reCAPTCHA so user must re-verify on failed attempt
+      setCaptchaInput('');
+      captchaRef.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -349,23 +354,14 @@ export const Login: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    setForgotStep(1);
-                    setError('');
-                    setInfo('');
-                  }}
+                  onClick={() => { setForgotStep(1); setError(''); setInfo(''); }}
                   className="flex-1 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 text-xs py-2 rounded-2xl transition-colors font-semibold"
                 >
                   Back
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setForgotMode(false);
-                    setForgotStep(1);
-                    setError('');
-                    setInfo('');
-                  }}
+                  onClick={() => { setForgotMode(false); setForgotStep(1); setError(''); setInfo(''); }}
                   className="flex-1 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 text-xs py-2 rounded-2xl transition-colors font-semibold"
                 >
                   Cancel
@@ -399,12 +395,7 @@ export const Login: React.FC = () => {
                 </label>
                 <button
                   type="button"
-                  onClick={() => {
-                    setForgotMode(true);
-                    setForgotStep(1);
-                    setError('');
-                    setInfo('');
-                  }}
+                  onClick={() => { setForgotMode(true); setForgotStep(1); setError(''); setInfo(''); }}
                   className="text-[10px] text-gov-blue-600 dark:text-gov-blue-400 font-bold hover:underline bg-transparent border-none p-0 cursor-pointer"
                 >
                   Forgot Password?
@@ -423,7 +414,7 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* ── Visual CAPTCHA Security Widget ── */}
+            {/* ── Google reCAPTCHA v2 Security Widget ── */}
             <VisualCaptcha
               value={captchaInput}
               onChange={(val) => { setCaptchaInput(val); setCaptchaError(false); }}
@@ -463,8 +454,6 @@ export const Login: React.FC = () => {
               <GoogleIcon />
               <span>Continue with Google Account</span>
             </button>
-
-
 
             <div className="text-center mt-4">
               <p className="text-xs text-slate-400 font-medium">
