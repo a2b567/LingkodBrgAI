@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, KeyRound, User as UserIcon, Loader2, Mail, ShieldAlert } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
-import { VisualCaptcha } from '../components/VisualCaptcha';
+import { CaptchaModal } from '../components/CaptchaModal';
 import { GoogleAuthModal } from '../components/GoogleAuthModal';
 import ReCAPTCHA from 'react-google-recaptcha';
 
@@ -50,8 +50,7 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
 
   // --- CAPTCHA & Google SSO State ---
-  const [captchaInput, setCaptchaInput] = useState('');
-  const [captchaError, setCaptchaError] = useState(false);
+  const [showCaptchaModal, setShowCaptchaModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   const captchaRef = useRef<ReCAPTCHA>(null);
 
@@ -67,18 +66,22 @@ export const Login: React.FC = () => {
     setShowGoogleModal(true);
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setInfo('');
 
-    // Validate CAPTCHA first — must have a real reCAPTCHA token
-    if (!captchaInput || captchaInput.length < 10) {
-      setCaptchaError(true);
-      setError('Please complete the CAPTCHA verification before proceeding.');
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter your username/email and password.');
       return;
     }
-    setCaptchaError(false);
+
+    // Buksan ang CAPTCHA popup modal
+    setShowCaptchaModal(true);
+  };
+
+  const handleCaptchaSuccess = async (_token: string) => {
+    setShowCaptchaModal(false);
     setIsLoading(true);
 
     try {
@@ -99,10 +102,6 @@ export const Login: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Invalid credentials or connection issue.');
-      setCaptchaError(true);
-      // Reset reCAPTCHA so user must re-verify on failed attempt
-      setCaptchaInput('');
-      captchaRef.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -414,17 +413,11 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* ── Google reCAPTCHA v2 Security Widget ── */}
-            <VisualCaptcha
-              value={captchaInput}
-              onChange={(val) => { setCaptchaInput(val); setCaptchaError(false); }}
-              error={captchaError}
-            />
-
+            {/* ── Submit Action Button (Magbubukas ng CAPTCHA Popup kapag pinindot) ── */}
             <button
               type="submit"
-              disabled={isLoading || !captchaInput}
-              className="w-full bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold py-3.5 rounded-2xl text-xs tracking-wider uppercase transition-all shadow-md shadow-gov-blue-600/25 flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold py-3.5 rounded-2xl text-xs tracking-wider uppercase transition-all shadow-md shadow-gov-blue-600/25 flex items-center justify-center gap-2 cursor-pointer"
             >
               {isLoading ? (
                 <Loader2 size={16} className="animate-spin" />
@@ -503,6 +496,15 @@ export const Login: React.FC = () => {
           DEV: LAWREENE B ARANAS
         </div>
       </div>
+
+      {/* Security CAPTCHA Popup Modal */}
+      <CaptchaModal
+        isOpen={showCaptchaModal}
+        onClose={() => setShowCaptchaModal(false)}
+        onVerified={handleCaptchaSuccess}
+        title="Security Verification"
+        subtitle="Paki-check ang reCAPTCHA sa ibaba upang makapasok sa Dashboard"
+      />
 
       {/* Official Google SSO Account Chooser Modal */}
       <GoogleAuthModal

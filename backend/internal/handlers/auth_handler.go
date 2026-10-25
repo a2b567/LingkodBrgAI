@@ -78,11 +78,16 @@ type RegisterRequest struct {
 	Email         string `json:"email" binding:"required,email"`
 	Password      string `json:"password" binding:"required,min=6"`
 	FirstName     string `json:"first_name" binding:"required"`
+	MiddleName    string `json:"middle_name"`
 	LastName      string `json:"last_name" binding:"required"`
+	Suffix        string `json:"suffix"`
 	Birthdate     string `json:"birthdate" binding:"required"` // YYYY-MM-DD
 	Gender        string `json:"gender" binding:"required"`
 	Address       string `json:"address" binding:"required"`
 	ContactNumber string `json:"contact_number"`
+	VoterStatus   string `json:"voter_status"`
+	IsPWD         bool   `json:"is_pwd"`
+	IsSenior      bool   `json:"is_senior"`
 }
 
 func (h *AuthHandler) Login(c *gin.Context) {
@@ -162,10 +167,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	// 1. Create Resident profile
 	resID := uuid.New()
+	voterStatus := req.VoterStatus
+	if voterStatus == "" {
+		voterStatus = "Not Registered"
+	}
+
 	resident := models.Resident{
 		Base:            models.Base{ID: resID},
 		FirstName:       req.FirstName,
+		MiddleName:      req.MiddleName,
 		LastName:        req.LastName,
+		Suffix:          req.Suffix,
 		Birthdate:       bdate,
 		Gender:          req.Gender,
 		Address:         req.Address,
@@ -174,7 +186,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		CivilStatus:     "Single",
 		Citizenship:     "Filipino",
 		ResidencyStatus: "Permanent",
-		VoterStatus:     "Not Registered",
+		VoterStatus:     voterStatus,
+		IsPWD:           req.IsPWD,
+		IsSenior:        req.IsSenior,
 		QRID:            "QR-RES-" + strings.ReplaceAll(uuid.New().String()[:8], "-", ""),
 	}
 

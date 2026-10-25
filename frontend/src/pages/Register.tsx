@@ -3,10 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   UserPlus, User, Users, Mail, Lock, Loader2, AlertCircle, 
   Calendar, Phone, MapPin, Vote, Accessibility, Award, CheckCircle2, KeyRound, UserCheck,
-  Upload, Sparkles, ShieldCheck, Trash2, FileCheck
+  Upload, Sparkles, ShieldCheck, Trash2, FileCheck, Home
 } from 'lucide-react';
 import { api, callGroqAI } from '../services/api';
-import { VisualCaptcha } from '../components/VisualCaptcha';
+import { CaptchaModal } from '../components/CaptchaModal';
 import { GoogleAuthModal } from '../components/GoogleAuthModal';
 
 const GoogleIcon = () => (
@@ -30,6 +30,21 @@ const GoogleIcon = () => (
   </svg>
 );
 
+const PUROK_OPTIONS = [
+  'Purok 1',
+  'Purok 2',
+  'Purok 3',
+  'Purok 4',
+  'Purok 5',
+  'Purok 6',
+  'Purok 7',
+  'Sitio Maitim',
+  'Sitio Ilaya',
+  'Sitio Ibaba',
+];
+
+const OFFICIAL_BARANGAY = 'Barangay San Isidro, Bay, Laguna';
+
 export const Register: React.FC = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -48,6 +63,38 @@ export const Register: React.FC = () => {
     is_pwd: false,
     is_senior: false,
   });
+
+  // Address selection state (Purok selection + optional street)
+  const [selectedPurok, setSelectedPurok] = useState('');
+  const [streetDetail, setStreetDetail] = useState('');
+
+  const handlePurokSelect = (purok: string) => {
+    setSelectedPurok(purok);
+    if (purok === 'custom') {
+      setFormData(prev => ({ ...prev, address: streetDetail.trim() }));
+    } else if (!purok) {
+      setFormData(prev => ({ ...prev, address: '' }));
+    } else {
+      const cleanStreet = streetDetail.trim();
+      const combined = cleanStreet 
+        ? `${cleanStreet}, ${purok}, ${OFFICIAL_BARANGAY}` 
+        : `${purok}, ${OFFICIAL_BARANGAY}`;
+      setFormData(prev => ({ ...prev, address: combined }));
+    }
+  };
+
+  const handleStreetChange = (val: string) => {
+    setStreetDetail(val);
+    if (selectedPurok === 'custom') {
+      setFormData(prev => ({ ...prev, address: val }));
+    } else if (selectedPurok) {
+      const cleanStreet = val.trim();
+      const combined = cleanStreet 
+        ? `${cleanStreet}, ${selectedPurok}, ${OFFICIAL_BARANGAY}` 
+        : `${selectedPurok}, ${OFFICIAL_BARANGAY}`;
+      setFormData(prev => ({ ...prev, address: combined }));
+    }
+  };
 
   // Single Selection Sectoral Membership ('none' | 'pwd' | 'senior')
   const [sectoralType, setSectoralType] = useState<'none' | 'pwd' | 'senior'>('none');
@@ -68,8 +115,7 @@ export const Register: React.FC = () => {
   const navigate = useNavigate();
 
   // CAPTCHA & Google SSO State
-  const [captchaInput, setCaptchaInput] = useState('');
-  const [captchaError, setCaptchaError] = useState(false);
+  const [showCaptchaModal, setShowCaptchaModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   // Google SSO & Registration Handler
@@ -149,8 +195,18 @@ export const Register: React.FC = () => {
     setError('');
     setPrivacyError(false);
 
+    if (!formData.first_name || !formData.last_name || !formData.email || !formData.password) {
+      setError('Please fill in all required personal and account fields.');
+      return;
+    }
+
     if (formData.password !== formData.confirm_password) {
       setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    if (!formData.address) {
+      setError('Please select your complete address / purok.');
       return;
     }
     
@@ -169,14 +225,16 @@ export const Register: React.FC = () => {
 
     if (!privacyConsent) {
       setPrivacyError(true);
+      setError('Please accept the Data Privacy Notice before proceeding.');
       return;
     }
-    if (!captchaInput) {
-      setCaptchaError(true);
-      setError('Please verify that you are not a robot before proceeding.');
-      return;
-    }
-    setCaptchaError(false);
+
+    // Buksan ang CAPTCHA popup modal
+    setShowCaptchaModal(true);
+  };
+
+  const handleCaptchaSuccess = async (_token: string) => {
+    setShowCaptchaModal(false);
     setIsLoading(true);
     try {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -186,7 +244,6 @@ export const Register: React.FC = () => {
       setTimeout(() => navigate('/login'), 4000);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed. Check inputs.');
-      setCaptchaError(true);
     } finally {
       setIsLoading(false);
     }
@@ -461,21 +518,68 @@ export const Register: React.FC = () => {
                 </div>
               </div>
 
-              {/* Address */}
-              <div className="space-y-1">
-                <label className={labelCls}>Complete Address</label>
+              {/* Address Selection */}
+              <div className="space-y-2">
+                <label htmlFor="address_purok" className={labelCls}>
+                  Complete Address (Purok / Sitio) *
+                </label>
+                
                 <div className="relative">
-                  <MapPin size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                  <input 
-                    type="text" 
-                    name="address" 
-                    required 
-                    placeholder="House No., Street Name, Zone / Purok" 
-                    value={formData.address} 
-                    onChange={handleChange} 
-                    className={inputCls} 
-                  />
+                  <MapPin size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                  <select
+                    id="address_purok"
+                    required
+                    value={selectedPurok}
+                    onChange={(e) => handlePurokSelect(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">-- Piliin ang Purok / Sitio sa Brgy. San Isidro, Bay, Laguna --</option>
+                    {PUROK_OPTIONS.map((p) => (
+                      <option key={p} value={p}>
+                        {p}, Brgy. San Isidro, Bay, Laguna
+                      </option>
+                    ))}
+                    <option value="custom">Iba pa / Custom Address sa Bay, Laguna</option>
+                  </select>
                 </div>
+
+                {/* Additional Street / House number detail (optional) */}
+                {selectedPurok && selectedPurok !== 'custom' && (
+                  <div className="relative animate-in fade-in duration-200">
+                    <Home size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                    <input 
+                      type="text" 
+                      placeholder="House No., Street Name, or Sitio (Opsyonal)" 
+                      value={streetDetail} 
+                      onChange={(e) => handleStreetChange(e.target.value)} 
+                      className={inputCls} 
+                    />
+                  </div>
+                )}
+
+                {/* Custom manual address input if 'custom' selected */}
+                {selectedPurok === 'custom' && (
+                  <div className="relative animate-in fade-in duration-200">
+                    <MapPin size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Ilagay ang Buong Address (House No., Street, Purok, etc.)" 
+                      value={streetDetail} 
+                      onChange={(e) => handleStreetChange(e.target.value)} 
+                      className={inputCls} 
+                    />
+                  </div>
+                )}
+
+                {/* Address Preview Badge */}
+                {formData.address && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-gov-blue-50/70 dark:bg-gov-blue-950/40 border border-gov-blue-200/50 dark:border-gov-blue-900/40 rounded-xl text-[11px] font-medium text-gov-blue-700 dark:text-gov-blue-300 animate-in fade-in duration-150">
+                    <CheckCircle2 size={13} className="text-gov-blue-500 flex-shrink-0" />
+                    <span className="text-slate-500 dark:text-slate-400">Nabuong Address:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{formData.address}</span>
+                  </div>
+                )}
               </div>
 
               {/* Voter Registration */}
@@ -717,19 +821,12 @@ export const Register: React.FC = () => {
               )}
             </div>
 
-            {/* ── Visual CAPTCHA Security Challenge ── */}
-            <VisualCaptcha
-              value={captchaInput}
-              onChange={(val) => { setCaptchaInput(val); setCaptchaError(false); }}
-              error={captchaError}
-            />
-
-            {/* ── Submit Action Button ── */}
+            {/* ── Submit Action Button (Magbubukas ng CAPTCHA Popup kapag pinindot) ── */}
             <div className="pt-2">
               <button 
                 type="submit" 
-                disabled={isLoading || !captchaInput}
-                className="w-full bg-gradient-to-r from-gov-blue-600 via-gov-blue-700 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-extrabold py-4 rounded-2xl text-xs tracking-wider uppercase transition-all shadow-lg shadow-gov-blue-600/30 hover:shadow-gov-blue-600/50 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-gov-blue-600 via-gov-blue-700 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-extrabold py-4 rounded-2xl text-xs tracking-wider uppercase transition-all shadow-lg shadow-gov-blue-600/30 hover:shadow-gov-blue-600/50 flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isLoading ? (
                   <Loader2 size={18} className="animate-spin" />
@@ -777,6 +874,15 @@ export const Register: React.FC = () => {
           DEV: LAWREENE B ARANAS
         </div>
       </div>
+
+      {/* Security CAPTCHA Popup Modal */}
+      <CaptchaModal
+        isOpen={showCaptchaModal}
+        onClose={() => setShowCaptchaModal(false)}
+        onVerified={handleCaptchaSuccess}
+        title="Security Verification"
+        subtitle="Paki-check ang reCAPTCHA sa ibaba upang makumpleto ang pagpaparehistro"
+      />
 
       {/* Official Google SSO Account Chooser Modal */}
       <GoogleAuthModal

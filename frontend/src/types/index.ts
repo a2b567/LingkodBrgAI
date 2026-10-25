@@ -73,6 +73,7 @@ export interface Household {
 
   family_members_list?: HouseholdMemberInfo[];
 
+  purok?: string;
   housing_tenure?: string;
   house_materials?: string;
   number_of_rooms?: string;

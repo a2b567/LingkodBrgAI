@@ -147,7 +147,12 @@ export const api = {
       withFallback(
         () => client.post<{ token: string; user: User }>('/auth/login', data).then(r => r.data),
         () => {
-          const user = getMockUser(data.username);
+          const registeredUsers = JSON.parse(localStorage.getItem('lingkodbrgai_registered_users') || '[]');
+          const found = registeredUsers.find((u: any) => 
+            (u.username?.toLowerCase() === data.username?.toLowerCase() || u.email?.toLowerCase() === data.username?.toLowerCase()) &&
+            (!data.password || u.password === data.password)
+          );
+          const user = found ? found.user : getMockUser(data.username);
           const token = `mock_jwt_token_${user.role.replace(/\s+/g, '_')}`;
           localStorage.setItem('lingkodbrgai_mock_user', JSON.stringify(user));
           return { token, user };
@@ -157,7 +162,48 @@ export const api = {
     register: (data: any) =>
       withFallback(
         () => client.post('/auth/register', data).then(r => r.data),
-        () => ({ message: 'Registration submitted successfully. Check verification code.' })
+        () => {
+          const newResId = `res-${Date.now()}`;
+          const newResident: Resident = {
+            id: newResId,
+            first_name: data.first_name || 'Resident',
+            middle_name: data.middle_name || '',
+            last_name: data.last_name || 'User',
+            suffix: data.suffix || '',
+            birthdate: data.birthdate || '1995-01-01',
+            gender: data.gender || 'Male',
+            civil_status: 'Single',
+            address: data.address || 'Barangay San Isidro, Bay, Laguna',
+            contact_number: data.contact_number || '',
+            email: data.email || '',
+            citizenship: 'Filipino',
+            residency_status: 'Permanent',
+            voter_status: data.voter_status || 'Not Registered',
+            is_senior: Boolean(data.is_senior),
+            is_pwd: Boolean(data.is_pwd),
+            is_household_head: false,
+            qr_id: `QR-RES-${Date.now().toString().slice(-4)}`,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
+          mockState.residents.push(newResident);
+          
+          const newUser: User = {
+            id: `usr-${Date.now()}`,
+            username: data.username || data.email,
+            email: data.email,
+            role: 'Resident',
+            is_verified: true,
+            resident_id: newResId,
+            resident: newResident,
+            created_at: new Date().toISOString(),
+          };
+          const existingMockUsers = JSON.parse(localStorage.getItem('lingkodbrgai_registered_users') || '[]');
+          existingMockUsers.push({ username: data.username, email: data.email, password: data.password, user: newUser });
+          localStorage.setItem('lingkodbrgai_registered_users', JSON.stringify(existingMockUsers));
+
+          return { message: 'Registration submitted successfully. Check verification code.' };
+        }
       ),
 
     verifyOtp: (data: any) =>
@@ -296,7 +342,8 @@ export const api = {
             household_number: data.household_number || `HH-2026-${Math.floor(100 + Math.random() * 900)}`,
             head_id: data.head_id || '',
             poverty_level: data.poverty_level || 'Non-Poor',
-            address: data.address || 'Barangay Lawrence, Laguna',
+            purok: data.purok || '',
+            address: data.address || 'Barangay San Isidro, Bay, Laguna',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
@@ -307,7 +354,11 @@ export const api = {
     update: (id: string, data: Partial<Household>) =>
       withFallback(
         () => client.put<Household>(`/households/${id}`, data).then(r => r.data),
-        () => mockState.households[0]
+        () => {
+          const hh = mockState.households.find(h => h.id === id);
+          if (hh) Object.assign(hh, data);
+          return hh || mockState.households[0];
+        }
       ),
     delete: (id: string) =>
       withFallback(

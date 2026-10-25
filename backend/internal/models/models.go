@@ -78,6 +78,7 @@ type Household struct {
 	HeadID          *uuid.UUID `gorm:"type:uuid" json:"head_id,omitempty"`
 	Head            *Resident  `gorm:"foreignKey:HeadID;constraint:false" json:"head,omitempty"`
 	PovertyLevel    string     `gorm:"default:'Non-Poor'" json:"poverty_level"` // Non-Poor, Low Income, Poor, Indigent
+	Purok           string     `json:"purok"`
 	Address         string     `gorm:"not null" json:"address"`
 	Members         []Resident `gorm:"foreignKey:HouseholdID;constraint:false" json:"members,omitempty"`
 }

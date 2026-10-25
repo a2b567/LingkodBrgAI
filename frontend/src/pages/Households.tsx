@@ -3,13 +3,14 @@ import {
   Home, Plus, Search, Edit2, Trash2, 
   MapPin, Loader2, Sparkles, UserPlus, XCircle, Users, ShieldAlert,
   User, DollarSign, Phone, Trash, CheckCircle2, ChevronRight, RefreshCw,
-  Eye, EyeOff
+  Eye, EyeOff, Info
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Household, Resident, HouseholdMemberInfo } from '../types';
 import { PageHeader, Badge, Button, EmptyState } from '../components/ui';
 import { usePrivacyStore } from '../store/privacyStore';
 import { maskAddress } from '../utils/privacy';
+import { HouseholdDetailsModal } from '../components/HouseholdDetailsModal';
 
 
 export const Households: React.FC = () => {
@@ -26,6 +27,9 @@ export const Households: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'head' | 'family' | 'housing' | 'economy' | 'contact'>('head');
+
+  // View Details modal state
+  const [viewingHousehold, setViewingHousehold] = useState<Household | null>(null);
 
   const defaultFormState = {
     household_number: '',
@@ -67,6 +71,9 @@ export const Households: React.FC = () => {
     // 5. Contact Details
     contact_number: '',
     email_address: '',
+
+    // 6. Purok / Sitio
+    purok: '',
   };
 
   const [form, setForm] = useState(defaultFormState);
@@ -150,6 +157,7 @@ export const Households: React.FC = () => {
       philhealth_coverage: h.philhealth_coverage || 'Yes',
       contact_number: h.contact_number || ((h.head as any)?.phone || h.head?.email || ''),
       email_address: h.email_address || (h.head?.email || ''),
+      purok: h.purok || '',
     });
     setShowModal(true);
   };
@@ -342,7 +350,7 @@ export const Households: React.FC = () => {
             const displayIncome = isRevealed ? (h.total_family_income ? `₱${h.total_family_income}/mo` : null) : (h.total_family_income ? '₱ ••,•••/mo' : null);
 
             return (
-              <div key={h.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-card flex flex-col justify-between hover:shadow-card-hover transition-all hover:-translate-y-0.5 relative overflow-hidden group">
+              <div key={h.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-card flex flex-col justify-between hover:shadow-card-hover transition-all hover:-translate-y-0.5 relative overflow-hidden group cursor-pointer" onClick={() => setViewingHousehold(h)}>
                 {/* Top accent bar */}
                 <div className={`absolute top-0 left-0 right-0 h-1 ${
                   h.poverty_level === 'Indigent' ? 'bg-gradient-to-r from-rose-400 to-rose-600'
@@ -360,12 +368,13 @@ export const Households: React.FC = () => {
                     </span>
                     <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isPrivacyMode && (
-                        <button onClick={() => toggleRevealItem(h.id)} title={isRevealed ? "Mask Info" : "Reveal Info"} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-500 transition-colors">
+                        <button onClick={(e) => { e.stopPropagation(); toggleRevealItem(h.id); }} title={isRevealed ? "Mask Info" : "Reveal Info"} className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-blue-500 transition-colors">
                           {isRevealed ? <EyeOff size={12} className="text-blue-500" /> : <Eye size={12} />}
                         </button>
                       )}
-                      <button onClick={() => handleOpenEdit(h)} title="Edit" className="p-1.5 rounded-lg bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-600 dark:text-gov-blue-400 hover:bg-gov-blue-100 border border-gov-blue-100 dark:border-gov-blue-900/60 transition-colors"><Edit2 size={12} /></button>
-                      <button onClick={() => handleDelete(h.id)} title="Delete" className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 border border-rose-100 dark:border-rose-900/60 transition-colors"><Trash2 size={12} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); setViewingHousehold(h); }} title="View Details" className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400 hover:bg-teal-100 border border-teal-100 dark:border-teal-900/60 transition-colors"><Info size={12} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleOpenEdit(h); }} title="Edit" className="p-1.5 rounded-lg bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-600 dark:text-gov-blue-400 hover:bg-gov-blue-100 border border-gov-blue-100 dark:border-gov-blue-900/60 transition-colors"><Edit2 size={12} /></button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(h.id); }} title="Delete" className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 border border-rose-100 dark:border-rose-900/60 transition-colors"><Trash2 size={12} /></button>
                     </div>
                   </div>
 
@@ -379,12 +388,16 @@ export const Households: React.FC = () => {
                     {displayAddress}
                   </p>
 
-                  {(h.housing_tenure || displayIncome) && (
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 pt-1">
-                      {h.housing_tenure && <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">🏠 {h.housing_tenure}</span>}
-                      {displayIncome && <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 px-2 py-0.5 rounded font-mono">{displayIncome}</span>}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    {h.purok && (
+                      <span className="flex items-center gap-1 text-[10px] bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 font-bold px-2 py-0.5 rounded-lg border border-teal-200 dark:border-teal-900/50">
+                        <MapPin size={9} />
+                        {h.purok}
+                      </span>
+                    )}
+                    {h.housing_tenure && <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded">🏠 {h.housing_tenure}</span>}
+                    {displayIncome && <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded font-mono">{displayIncome}</span>}
+                  </div>
                 </div>
 
                 {/* Members listing */}
@@ -437,7 +450,7 @@ export const Households: React.FC = () => {
                   </span>
 
                   <button 
-                    onClick={() => handleOpenAssign(h)}
+                    onClick={(e) => { e.stopPropagation(); handleOpenAssign(h); }}
                     className="flex items-center gap-1 text-[10px] font-bold text-gov-blue-600 hover:text-gov-blue-800 dark:text-gov-blue-400 dark:hover:text-gov-blue-300 transition-colors cursor-pointer"
                   >
                     <UserPlus size={12} />
@@ -1088,6 +1101,40 @@ export const Households: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Purok / Sitio Select */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block flex items-center gap-1.5">
+                      <span className="text-teal-500">📍</span>
+                      Purok / Sitio / Zone *
+                    </label>
+                    <select
+                      value={form.purok}
+                      onChange={(e) => setForm({...form, purok: e.target.value})}
+                      className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 text-slate-800 dark:text-white"
+                    >
+                      <option value="">-- Piliin ang Purok / Sitio --</option>
+                      <option value="Purok 1">Purok 1</option>
+                      <option value="Purok 2">Purok 2</option>
+                      <option value="Purok 3">Purok 3</option>
+                      <option value="Purok 4">Purok 4</option>
+                      <option value="Purok 5">Purok 5</option>
+                      <option value="Purok 6">Purok 6</option>
+                      <option value="Purok 7">Purok 7</option>
+                      <option value="Purok 8">Purok 8</option>
+                      <option value="Sitio Maitim">Sitio Maitim</option>
+                      <option value="Sitio Ilaya">Sitio Ilaya</option>
+                      <option value="Sitio Ibaba">Sitio Ibaba</option>
+                      <option value="Zone 1">Zone 1</option>
+                      <option value="Zone 2">Zone 2</option>
+                      <option value="Zone 3">Zone 3</option>
+                      <option value="Block 1">Block 1</option>
+                      <option value="Block 2">Block 2</option>
+                      <option value="Block 3">Block 3</option>
+                      <option value="Phase 1">Phase 1</option>
+                      <option value="Phase 2">Phase 2</option>
+                    </select>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-600 dark:text-slate-300 uppercase block">Kumpletong Tirahan sa Barangay (Barangay Address) *</label>
                     <input 
@@ -1180,6 +1227,18 @@ export const Households: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ── View Household Details Modal ── */}
+      {viewingHousehold && (
+        <HouseholdDetailsModal
+          household={viewingHousehold}
+          onClose={() => setViewingHousehold(null)}
+          onEdit={(h) => {
+            setViewingHousehold(null);
+            handleOpenEdit(h);
+          }}
+        />
       )}
 
       {/* Assign Member Modal */}
