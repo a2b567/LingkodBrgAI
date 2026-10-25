@@ -196,7 +196,6 @@ export const api = {
             is_verified: true,
             resident_id: newResId,
             resident: newResident,
-            created_at: new Date().toISOString(),
           };
           const existingMockUsers = JSON.parse(localStorage.getItem('lingkodbrgai_registered_users') || '[]');
           existingMockUsers.push({ username: data.username, email: data.email, password: data.password, user: newUser });

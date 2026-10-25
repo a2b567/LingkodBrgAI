@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import {
   Home, MapPin, Users, User, XCircle,
-  DollarSign, Phone, Sparkles, CheckCircle2,
-  Calendar, Briefcase, BookOpen, Heart,
+  DollarSign, Phone, Sparkles, CheckCircle2, Heart,
   Shield, Droplets, Zap, Trash2 as TrashIcon, 
   MoreHorizontal, Building2, ExternalLink,
 } from 'lucide-react';

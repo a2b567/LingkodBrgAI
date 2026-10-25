@@ -1,11 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LogIn, KeyRound, User as UserIcon, Loader2, Mail, ShieldAlert } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 import { CaptchaModal } from '../components/CaptchaModal';
 import { GoogleAuthModal } from '../components/GoogleAuthModal';
-import ReCAPTCHA from 'react-google-recaptcha';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
@@ -52,7 +51,6 @@ export const Login: React.FC = () => {
   // --- CAPTCHA & Google SSO State ---
   const [showCaptchaModal, setShowCaptchaModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const captchaRef = useRef<ReCAPTCHA>(null);
 
   // Password Complexity Verification Rules
   const meetsLength = newPassword.length >= 8;
