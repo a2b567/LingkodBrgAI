@@ -4,8 +4,9 @@ import {
   Stethoscope, FileText, Calendar, Clock,
   PhoneCall, ShieldCheck, QrCode,
   CheckCircle2, ChevronRight, Megaphone,
-  Phone, Shield, Check, Copy, Layers
+  Phone, Shield, Check, Copy, Layers, ExternalLink
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import type { Certificate, Appointment, Notification } from '../types';
@@ -107,6 +108,10 @@ export const ResidentDashboard: React.FC = () => {
     : user?.username || 'Resident';
 
   const residentQrId = user?.resident?.qr_id || `SANISIDRO-${user?.id ? String(user.id).slice(0, 6) : '2026-889'}`;
+
+  const qrVerificationUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/verify/document/${residentQrId}`
+    : `/verify/document/${residentQrId}`;
 
   const hotlines = [
     { title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
@@ -223,8 +228,13 @@ export const ResidentDashboard: React.FC = () => {
               <p className="text-[10px] font-mono text-blue-300/90 mt-0.5">{residentQrId}</p>
             </div>
 
-            <div className="p-2 bg-white rounded-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform flex items-center justify-center">
-              <QrCode size={36} className="text-slate-900" />
+            <div className="p-1.5 bg-white rounded-xl text-slate-950 shadow-md group-hover:scale-105 transition-transform flex items-center justify-center">
+              <QRCodeSVG 
+                value={qrVerificationUrl} 
+                size={38} 
+                level="M" 
+                includeMargin={false}
+              />
             </div>
           </div>
         </div>
@@ -551,8 +561,13 @@ export const ResidentDashboard: React.FC = () => {
 
             {/* QR Card Presentation */}
             <div className="bg-slate-50 dark:bg-slate-950 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 text-center space-y-3">
-              <div className="w-44 h-44 mx-auto bg-white p-3 rounded-2xl shadow-md border border-slate-200 flex items-center justify-center">
-                <QrCode size={150} className="text-slate-950" />
+              <div className="w-52 h-52 mx-auto bg-white p-4 rounded-2xl shadow-md border border-slate-200 flex items-center justify-center">
+                <QRCodeSVG 
+                  value={qrVerificationUrl} 
+                  size={176} 
+                  level="H" 
+                  includeMargin={false}
+                />
               </div>
 
               <div>
@@ -561,21 +576,35 @@ export const ResidentDashboard: React.FC = () => {
                 <span className="inline-block mt-2 px-3 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
                   ✓ PhilSys / Barangay Verified ID
                 </span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                  Tunay na scannable QR Code. I-scan gamit ang phone camera o scanner upang ma-verify ang opisyal na rekord.
+                </p>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleCopyId}
-                className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                {copiedId ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                <span>{copiedId ? 'Copied QR Code!' : 'Copy Citizen ID'}</span>
-              </button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopyId}
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {copiedId ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  <span>{copiedId ? 'Copied QR Code!' : 'Copy Citizen ID'}</span>
+                </button>
+                <Link
+                  to={`/verify/document/${residentQrId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink size={14} />
+                  <span>Subukan I-Verify</span>
+                </Link>
+              </div>
               <button
                 onClick={() => setShowIdModal(false)}
-                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition-colors cursor-pointer"
               >
                 Done
               </button>

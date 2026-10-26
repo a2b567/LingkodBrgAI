@@ -4,6 +4,7 @@ import {
   ImagePlus, Trash, Save, RotateCcw, AlertTriangle, KeyRound,
   User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { api } from '../services/api';
@@ -327,18 +328,20 @@ export const Settings: React.FC = () => {
 
           {/* Resident QR Card */}
           {res && (
-            <div className="rounded-2xl overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-gov-blue-950 to-slate-900 text-white p-5 shadow-lg flex flex-col items-center text-center">
-              <QrCode size={22} className="text-gov-gold-400 mb-2" />
+            <div className="rounded-2xl overflow-hidden border-0 bg-gradient-to-br from-slate-900 via-gov-blue-950 to-slate-900 text-white p-5 shadow-lg flex flex-col items-center text-center space-y-1">
+              <QrCode size={22} className="text-gov-gold-400 mb-1" />
               <p className="text-[9px] font-bold uppercase tracking-widest text-gov-gold-400">Official Resident ID</p>
-              <p className="font-bold text-xs mt-1.5">{res.first_name} {res.last_name}</p>
-              <span className="text-[9px] font-mono text-slate-400 mt-0.5">{res.qr_id}</span>
-              <div className="w-24 h-24 bg-white p-2 rounded-xl mt-3 flex items-center justify-center shadow-lg">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(res.qr_id || `QR-RES-${res.id}`)}`}
-                  alt="Resident QR Code"
-                  className="w-full h-full object-contain"
+              <p className="font-bold text-xs mt-0.5">{res.first_name} {res.last_name}</p>
+              <span className="text-[9px] font-mono text-blue-300">{res.qr_id}</span>
+              <div className="w-28 h-28 bg-white p-2 rounded-xl mt-2 flex items-center justify-center shadow-lg">
+                <QRCodeSVG
+                  value={`${typeof window !== 'undefined' ? window.location.origin : ''}/verify/document/${res.qr_id || `QR-RES-${res.id}`}`}
+                  size={96}
+                  level="H"
+                  includeMargin={false}
                 />
               </div>
+              <span className="text-[8px] text-slate-400 mt-1">Scan to verify official record</span>
             </div>
           )}
         </div>

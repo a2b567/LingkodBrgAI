@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   Clock, CheckCircle2, AlertTriangle, Stethoscope,
   Heart, Users, Zap, Star, Activity, Plus,
-  Ticket
+  Ticket, Eye, EyeOff, Shield
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
+import { usePrivacyStore } from '../store/privacyStore';
+import { maskName } from '../utils/privacy';
 
 interface QueueItem {
   id: string;
@@ -52,6 +54,9 @@ const DEFAULT_INITIAL_QUEUE: QueueItem[] = [
 
 export const ClinicQueueView: React.FC = () => {
   const { user } = useAuthStore();
+  const { isPrivacyMode, isItemRevealed, toggleRevealItem } = usePrivacyStore();
+  const isResident = user?.role === 'Resident';
+
   const [queueList, setQueueList] = useState<QueueItem[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [liveDot, setLiveDot] = useState(true);
@@ -128,6 +133,35 @@ export const ClinicQueueView: React.FC = () => {
     ? activeQueue.findIndex(q => q.id === myTicket.id)
     : -1;
 
+  // Format patient name respecting DPA Privacy (masks other residents' names for resident accounts or privacy mode)
+  const formatPatientName = (item: QueueItem | null): string => {
+    if (!item) return '';
+
+    // If it is the user's own ticket, show their own name unmasked
+    if (myTicket && item.id === myTicket.id) {
+      return item.residentName;
+    }
+
+    const currentResidentFullName = user?.resident
+      ? `${user.resident.first_name} ${user.resident.last_name}`.trim().toLowerCase()
+      : '';
+    if (currentResidentFullName && item.residentName.trim().toLowerCase() === currentResidentFullName) {
+      return item.residentName;
+    }
+
+    // Mask name for Resident accounts or when global Privacy Mask is ON
+    const shouldMask = isResident || isPrivacyMode;
+    if (shouldMask) {
+      // If authorized staff clicked the reveal button for this item
+      if (!isResident && isItemRevealed(item.id)) {
+        return item.residentName;
+      }
+      return maskName(item.residentName);
+    }
+
+    return item.residentName;
+  };
+
   const handleGetTicket = (e: React.FormEvent) => {
     e.preventDefault();
     const name = patientName.trim() || (user?.resident ? `${user.resident.first_name} ${user.resident.last_name}` : user?.username || 'Resident Patient');
@@ -176,9 +210,13 @@ export const ClinicQueueView: React.FC = () => {
                 <span className={`w-1.5 h-1.5 rounded-full transition-colors ${liveDot ? 'bg-emerald-500' : 'bg-emerald-300'}`} />
                 Live
               </span>
+              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+                <Shield size={10} className="text-blue-500" />
+                Privacy Protected
+              </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-              Barangay San Isidro Health & Wellness Center
+              Barangay San Isidro Health & Wellness Center • DPA RA 10173 Protected
             </p>
           </div>
         </div>
@@ -292,8 +330,17 @@ export const ClinicQueueView: React.FC = () => {
                     <Star size={10} className="fill-amber-300" /> Priority Lane
                   </span>
                 )}
+                {!isResident && isPrivacyMode && (
+                  <button
+                    onClick={() => toggleRevealItem(nowServing.id)}
+                    className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition-colors cursor-pointer"
+                    title={isItemRevealed(nowServing.id) ? "Hide Name" : "Reveal Name (Authorized Staff)"}
+                  >
+                    {isItemRevealed(nowServing.id) ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                )}
               </div>
-              <p className="text-base sm:text-xl font-bold opacity-95 mt-1">{nowServing.residentName}</p>
+              <p className="text-base sm:text-xl font-bold opacity-95 mt-1">{formatPatientName(nowServing)}</p>
               <p className="text-xs opacity-80 mt-0.5 font-medium">{nowServing.service}</p>
             </div>
 
@@ -302,7 +349,7 @@ export const ClinicQueueView: React.FC = () => {
                 <p className="text-[9px] font-black uppercase opacity-70 tracking-wider">Susunod na Pasyente</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="font-black text-lg">#{nextInLine.queueNumber}</span>
-                  <span className="text-xs opacity-90 font-semibold truncate max-w-[150px]">{nextInLine.residentName}</span>
+                  <span className="text-xs opacity-90 font-semibold truncate max-w-[150px]">{formatPatientName(nextInLine)}</span>
                 </div>
               </div>
             )}
@@ -360,7 +407,18 @@ export const ClinicQueueView: React.FC = () => {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{item.residentName}</p>
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                        {formatPatientName(item)}
+                      </p>
+                      {!isResident && isPrivacyMode && (
+                        <button
+                          onClick={() => toggleRevealItem(item.id)}
+                          className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          title={isItemRevealed(item.id) ? "Hide Name" : "Reveal Name (Authorized Staff)"}
+                        >
+                          {isItemRevealed(item.id) ? <EyeOff size={11} /> : <Eye size={11} />}
+                        </button>
+                      )}
                       {item.isPriority && <Star size={10} className="text-amber-500 fill-amber-500 shrink-0" />}
                       {item.id === myTicket?.id && (
                         <span className="text-[8px] font-black uppercase bg-gov-blue-600 text-white px-1.5 py-0.2 rounded">Ikaw</span>
@@ -407,7 +465,9 @@ export const ClinicQueueView: React.FC = () => {
                     ✓
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{item.residentName}</p>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                      {formatPatientName(item)}
+                    </p>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{item.service}</p>
                   </div>
                   <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">#{item.queueNumber}</span>
