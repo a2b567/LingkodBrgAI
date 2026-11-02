@@ -23,7 +23,9 @@ const STAFF_ROLES = [
   'Health Worker',
   'Staff',
   'Super Admin',
+  'Developer',
 ];
+
 
 const ROLE_STYLES: Record<string, { badge: string; avatar: string; label: string }> = {
   'Super Admin':      { badge: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/60', avatar: 'bg-purple-500', label: 'SA' },
@@ -32,7 +34,9 @@ const ROLE_STYLES: Record<string, { badge: string; avatar: string; label: string
   'Treasurer':        { badge: 'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60', avatar: 'bg-amber-500', label: 'TR' },
   'Health Worker':    { badge: 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60', avatar: 'bg-emerald-500', label: 'HW' },
   'Staff':            { badge: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700', avatar: 'bg-slate-400', label: 'ST' },
+  'Developer':        { badge: 'bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-950/60 dark:text-fuchsia-300 dark:border-fuchsia-800/60', avatar: 'bg-fuchsia-600', label: 'DEV' },
 };
+
 
 /* ─────────────────────────────────────────────── */
 /* Spinner Helper                                  */
