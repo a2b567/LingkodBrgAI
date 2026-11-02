@@ -258,3 +258,27 @@ type MedicineStock struct {
 	Unit     string `gorm:"not null;default:'tablets'" json:"unit"`
 	MinStock int    `gorm:"not null;default:10" json:"minStock"`
 }
+
+// ErrorLog captures system errors from both backend HTTP responses and frontend JS exceptions
+type ErrorLog struct {
+	ID         uuid.UUID  `gorm:"type:uuid;primary_key" json:"id"`
+	Source     string     `gorm:"not null;default:'backend'" json:"source"` // backend | frontend
+	Level      string     `gorm:"not null;default:'error'" json:"level"`   // error | warning | panic
+	StatusCode int        `json:"status_code,omitempty"`
+	Method     string     `json:"method,omitempty"`
+	Path       string     `json:"path,omitempty"`
+	Message    string     `gorm:"type:text;not null" json:"message"`
+	Stack      string     `gorm:"type:text" json:"stack,omitempty"`
+	UserID     *uuid.UUID `gorm:"type:uuid" json:"user_id,omitempty"`
+	IPAddress  string     `json:"ip_address,omitempty"`
+	UserAgent  string     `json:"user_agent,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+}
+
+func (e *ErrorLog) BeforeCreate(tx *gorm.DB) error {
+	if e.ID == uuid.Nil {
+		e.ID = uuid.New()
+	}
+	return nil
+}
+

@@ -3,9 +3,10 @@ import {
   Terminal, Activity, Users, ShieldAlert, RefreshCw, Search,
   ChevronLeft, ChevronRight, Filter, Clock, Globe, User,
   AlertTriangle, CheckCircle, LogIn, FileText, Trash2, Edit,
-  BarChart2, Cpu, Database, Eye
+  BarChart2, Cpu, Database, Eye, AlertOctagon, MonitorX, Layers
 } from 'lucide-react';
 import { api } from '../services/api';
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,20 @@ interface DevUser {
   last_seen?: string;
 }
 
+interface ErrorLogEntry {
+  id: string;
+  source: string;
+  level: string;
+  status_code?: number;
+  method?: string;
+  path?: string;
+  message: string;
+  stack?: string;
+  ip_address?: string;
+  user_agent?: string;
+  created_at: string;
+}
+
 interface DevStats {
   total_users: number;
   total_residents: number;
@@ -40,6 +55,7 @@ interface DevStats {
   logins_last_24h: number;
   top_actions: { action: string; count: number }[];
 }
+
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -105,12 +121,24 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string |
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-type Tab = 'overview' | 'audit' | 'users';
+type Tab = 'overview' | 'audit' | 'users' | 'errors';
+
 
 export const DevConsole: React.FC = () => {
   const [tab, setTab] = useState<Tab>('overview');
 
+  // Error logs state
+  const [errorLogs, setErrorLogs] = useState<ErrorLogEntry[]>([]);
+  const [errorLogsTotal, setErrorLogsTotal] = useState(0);
+  const [errorLogsPage, setErrorLogsPage] = useState(1);
+  const [errorLogsSearch, setErrorLogsSearch] = useState('');
+  const [errorLogsSource, setErrorLogsSource] = useState('');
+  const [errorLogsLevel, setErrorLogsLevel] = useState('');
+  const [errorLogsLoading, setErrorLogsLoading] = useState(false);
+  const [expandedErrorId, setExpandedErrorId] = useState<string | null>(null);
+
   // Audit logs state
+
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [logsTotal, setLogsTotal] = useState(0);
   const [logsPage, setLogsPage] = useState(1);
@@ -132,7 +160,22 @@ export const DevConsole: React.FC = () => {
 
   const LIMIT = 25;
 
+  // ── Fetch Error Logs ──────────────────────────────────────────────────────
+  const fetchErrorLogs = useCallback(async () => {
+    setErrorLogsLoading(true);
+    try {
+      const data = await api.dev.errorLogs({ page: errorLogsPage, limit: LIMIT, search: errorLogsSearch, source: errorLogsSource, level: errorLogsLevel });
+      setErrorLogs(data.data || []);
+      setErrorLogsTotal(data.total || 0);
+    } catch (err) {
+      console.error('DevConsole: fetch error logs failed', err);
+    } finally {
+      setErrorLogsLoading(false);
+    }
+  }, [errorLogsPage, errorLogsSearch, errorLogsSource, errorLogsLevel]);
+
   // ── Fetch Audit Logs ────────────────────────────────────────────────────────
+
   const fetchLogs = useCallback(async () => {
     setLogsLoading(true);
     try {
@@ -173,12 +216,26 @@ export const DevConsole: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => { if (tab === 'errors') fetchErrorLogs(); }, [tab, fetchErrorLogs]);
   useEffect(() => { if (tab === 'audit') fetchLogs(); }, [tab, fetchLogs]);
   useEffect(() => { if (tab === 'users') fetchUsers(); }, [tab, fetchUsers]);
   useEffect(() => { if (tab === 'overview') fetchStats(); }, [tab, fetchStats]);
 
+
   const logsPages = Math.max(1, Math.ceil(logsTotal / LIMIT));
   const usersPages = Math.max(1, Math.ceil(usersTotal / LIMIT));
+  const errorLogsPages = Math.max(1, Math.ceil(errorLogsTotal / LIMIT));
+
+  const LEVEL_STYLES: Record<string, string> = {
+    panic:   'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border border-rose-200 dark:border-rose-800',
+    error:   'bg-orange-50 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300 border border-orange-200 dark:border-orange-800',
+    warning: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800',
+  };
+  const SOURCE_STYLES: Record<string, string> = {
+    backend:  'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+    frontend: 'bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300',
+  };
+
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -203,10 +260,12 @@ export const DevConsole: React.FC = () => {
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl w-fit">
         {([
-          { key: 'overview', label: 'Overview', icon: <BarChart2 size={14} /> },
-          { key: 'audit',    label: 'Audit Logs', icon: <FileText size={14} /> },
+          { key: 'overview', label: 'Overview',     icon: <BarChart2 size={14} /> },
+          { key: 'errors',   label: 'Error Logs',   icon: <AlertOctagon size={14} /> },
+          { key: 'audit',    label: 'Audit Logs',   icon: <FileText size={14} /> },
           { key: 'users',    label: 'User Activity', icon: <Users size={14} /> },
         ] as { key: Tab; label: string; icon: React.ReactNode }[]).map(t => (
+
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
@@ -561,8 +620,172 @@ export const DevConsole: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* ── ERROR LOGS TAB ── */}
+      {tab === 'errors' && (
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search message, path, or IP…"
+                value={errorLogsSearch}
+                onChange={e => { setErrorLogsSearch(e.target.value); setErrorLogsPage(1); }}
+                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500"
+              />
+            </div>
+            <div className="relative">
+              <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <select
+                value={errorLogsSource}
+                onChange={e => { setErrorLogsSource(e.target.value); setErrorLogsPage(1); }}
+                className="pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 appearance-none cursor-pointer"
+              >
+                <option value="">All Sources</option>
+                <option value="backend">Backend</option>
+                <option value="frontend">Frontend</option>
+              </select>
+            </div>
+            <div className="relative">
+              <AlertTriangle size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <select
+                value={errorLogsLevel}
+                onChange={e => { setErrorLogsLevel(e.target.value); setErrorLogsPage(1); }}
+                className="pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-rose-500 appearance-none cursor-pointer"
+              >
+                <option value="">All Levels</option>
+                <option value="panic">🔴 Panic / 5xx</option>
+                <option value="error">🟠 Error / 4xx</option>
+                <option value="warning">🟡 Warning</option>
+              </select>
+            </div>
+            <button
+              onClick={fetchErrorLogs}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition-colors cursor-pointer"
+            >
+              <RefreshCw size={13} className={errorLogsLoading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Error list */}
+          {errorLogsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 animate-pulse">
+                  <div className="flex gap-3 mb-2">
+                    <div className="h-5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full" />
+                    <div className="h-5 w-20 bg-slate-100 dark:bg-slate-800 rounded-full" />
+                    <div className="h-5 flex-1 bg-slate-100 dark:bg-slate-800 rounded" />
+                  </div>
+                  <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
+                </div>
+              ))}
+            </div>
+          ) : errorLogs.length === 0 ? (
+            <div className="text-center py-16 text-slate-400">
+              <CheckCircle size={36} className="mx-auto mb-3 opacity-30 text-emerald-500" />
+              <p className="font-black text-sm text-emerald-600 dark:text-emerald-400">No errors detected</p>
+              <p className="text-xs mt-1">System is running clean 🎉</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {errorLogs.map(err => (
+                <div
+                  key={err.id}
+                  className={`bg-white dark:bg-slate-900 rounded-2xl border overflow-hidden transition-all ${
+                    err.level === 'panic'
+                      ? 'border-rose-200 dark:border-rose-800/60'
+                      : err.level === 'warning'
+                      ? 'border-amber-200 dark:border-amber-800/60'
+                      : 'border-orange-200 dark:border-orange-800/60'
+                  }`}
+                >
+                  {/* Header row */}
+                  <button
+                    className="w-full text-left px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                    onClick={() => setExpandedErrorId(expandedErrorId === err.id ? null : err.id)}
+                  >
+                    {/* Level badge */}
+                    <span className={`shrink-0 text-[10px] font-black px-2 py-0.5 rounded-full mt-0.5 ${LEVEL_STYLES[err.level] || LEVEL_STYLES.error}`}>
+                      {err.level === 'panic' ? '🔴 PANIC' : err.level === 'warning' ? '🟡 WARN' : '🟠 ERROR'}
+                    </span>
+
+                    {/* Source badge */}
+                    <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${SOURCE_STYLES[err.source] || SOURCE_STYLES.backend}`}>
+                      {err.source}
+                    </span>
+
+                    {/* Status + method + path */}
+                    {err.status_code && (
+                      <span className="shrink-0 font-mono text-[11px] font-black text-slate-500 dark:text-slate-400 mt-0.5">
+                        {err.method} {err.status_code}
+                      </span>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-1">{err.message}</p>
+                      <div className="flex items-center gap-3 mt-0.5">
+                        {err.path && (
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate">{err.path}</span>
+                        )}
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
+                          <Clock size={10} />{fmtTime(err.created_at)}
+                        </span>
+                        {err.ip_address && (
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0 flex items-center gap-1">
+                            <Globe size={10} />{err.ip_address}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <ChevronRight
+                      size={14}
+                      className={`shrink-0 text-slate-400 transition-transform mt-0.5 ${expandedErrorId === err.id ? 'rotate-90' : ''}`}
+                    />
+                  </button>
+
+                  {/* Expanded stack trace */}
+                  {expandedErrorId === err.id && err.stack && (
+                    <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 bg-slate-950">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Stack Trace</p>
+                      <pre className="text-[11px] text-slate-300 font-mono overflow-x-auto whitespace-pre-wrap break-words max-h-48">
+                        {err.stack}
+                      </pre>
+                      {err.user_agent && (
+                        <p className="text-[10px] text-slate-500 mt-2">UA: {err.user_agent}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {errorLogsPages > 1 && (
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-slate-400">{errorLogsTotal.toLocaleString()} errors · Page {errorLogsPage} of {errorLogsPages}</span>
+              <div className="flex items-center gap-1">
+                <button onClick={() => setErrorLogsPage(p => Math.max(1, p - 1))} disabled={errorLogsPage <= 1}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  <ChevronLeft size={14} />
+                </button>
+                <button onClick={() => setErrorLogsPage(p => Math.min(errorLogsPages, p + 1))} disabled={errorLogsPage >= errorLogsPages}
+                  className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer">
+                  <ChevronRight size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
 
 export default DevConsole;
+

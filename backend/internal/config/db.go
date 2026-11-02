@@ -111,6 +111,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 			&models.MedicineStock{},
 			&models.HealthRecord{},
 			&models.DispensedItem{},
+			&models.ErrorLog{},
 		); migrateErr != nil {
 			log.Printf("[CLOUD DB ERROR] Cloud Database migration error: %v", migrateErr)
 		} else {
@@ -163,6 +164,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 			&models.MedicineStock{},
 			&models.HealthRecord{},
 			&models.DispensedItem{},
+			&models.ErrorLog{},
 		)
 		if err != nil {
 			log.Printf("[LOCAL DB WARNING] Local DB auto-migration warning: %v", err)

@@ -12,6 +12,53 @@ import (
 
 type DevHandler struct{}
 
+// GetErrorLogs returns paginated system error logs (backend HTTP errors + frontend JS exceptions)
+func (h *DevHandler) GetErrorLogs(c *gin.Context) {
+	db := config.DB
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
+	source := c.Query("source") // backend | frontend
+	level := c.Query("level")   // error | warning | panic
+	search := c.Query("search")
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 200 {
+		limit = 50
+	}
+	offset := (page - 1) * limit
+
+	query := db.Model(&models.ErrorLog{}).Order("created_at desc")
+	if source != "" {
+		query = query.Where("source = ?", source)
+	}
+	if level != "" {
+		query = query.Where("level = ?", level)
+	}
+	if search != "" {
+		query = query.Where("message LIKE ? OR path LIKE ? OR ip_address LIKE ?",
+			"%"+search+"%", "%"+search+"%", "%"+search+"%")
+	}
+
+	var total int64
+	query.Count(&total)
+
+	var logs []models.ErrorLog
+	if err := query.Offset(offset).Limit(limit).Find(&logs).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch error logs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":  logs,
+		"total": total,
+		"page":  page,
+		"limit": limit,
+	})
+}
+
 // GetAuditLogs returns paginated audit logs with optional filters
 func (h *DevHandler) GetAuditLogs(c *gin.Context) {
 	db := config.DB

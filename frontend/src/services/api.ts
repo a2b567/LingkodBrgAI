@@ -800,6 +800,18 @@ export const api = {
           top_actions: [],
         })
       ),
+
+    errorLogs: (params?: { page?: number; limit?: number; search?: string; source?: string; level?: string }) =>
+      withFallback(
+        () => client.get<{ data: any[]; total: number; page: number; limit: number }>('/dev/error-logs', { params }).then(r => r.data),
+        () => ({ data: [], total: 0, page: 1, limit: 25 })
+      ),
+
+    reportError: (data: { message: string; stack?: string; path?: string; user_agent?: string }) =>
+      withFallback(
+        () => client.post<{ message: string }>('/dev/report-error', data).then(r => r.data),
+        () => ({ message: 'Error logged (offline)' })
+      ),
   },
 };
 

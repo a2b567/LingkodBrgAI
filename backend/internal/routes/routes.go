@@ -18,6 +18,9 @@ func SetupRouter() *gin.Engine {
 	// 2. Async Non-Blocking Audit Logging for legal compliance
 	r.Use(middleware.AsyncAuditLogger())
 
+	// 3. Auto-capture all 4xx/5xx errors into error_logs table
+	r.Use(middleware.ErrorCaptureMiddleware())
+
 	// Root health landing route
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -203,7 +206,11 @@ func SetupRouter() *gin.Engine {
 			devOnly.GET("/audit-logs", devHandler.GetAuditLogs)
 			devOnly.GET("/users", devHandler.GetAllUsers)
 			devOnly.GET("/stats", devHandler.GetSystemStats)
+			devOnly.GET("/error-logs", devHandler.GetErrorLogs)
 		}
+
+		// Frontend JS error reporting (accessible while logged in, any role)
+		protected.POST("/dev/report-error", middleware.ReportFrontendError)
 	}
 
 	return r
