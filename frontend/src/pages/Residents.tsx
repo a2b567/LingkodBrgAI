@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Users, Plus, Search, Edit2, Trash2, FileSpreadsheet, QrCode,
   XCircle, UserX, UserCheck, Loader2, Upload, CheckCircle2, Sparkles, Save,
-  Eye, EyeOff, ExternalLink
+  Eye, EyeOff, ExternalLink, FileText, Download, AlertCircle
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
@@ -49,6 +49,15 @@ export const Residents: React.FC = () => {
   // QR Modal States
   const [qrModal, setQrModal] = useState<Resident | null>(null);
 
+  // Import CSV states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importRows, setImportRows] = useState<any[]>([]);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importSuccess, setImportSuccess] = useState<number | null>(null);
+  const importFileInputRef = useRef<HTMLInputElement>(null);
+
   const fetchResidents = async () => {
     setIsLoading(true);
     try {
@@ -78,7 +87,7 @@ export const Residents: React.FC = () => {
     fetchResidents();
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
 
   const handleExportCSV = () => {
     if (residents.length === 0) {
@@ -119,97 +128,298 @@ export const Residents: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const handleImportCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Download Sample CSV Format Template
+  const handleDownloadSample = () => {
+    const headers = [
+      'first_name',
+      'middle_name',
+      'last_name',
+      'suffix',
+      'gender',
+      'birthdate',
+      'civil_status',
+      'occupation',
+      'contact_number',
+      'email',
+      'address',
+      'citizenship',
+      'residency_status',
+      'voter_status',
+      'is_pregnant',
+      'is_senior',
+      'is_pwd',
+    ];
+
+    const sampleRows = [
+      [
+        'Juan',
+        'Reyes',
+        'Dela Cruz',
+        '',
+        'Male',
+        '1990-05-15',
+        'Married',
+        'Carpenter',
+        '09171234567',
+        'juan.delacruz@example.com',
+        'Purok 1, San Isidro, Bay, Laguna',
+        'Filipino',
+        'Permanent',
+        'Registered',
+        'No',
+        'No',
+        'No',
+      ],
+      [
+        'Maria',
+        'Santos',
+        'Garcia',
+        '',
+        'Female',
+        '1995-10-22',
+        'Single',
+        'Teacher',
+        '09189876543',
+        'maria.garcia@example.com',
+        'Purok 2, San Isidro, Bay, Laguna',
+        'Filipino',
+        'Permanent',
+        'Registered',
+        'Yes',
+        'No',
+        'No',
+      ],
+      [
+        'Pedro',
+        'Alvarez',
+        'Mendoza',
+        'Sr.',
+        'Male',
+        '1958-03-12',
+        'Widowed',
+        'Retired',
+        '09205551234',
+        'pedro.mendoza@example.com',
+        'Purok 3, San Isidro, Bay, Laguna',
+        'Filipino',
+        'Permanent',
+        'Registered',
+        'No',
+        'Yes',
+        'No',
+      ],
+      [
+        'Ana',
+        'Lim',
+        'Bautista',
+        '',
+        'Female',
+        '2002-08-30',
+        'Single',
+        'Student',
+        '09224445566',
+        'ana.bautista@example.com',
+        'Purok 4, San Isidro, Bay, Laguna',
+        'Filipino',
+        'Permanent',
+        'Not Registered',
+        'No',
+        'No',
+        'Yes',
+      ],
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...sampleRows.map(row =>
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'sample_residents_import.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Robust CSV parser supporting quotes and commas
+  const parseCSV = (text: string) => {
+    const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
+    if (lines.length <= 1) {
+      return { headers: [], rows: [] };
+    }
+
+    const parseLine = (line: string): string[] => {
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+      return values.map(v => v.replace(/^"|"$/g, '').trim());
+    };
+
+    const rawHeaders = parseLine(lines[0]);
+    const headers = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    const rows = lines.slice(1).map(l => parseLine(l)).filter(r => r.some(v => v !== ''));
+
+    return { headers, rows };
+  };
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const text = evt.target?.result as string;
-      if (!text) return;
+    setImportFile(file);
+    setImportErrors([]);
+    setImportSuccess(null);
 
-      const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
-      if (lines.length <= 1) {
-        alert('The CSV file is empty or missing data rows.');
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) {
+        setImportErrors(['Selected file is empty.']);
+        setImportRows([]);
         return;
       }
 
-      const parseLine = (line: string) => {
-        const values: string[] = [];
-        let current = '';
-        let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            values.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        values.push(current.trim());
-        return values.map(v => v.replace(/^"|"$/g, '').replace(/""/g, '"'));
-      };
+      const { headers, rows } = parseCSV(text);
+      if (rows.length === 0) {
+        setImportErrors(['No valid data rows found in the CSV file.']);
+        setImportRows([]);
+        return;
+      }
 
-      const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
-      const rows = lines.slice(1);
+      const parsed: any[] = [];
+      const errors: string[] = [];
 
-      let count = 0;
-      for (const rowStr of rows) {
-        const vals = parseLine(rowStr);
-        if (vals.length < 2) continue;
-
+      rows.forEach((vals, index) => {
+        const rowNum = index + 2;
         const getValue = (keys: string[]) => {
           for (const k of keys) {
             const idx = headers.findIndex(h => h.includes(k));
-            if (idx !== -1 && vals[idx]) return vals[idx];
+            if (idx !== -1 && vals[idx] !== undefined && vals[idx] !== '') return vals[idx];
           }
           return '';
         };
 
-        const firstName = getValue(['first', 'fname', 'given']) || vals[0] || 'Resident';
-        const lastName = getValue(['last', 'lname', 'surname']) || vals[2] || vals[1] || 'User';
-        const middleName = getValue(['middle', 'mname']) || '';
-        const gender = getValue(['gender', 'sex']) || 'Male';
-        const address = getValue(['address', 'zone', 'street']) || 'Barangay Lawrence';
-        const civilStatus = getValue(['civil', 'status', 'marital']) || 'Single';
-        const contactNumber = getValue(['contact', 'phone', 'mobile']) || '';
-        const email = getValue(['email', 'mail']) || '';
-        const voterStatus = getValue(['voter']) || 'Not Registered';
-        const birthdate = getValue(['birth', 'bday', 'date']) || '2000-01-01';
+        const getBool = (keys: string[]) => {
+          const val = getValue(keys).toLowerCase();
+          return val === 'true' || val === '1' || val === 'yes' || val === 'y' || val === 'oo';
+        };
 
-        const payload = {
-          first_name: firstName,
-          middle_name: middleName,
-          last_name: lastName,
-          gender: gender.toLowerCase().includes('f') ? 'Female' : 'Male',
-          birthdate: new Date(birthdate).toString() !== 'Invalid Date' ? new Date(birthdate).toISOString() : new Date('2000-01-01').toISOString(),
+        const firstName = getValue(['first', 'fname', 'given']) || vals[0] || '';
+        const lastName = getValue(['last', 'lname', 'surname']) || (vals.length > 2 ? vals[2] : vals[1]) || '';
+        const middleName = getValue(['middle', 'mname']);
+        const suffix = getValue(['suffix', 'ext']);
+        const rawGender = getValue(['gender', 'sex']).toLowerCase();
+        const gender = rawGender.startsWith('f') ? 'Female' : 'Male';
+        
+        const rawBday = getValue(['birth', 'bday', 'dob', 'date']);
+        let birthdate = '2000-01-01';
+        if (rawBday) {
+          const d = new Date(rawBday);
+          if (!isNaN(d.getTime())) {
+            birthdate = d.toISOString().split('T')[0];
+          }
+        }
+
+        const address = getValue(['address', 'purok', 'zone', 'street']) || 'Barangay San Isidro';
+        const civilStatus = getValue(['civil', 'marital', 'status']) || 'Single';
+        const occupation = getValue(['occupation', 'job', 'work']) || 'Resident';
+        const contactNumber = getValue(['contact', 'phone', 'mobile']);
+        const email = getValue(['email', 'mail']);
+        const citizenship = getValue(['citizenship', 'nationality']) || 'Filipino';
+        const residencyStatus = getValue(['residency', 'residence']) || 'Permanent';
+        const rawVoter = getValue(['voter']);
+        const voterStatus = rawVoter.toLowerCase().includes('not') || rawVoter.toLowerCase().includes('unreg')
+          ? 'Not Registered'
+          : (rawVoter.toLowerCase().includes('reg') ? 'Registered' : 'Not Registered');
+
+        let isSenior = getBool(['senior']);
+        if (!isSenior && birthdate) {
+          const age = new Date().getFullYear() - new Date(birthdate).getFullYear();
+          if (age >= 60) isSenior = true;
+        }
+
+        if (!firstName && !lastName) {
+          errors.push(`Row ${rowNum}: Missing resident name.`);
+          return;
+        }
+
+        parsed.push({
+          first_name: firstName || 'Resident',
+          middle_name: middleName || '',
+          last_name: lastName || 'User',
+          suffix: suffix || '',
+          gender: gender,
+          birthdate: new Date(birthdate).toISOString(),
           civil_status: civilStatus,
-          occupation: 'Resident',
+          occupation: occupation,
           contact_number: contactNumber,
           email: email,
           address: address,
-          citizenship: 'Filipino',
-          residency_status: 'Permanent',
+          citizenship: citizenship,
+          residency_status: residencyStatus,
           voter_status: voterStatus,
-        };
+          is_pregnant: getBool(['pregnant', 'pregnancy']),
+          is_senior: isSenior,
+          is_pwd: getBool(['pwd', 'disability']),
+        });
+      });
 
-        try {
-          await api.residents.create(payload);
-          count++;
-        } catch (err) {
-          console.error('Failed to import CSV row:', payload, err);
-        }
-      }
-
-      alert(`Successfully imported ${count} resident records from CSV!`);
-      fetchResidents();
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setImportErrors(errors);
+      setImportRows(parsed);
     };
 
     reader.readAsText(file);
+  };
+
+  const handleExecuteImport = async () => {
+    if (importRows.length === 0) return;
+    setIsImporting(true);
+    let count = 0;
+    try {
+      for (const row of importRows) {
+        try {
+          await api.residents.create(row);
+          count++;
+        } catch (err) {
+          console.error('Failed to import resident row:', row, err);
+        }
+      }
+      setImportSuccess(count);
+      fetchResidents();
+      setTimeout(() => {
+        setShowImportModal(false);
+        setImportFile(null);
+        setImportRows([]);
+        setImportSuccess(null);
+      }, 1500);
+    } catch (err) {
+      console.error('Batch import failed:', err);
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleOpenEdit = (res: Resident) => {
@@ -324,16 +534,27 @@ export const Residents: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleImportCSV}
-            accept=".csv"
-            className="hidden"
-          />
-
+          {/* Sample Format Download */}
           <button 
-            onClick={() => fileInputRef.current?.click()}
+            type="button"
+            onClick={handleDownloadSample}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-black text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+            title="Download sample CSV format template"
+          >
+            <FileText size={16} className="text-indigo-600 dark:text-indigo-400" />
+            <span>Sample Format</span>
+          </button>
+
+          {/* Import CSV Modal Trigger */}
+          <button 
+            type="button"
+            onClick={() => {
+              setShowImportModal(true);
+              setImportFile(null);
+              setImportRows([]);
+              setImportErrors([]);
+              setImportSuccess(null);
+            }}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-black text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
             title="Import Residents from CSV file"
           >
@@ -341,7 +562,9 @@ export const Residents: React.FC = () => {
             <span>Import CSV</span>
           </button>
 
+          {/* Export CSV */}
           <button 
+            type="button"
             onClick={handleExportCSV}
             className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-black text-slate-700 dark:text-slate-200 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-md transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
             title="Export Resident Registry to CSV file"
@@ -932,6 +1155,197 @@ export const Residents: React.FC = () => {
                 Isara
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+    
+      {/* ── Import CSV Modal ── */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+                  <Upload size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">Import Residents from CSV</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Bulk upload resident records using the standard CSV template</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setImportRows([]);
+                  setImportErrors([]);
+                }} 
+                title="Close" 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+
+              {/* Download sample format banner */}
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50">
+                <FileText size={18} className="text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">Sample CSV Format Template</p>
+                  <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5">
+                    Download our official sample CSV to ensure your columns (names, birthdates, addresses, voter status) match the required system format.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadSample}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all flex-shrink-0 cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>Download Sample</span>
+                </button>
+              </div>
+
+              {/* File Upload Area */}
+              <div
+                onClick={() => importFileInputRef.current?.click()}
+                className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl p-7 text-center cursor-pointer transition-colors group"
+              >
+                <input
+                  ref={importFileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportFileChange}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/30 flex items-center justify-center transition-colors">
+                    <Upload size={22} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  </div>
+                  {importFile ? (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-blue-600 dark:text-blue-400">{importFile.name}</p>
+                      <p className="text-[11px] text-slate-500">{(importFile.size / 1024).toFixed(1)} KB — Click to change file</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Click to select CSV file</p>
+                      <p className="text-[11px] text-slate-500">Supports standard .csv file exports</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Validation Errors */}
+              {importErrors.length > 0 && (
+                <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 p-4 space-y-1.5 max-h-36 overflow-y-auto">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <AlertCircle size={14} className="text-rose-500 flex-shrink-0" />
+                    <p className="text-xs font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide">Validation Errors ({importErrors.length})</p>
+                  </div>
+                  {importErrors.map((err, i) => (
+                    <p key={i} className="text-[11px] text-rose-600 dark:text-rose-400 font-medium pl-5">{err}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Success Alert */}
+              {importSuccess !== null && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                  <CheckCircle2 size={16} className="text-emerald-500" />
+                  <span>Successfully imported {importSuccess} resident{importSuccess !== 1 ? 's' : ''}!</span>
+                </div>
+              )}
+
+              {/* Preview Table */}
+              {importRows.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+                      Preview — First {Math.min(importRows.length, 5)} of {importRows.length} Resident{importRows.length > 1 ? 's' : ''}
+                    </p>
+                    <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-2 py-0.5 rounded-md">
+                      {importRows.length} Valid Row{importRows.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 sticky top-0">
+                          {['Full Name', 'Gender', 'Birthdate', 'Civil Status', 'Address', 'Voter Status'].map(col => (
+                            <th key={col} className="px-3 py-2 text-left font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">{col}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importRows.slice(0, 5).map((row, i) => (
+                          <tr key={i} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="px-3 py-2 font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                              {row.last_name}, {row.first_name} {row.middle_name || ''} {row.suffix || ''}
+                            </td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.gender}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.birthdate ? row.birthdate.split('T')[0] : '—'}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.civil_status}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap max-w-[140px] truncate">{row.address}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                row.voter_status === 'Registered' 
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400' 
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                              }`}>
+                                {row.voter_status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportFile(null);
+                  setImportRows([]);
+                  setImportErrors([]);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteImport}
+                disabled={isImporting || importRows.length === 0}
+                className="flex items-center gap-2 px-5 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {isImporting ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Importing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={13} />
+                    <span>Import {importRows.length > 0 ? `${importRows.length} Residents` : 'Residents'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
           </div>
         </div>
       )}

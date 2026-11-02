@@ -33,6 +33,7 @@ func main() {
 
 	// 4. Initialize WebSocket Notification Hub
 	services.InitHub()
+	services.InitEmailService()
 
 
 

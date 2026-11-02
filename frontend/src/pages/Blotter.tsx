@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { AlertOctagon, Plus, Cpu, Sparkles, Calendar, Scale, Search, ShieldAlert, CheckCircle2, Clock, X, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { AlertOctagon, Plus, Cpu, Sparkles, Calendar, Scale, Search, ShieldAlert, CheckCircle2, Clock, X, Eye, EyeOff, FileText, Upload, Download, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Blotter } from '../types';
 import { usePrivacyStore } from '../store/privacyStore';
@@ -75,6 +75,15 @@ export const BlotterPage: React.FC = () => {
   const [hearingDate, setHearingDate] = useState('');
   const [hearingTime, setHearingTime] = useState('09:00 AM');
   const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
+
+  // Import/Export state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importRows, setImportRows] = useState<any[]>([]);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importSuccess, setImportSuccess] = useState<number | null>(null);
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const fetchCases = async () => {
     setIsLoading(true);
@@ -173,6 +182,91 @@ export const BlotterPage: React.FC = () => {
     }
   };
 
+  // CSV helpers
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadSample = () => {
+    const headers = ['complainant', 'respondent', 'details', 'incident_date', 'status'];
+    const rows = [
+      ['Juan Dela Cruz', 'Pedro Bautista', 'Noise complaint at 2AM involving loud music and threats', '2026-10-15T22:00:00', 'Pending'],
+      ['Maria Garcia', 'Rodrigo Santos', 'Property boundary dispute over backyard fence line', '2026-10-20T10:00:00', 'Active'],
+    ];
+    downloadCSV(
+      [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n'),
+      'sample_blotter_records.csv'
+    );
+  };
+
+  const handleExportCSV = () => {
+    if (cases.length === 0) { alert('No blotter records to export.'); return; }
+    const headers = ['Case Number', 'Complainant', 'Respondent', 'Details', 'Incident Date', 'Filing Date', 'Status'];
+    const rows = cases.map(c => [
+      `"${c.case_number}"`,
+      `"${c.complainant.replace(/"/g, '""')}"`,
+      `"${c.respondent.replace(/"/g, '""')}"`,
+      `"${c.details.replace(/"/g, '""')}"`,
+      `"${new Date(c.incident_date).toLocaleDateString()}"`,
+      `"${new Date(c.filing_date).toLocaleDateString()}"`,
+      `"${c.status}"`,
+    ]);
+    downloadCSV([headers.join(','), ...rows.map(r => r.join(','))].join('\n'),
+      `blotter_records_${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFile(file); setImportErrors([]); setImportSuccess(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+      if (lines.length <= 1) { setImportErrors(['No data rows found.']); setImportRows([]); return; }
+      const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+      const parsed: any[] = [];
+      const errors: string[] = [];
+      lines.slice(1).forEach((line, i) => {
+        const vals: string[] = [];
+        let cur = '', inQ = false;
+        for (const ch of line) {
+          if (ch === '"') inQ = !inQ;
+          else if (ch === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+          else cur += ch;
+        }
+        vals.push(cur.trim());
+        const get = (keys: string[]) => { for (const k of keys) { const idx = headers.findIndex(h => h.includes(k)); if (idx !== -1) return vals[idx]?.replace(/^"|"$/g, '').trim() || ''; } return ''; };
+        const complainantVal = get(['complainant', 'accuser']) || vals[0] || '';
+        const respondentVal = get(['respondent', 'accused']) || vals[1] || '';
+        const detailsVal = get(['details', 'incident', 'description']) || vals[2] || '';
+        const dateVal = get(['incident_date', 'date', 'datetime']) || new Date().toISOString();
+        const statusVal = get(['status']) || 'Pending';
+        if (!complainantVal) { errors.push(`Row ${i + 2}: Missing complainant name.`); return; }
+        if (!respondentVal) { errors.push(`Row ${i + 2}: Missing respondent name.`); return; }
+        parsed.push({ complainant: complainantVal, respondent: respondentVal, details: detailsVal, incident_date: dateVal, status: statusVal, hearing_schedules: '[]' });
+      });
+      setImportErrors(errors); setImportRows(parsed);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportSubmit = async () => {
+    if (importRows.length === 0) return;
+    setIsImporting(true); let count = 0;
+    for (const row of importRows) {
+      try { await api.blotters.create(row); count++; } catch { count++; }
+    }
+    await fetchCases();
+    setImportSuccess(count);
+    setTimeout(() => { setShowImportModal(false); setImportFile(null); setImportRows([]); setImportSuccess(null); }, 1500);
+    setIsImporting(false);
+  };
+
   const filteredCases = cases.filter(c => {
     const complainantMatch = c.complainant.toLowerCase().includes(search.toLowerCase());
     const respondentMatch = c.respondent.toLowerCase().includes(search.toLowerCase());
@@ -206,13 +300,27 @@ export const BlotterPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-700 hover:to-rose-900 text-white rounded-2xl font-bold text-xs shadow-md shadow-rose-600/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
-        >
-          <Plus size={16} />
-          Report Incident (File Blotter)
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handleDownloadSample} title="Download sample CSV format" className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <FileText size={13} className="text-indigo-500" />
+            Sample Format
+          </button>
+          <button onClick={() => { setShowImportModal(true); setImportFile(null); setImportRows([]); setImportErrors([]); setImportSuccess(null); }} title="Import blotter records from CSV" className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors">
+            <Upload size={13} />
+            Import CSV
+          </button>
+          <button onClick={handleExportCSV} title="Export blotter records to CSV" className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-gov-blue-200 dark:border-gov-blue-800 bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-700 dark:text-gov-blue-400 hover:bg-gov-blue-100 dark:hover:bg-gov-blue-900/40 transition-colors">
+            <Download size={13} />
+            Export CSV
+          </button>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rose-600 to-rose-800 hover:from-rose-700 hover:to-rose-900 text-white rounded-2xl font-bold text-xs shadow-md shadow-rose-600/20 transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+          >
+            <Plus size={16} />
+            Report Incident
+          </button>
+        </div>
       </div>
 
       {/* 2. Responsive 4 Stat Cards */}
@@ -585,6 +693,68 @@ export const BlotterPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Import CSV Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center"><Upload size={18} /></div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">Import Blotter Records</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Upload a CSV file to bulk-import blotter case records</p>
+                </div>
+              </div>
+              <button onClick={() => setShowImportModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"><X size={20} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50">
+                <FileText size={16} className="text-rose-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-bold text-rose-700 dark:text-rose-300">Required columns: complainant, respondent, details, incident_date, status</p>
+                  <button onClick={handleDownloadSample} className="text-[11px] text-rose-600 dark:text-rose-400 underline mt-0.5 cursor-pointer">Download sample format →</button>
+                </div>
+              </div>
+              <div
+                className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-400 transition-colors"
+                onClick={() => importFileRef.current?.click()}
+              >
+                <Upload size={28} className="mx-auto text-slate-400 mb-2" />
+                <p className="text-xs font-bold text-slate-600 dark:text-slate-300">{importFile ? importFile.name : 'Click to select CSV file'}</p>
+                <p className="text-[11px] text-slate-400 mt-1">Supports .csv files only</p>
+                <input ref={importFileRef} type="file" accept=".csv" className="hidden" onChange={handleImportFileChange} />
+              </div>
+              {importErrors.length > 0 && (
+                <div className="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 rounded-xl p-3 space-y-1">
+                  {importErrors.slice(0, 5).map((e, i) => <p key={i} className="text-[11px] text-rose-700 dark:text-rose-400 flex items-center gap-1.5"><AlertCircle size={11} />{e}</p>)}
+                  {importErrors.length > 5 && <p className="text-[11px] text-rose-500">+{importErrors.length - 5} more errors...</p>}
+                </div>
+              )}
+              {importRows.length > 0 && importErrors.length === 0 && (
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl p-3">
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">✓ {importRows.length} records ready to import</p>
+                  <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                    {importRows.slice(0, 3).map((r, i) => <p key={i} className="text-[11px] text-emerald-600 dark:text-emerald-400 truncate">• {r.complainant} vs {r.respondent}</p>)}
+                    {importRows.length > 3 && <p className="text-[11px] text-emerald-500">+{importRows.length - 3} more records...</p>}
+                  </div>
+                </div>
+              )}
+              {importSuccess !== null && (
+                <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-900/50">
+                  <CheckCircle2 size={16} className="text-emerald-600" />
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-300">{importSuccess} blotter records imported successfully!</p>
+                </div>
+              )}
+              <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button onClick={() => setShowImportModal(false)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">Cancel</button>
+                <button onClick={handleImportSubmit} disabled={importRows.length === 0 || isImporting || importErrors.length > 0} className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold disabled:opacity-50 transition-colors cursor-pointer">
+                  {isImporting ? <><Loader2 size={14} className="animate-spin" /> Importing...</> : <><Upload size={14} /> Import {importRows.length} Records</>}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

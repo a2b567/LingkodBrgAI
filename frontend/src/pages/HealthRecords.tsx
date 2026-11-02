@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
 import { 
   Heart, Search, FileText, Pill, Activity, User, Stethoscope, Droplet,
   Clock, CheckCircle2, SearchX, Package, AlertTriangle, PackagePlus, Trash2,
-  Eye, Volume2, Filter, UserPlus
+  Eye, Volume2, Filter, UserPlus,
+  FileSpreadsheet, Upload, Download, XCircle, AlertCircle, Loader2
 } from 'lucide-react';
 
 interface HealthRecord {
@@ -146,6 +147,24 @@ export const HealthRecords: React.FC = () => {
   const [stockForm, setStockForm] = useState({ name: '', category: 'Analgesic', quantity: 50, unit: 'tablets', minStock: 10 });
   const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
 
+  // Pharmacy Stock Import States
+  const [showImportStockModal, setShowImportStockModal] = useState(false);
+  const [importStockFile, setImportStockFile] = useState<File | null>(null);
+  const [importStockRows, setImportStockRows] = useState<any[]>([]);
+  const [importStockErrors, setImportStockErrors] = useState<string[]>([]);
+  const [isImportingStock, setIsImportingStock] = useState(false);
+  const [importStockSuccess, setImportStockSuccess] = useState<number | null>(null);
+  const importStockFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Patient Records Import States
+  const [showImportRecordModal, setShowImportRecordModal] = useState(false);
+  const [importRecordFile, setImportRecordFile] = useState<File | null>(null);
+  const [importRecordRows, setImportRecordRows] = useState<any[]>([]);
+  const [importRecordErrors, setImportRecordErrors] = useState<string[]>([]);
+  const [isImportingRecord, setIsImportingRecord] = useState(false);
+  const [importRecordSuccess, setImportRecordSuccess] = useState<number | null>(null);
+  const importRecordFileInputRef = useRef<HTMLInputElement>(null);
+
   const handleAddNewMedicine = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stockForm.name.trim()) return;
@@ -257,6 +276,358 @@ export const HealthRecords: React.FC = () => {
 
   const inputCls = 'w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:outline-none focus:border-rose-500 text-slate-900 dark:text-white transition-all';
 
+  // CSV Helpers
+  const parseCSVData = (text: string) => {
+    const lines = text.split(/\r\n|\n/).filter(line => line.trim() !== '');
+    if (lines.length <= 1) return { headers: [], rows: [] };
+
+    const parseLine = (line: string): string[] => {
+      const values: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      values.push(current.trim());
+      return values.map(v => v.replace(/^"|"$/g, '').trim());
+    };
+
+    const rawHeaders = parseLine(lines[0]);
+    const headers = rawHeaders.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    const rows = lines.slice(1).map(l => parseLine(l)).filter(r => r.some(v => v !== ''));
+
+    return { headers, rows };
+  };
+
+  // --- Pharmacy Stock Import / Export / Sample ---
+  const handleDownloadStockSample = () => {
+    const headers = ['name', 'category', 'quantity', 'unit', 'min_stock'];
+    const sampleRows = [
+      ['Paracetamol 500mg', 'Analgesic', '200', 'tablets', '30'],
+      ['Amoxicillin 500mg', 'Antibiotic', '150', 'capsules', '20'],
+      ['Cetirizine 10mg', 'Antihistamine', '120', 'tablets', '25'],
+      ['Mefenamic Acid 500mg', 'Analgesic', '100', 'capsules', '20'],
+      ['Oral Rehydration Salts', 'Other', '80', 'sachets', '15'],
+      ['Multivitamins + Iron', 'Supplement', '250', 'capsules', '50'],
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...sampleRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'sample_pharmacy_stock.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportStockCSV = () => {
+    if (medicineStock.length === 0) {
+      alert('No pharmacy medicine stock records to export.');
+      return;
+    }
+    const headers = ['Medicine Name', 'Category', 'Current Stock', 'Unit', 'Min Threshold', 'Status'];
+    const rows = medicineStock.map(m => [
+      `"${m.name.replace(/"/g, '""')}"`,
+      `"${m.category}"`,
+      `"${m.stock}"`,
+      `"${m.unit}"`,
+      `"${m.minStock}"`,
+      `"${m.stock <= m.minStock ? 'Low Stock' : 'Adequate'}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `pharmacy_stock_inventory_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportStockFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportStockFile(file);
+    setImportStockErrors([]);
+    setImportStockSuccess(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) {
+        setImportStockErrors(['Selected file is empty.']);
+        setImportStockRows([]);
+        return;
+      }
+
+      const { headers, rows } = parseCSVData(text);
+      if (rows.length === 0) {
+        setImportStockErrors(['No valid medicine data rows found in the CSV.']);
+        setImportStockRows([]);
+        return;
+      }
+
+      const parsed: any[] = [];
+      const errors: string[] = [];
+
+      rows.forEach((vals, index) => {
+        const rowNum = index + 2;
+        const getValue = (keys: string[]) => {
+          for (const k of keys) {
+            const idx = headers.findIndex(h => h.includes(k));
+            if (idx !== -1 && vals[idx] !== undefined && vals[idx] !== '') return vals[idx];
+          }
+          return '';
+        };
+
+        const name = getValue(['name', 'medicine', 'med', 'item']) || vals[0] || '';
+        const category = getValue(['category', 'type']) || 'Analgesic';
+        const rawQty = getValue(['quantity', 'qty', 'stock', 'amount', 'count']) || (vals.length > 2 ? vals[2] : '50');
+        const quantity = parseInt(rawQty) || 0;
+        const unit = getValue(['unit', 'packaging']) || 'tablets';
+        const rawMin = getValue(['min_stock', 'minstock', 'threshold', 'minimum']) || (vals.length > 4 ? vals[4] : '10');
+        const minStock = parseInt(rawMin) || 10;
+
+        if (!name) {
+          errors.push(`Row ${rowNum}: Missing medicine name.`);
+          return;
+        }
+
+        parsed.push({
+          name,
+          category,
+          quantity,
+          unit,
+          minStock,
+        });
+      });
+
+      setImportStockErrors(errors);
+      setImportStockRows(parsed);
+    };
+
+    reader.readAsText(file);
+  };
+
+  const handleExecuteImportStock = async () => {
+    if (importStockRows.length === 0) return;
+    setIsImportingStock(true);
+    let count = 0;
+    try {
+      for (const row of importStockRows) {
+        try {
+          const res = await api.health.addStock(row);
+          setMedicineStock(prev => [...prev, res]);
+          count++;
+        } catch {
+          const fallbackMed: MedicineStock = {
+            id: `MS-${Date.now()}-${Math.random().toString().slice(2, 6)}`,
+            name: row.name,
+            category: row.category,
+            stock: row.quantity,
+            unit: row.unit,
+            minStock: row.minStock,
+          };
+          setMedicineStock(prev => [...prev, fallbackMed]);
+          count++;
+        }
+      }
+      setImportStockSuccess(count);
+      setTimeout(() => {
+        setShowImportStockModal(false);
+        setImportStockFile(null);
+        setImportStockRows([]);
+        setImportStockSuccess(null);
+      }, 1500);
+    } catch (err) {
+      console.error('Stock import failed:', err);
+    } finally {
+      setIsImportingStock(false);
+    }
+  };
+
+  // --- Patient Medical Records Import / Export / Sample ---
+  const handleDownloadRecordSample = () => {
+    const headers = ['resident_name', 'age', 'blood_type', 'allergies', 'conditions', 'last_checkup', 'status'];
+    const sampleRows = [
+      ['Juan Dela Cruz', '42', 'O+', 'Penicillin', 'Hypertension', '2026-10-15', 'Under Observation'],
+      ['Maria Garcia', '34', 'A+', 'None', 'None', '2026-10-28', 'Healthy'],
+      ['Pedro Mendoza', '68', 'B+', 'Aspirin', 'Type 2 Diabetes', '2026-10-20', 'Under Observation'],
+      ['Ana Bautista', '24', 'AB+', 'Shellfish', 'Asthma', '2026-09-30', 'Healthy'],
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...sampleRows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'sample_patient_records.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportRecordCSV = () => {
+    if (records.length === 0) {
+      alert('No patient medical records to export.');
+      return;
+    }
+    const headers = ['ID', 'Resident Name', 'Age', 'Blood Type', 'Allergies', 'Conditions', 'Last Checkup', 'Status'];
+    const rows = records.map(r => [
+      `"${r.id}"`,
+      `"${r.resident_name.replace(/"/g, '""')}"`,
+      `"${r.age}"`,
+      `"${r.blood_type}"`,
+      `"${r.allergies.replace(/"/g, '""')}"`,
+      `"${r.conditions.replace(/"/g, '""')}"`,
+      `"${r.last_checkup}"`,
+      `"${r.status}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `patient_medical_records_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportRecordFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportRecordFile(file);
+    setImportRecordErrors([]);
+    setImportRecordSuccess(null);
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) {
+        setImportRecordErrors(['Selected file is empty.']);
+        setImportRecordRows([]);
+        return;
+      }
+
+      const { headers, rows } = parseCSVData(text);
+      if (rows.length === 0) {
+        setImportRecordErrors(['No valid medical record rows found in the CSV.']);
+        setImportRecordRows([]);
+        return;
+      }
+
+      const parsed: any[] = [];
+      const errors: string[] = [];
+
+      rows.forEach((vals, index) => {
+        const rowNum = index + 2;
+        const getValue = (keys: string[]) => {
+          for (const k of keys) {
+            const idx = headers.findIndex(h => h.includes(k));
+            if (idx !== -1 && vals[idx] !== undefined && vals[idx] !== '') return vals[idx];
+          }
+          return '';
+        };
+
+        const resident_name = getValue(['resident_name', 'name', 'patient', 'resident']) || vals[0] || '';
+        const rawAge = getValue(['age']) || (vals.length > 1 ? vals[1] : '30');
+        const age = parseInt(rawAge) || 30;
+        const blood_type = getValue(['blood_type', 'blood']) || 'O+';
+        const allergies = getValue(['allergies', 'allergy']) || 'None';
+        const conditions = getValue(['conditions', 'condition', 'diagnosis']) || 'None';
+        const last_checkup = getValue(['last_checkup', 'checkup', 'date']) || new Date().toISOString().split('T')[0];
+        const rawStatus = getValue(['status']) || 'Healthy';
+        const status = rawStatus.toLowerCase().includes('obs') ? 'Under Observation' : (rawStatus.toLowerCase().includes('crit') ? 'Critical' : 'Healthy');
+
+        if (!resident_name) {
+          errors.push(`Row ${rowNum}: Missing resident/patient name.`);
+          return;
+        }
+
+        parsed.push({
+          resident_name,
+          age,
+          blood_type,
+          allergies,
+          conditions,
+          last_checkup,
+          status,
+        });
+      });
+
+      setImportRecordErrors(errors);
+      setImportRecordRows(parsed);
+    };
+
+    reader.readAsText(file);
+  };
+
+  const handleExecuteImportRecord = async () => {
+    if (importRecordRows.length === 0) return;
+    setIsImportingRecord(true);
+    let count = 0;
+    try {
+      for (const row of importRecordRows) {
+        try {
+          const res = await api.health.createRecord(row);
+          setRecords(prev => [res, ...prev]);
+          count++;
+        } catch {
+          const fallbackRec: HealthRecord = {
+            id: `HR-${Date.now()}-${Math.random().toString().slice(2, 6)}`,
+            ...row,
+          };
+          setRecords(prev => [fallbackRec, ...prev]);
+          count++;
+        }
+      }
+      setImportRecordSuccess(count);
+      setTimeout(() => {
+        setShowImportRecordModal(false);
+        setImportRecordFile(null);
+        setImportRecordRows([]);
+        setImportRecordSuccess(null);
+      }, 1500);
+    } catch (err) {
+      console.error('Record import failed:', err);
+    } finally {
+      setIsImportingRecord(false);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Header Banner */}
@@ -338,23 +709,101 @@ export const HealthRecords: React.FC = () => {
 
           {/* Action Buttons */}
           {view === 'records' && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-semibold text-xs transition-colors shadow-subtle cursor-pointer"
-            >
-              <UserPlus size={15} />
-              <span>New Patient Record</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDownloadRecordSample}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="Download sample CSV format for patient medical records"
+              >
+                <FileText size={14} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Sample Format</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportRecordModal(true);
+                  setImportRecordFile(null);
+                  setImportRecordRows([]);
+                  setImportRecordErrors([]);
+                  setImportRecordSuccess(null);
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="Import patient records from CSV"
+              >
+                <Upload size={14} className="text-blue-600 dark:text-blue-400" />
+                <span>Import CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportRecordCSV}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="Export patient records to CSV"
+              >
+                <FileSpreadsheet size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs transition-colors shadow-subtle cursor-pointer"
+              >
+                <UserPlus size={15} />
+                <span>New Patient Record</span>
+              </button>
+            </div>
           )}
 
           {view === 'stock' && (
-            <button
-              onClick={() => setIsAddStockModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-semibold text-xs transition-colors shadow-subtle cursor-pointer"
-            >
-              <PackagePlus size={15} />
-              <span>Add Medicine</span>
-            </button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleDownloadStockSample}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="Download sample CSV format for pharmacy inventory"
+              >
+                <FileText size={14} className="text-indigo-600 dark:text-indigo-400" />
+                <span>Sample Format</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportStockModal(true);
+                  setImportStockFile(null);
+                  setImportStockRows([]);
+                  setImportStockErrors([]);
+                  setImportStockSuccess(null);
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="Import medicine stock from CSV"
+              >
+                <Upload size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Import CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportStockCSV}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="Export pharmacy stock to CSV"
+              >
+                <FileSpreadsheet size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Export CSV</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAddStockModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors shadow-subtle cursor-pointer"
+              >
+                <PackagePlus size={15} />
+                <span>Add Medicine</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -1037,6 +1486,352 @@ export const HealthRecords: React.FC = () => {
           </div>
         </div>
       )}
+    
+      {/* ============ MODAL: Import Pharmacy Stock CSV ============ */}
+      {showImportStockModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <PackagePlus size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">Import Pharmacy Stock from CSV</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Bulk upload medicines & inventory stock using CSV</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowImportStockModal(false);
+                  setImportStockFile(null);
+                  setImportStockRows([]);
+                  setImportStockErrors([]);
+                }} 
+                title="Close" 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50">
+                <FileText size={18} className="text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">Sample Pharmacy CSV Template</p>
+                  <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5">
+                    Download our official pharmacy stock template with proper columns (name, category, quantity, unit, min_stock).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadStockSample}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all flex-shrink-0 cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>Download Sample</span>
+                </button>
+              </div>
+
+              <div
+                onClick={() => importStockFileInputRef.current?.click()}
+                className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-400 rounded-2xl p-7 text-center cursor-pointer transition-colors group"
+              >
+                <input
+                  ref={importStockFileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportStockFileChange}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/30 flex items-center justify-center transition-colors">
+                    <Upload size={22} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  </div>
+                  {importStockFile ? (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{importStockFile.name}</p>
+                      <p className="text-[11px] text-slate-500">{(importStockFile.size / 1024).toFixed(1)} KB — Click to change file</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Click to select Medicine CSV file</p>
+                      <p className="text-[11px] text-slate-500">Supports standard .csv inventory exports</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {importStockErrors.length > 0 && (
+                <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 p-4 space-y-1.5 max-h-36 overflow-y-auto">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <AlertCircle size={14} className="text-rose-500 flex-shrink-0" />
+                    <p className="text-xs font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide">Validation Errors ({importStockErrors.length})</p>
+                  </div>
+                  {importStockErrors.map((err, i) => (
+                    <p key={i} className="text-[11px] text-rose-600 dark:text-rose-400 font-medium pl-5">{err}</p>
+                  ))}
+                </div>
+              )}
+
+              {importStockSuccess !== null && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                  <CheckCircle2 size={16} className="text-emerald-500" />
+                  <span>Successfully imported {importStockSuccess} medicine stock item{importStockSuccess !== 1 ? 's' : ''}!</span>
+                </div>
+              )}
+
+              {importStockRows.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+                      Preview — First {Math.min(importStockRows.length, 5)} of {importStockRows.length} Medicine{importStockRows.length > 1 ? 's' : ''}
+                    </p>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md">
+                      {importStockRows.length} Valid Row{importStockRows.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 sticky top-0">
+                          {['Medicine Name', 'Category', 'Quantity', 'Unit', 'Min Threshold'].map(col => (
+                            <th key={col} className="px-3 py-2 text-left font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">{col}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importStockRows.slice(0, 5).map((row, i) => (
+                          <tr key={i} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="px-3 py-2 font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">{row.name}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.category}</td>
+                            <td className="px-3 py-2 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{row.quantity}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.unit}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.minStock}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportStockModal(false);
+                  setImportStockFile(null);
+                  setImportStockRows([]);
+                  setImportStockErrors([]);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteImportStock}
+                disabled={isImportingStock || importStockRows.length === 0}
+                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {isImportingStock ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Importing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={13} />
+                    <span>Import {importStockRows.length > 0 ? `${importStockRows.length} Items` : 'Stock'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============ MODAL: Import Patient Medical Records CSV ============ */}
+      {showImportRecordModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gov-blue-500/10 text-gov-blue-500 flex items-center justify-center">
+                  <UserPlus size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">Import Patient Records from CSV</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Bulk upload medical and diagnostic records using CSV</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setShowImportRecordModal(false);
+                  setImportRecordFile(null);
+                  setImportRecordRows([]);
+                  setImportRecordErrors([]);
+                }} 
+                title="Close" 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div className="flex items-start gap-3 p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50">
+                <FileText size={18} className="text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">Sample Patient Record Template</p>
+                  <p className="text-[11px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5">
+                    Download our official patient record format (resident_name, age, blood_type, allergies, conditions, last_checkup, status).
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadRecordSample}
+                  className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/20 transition-all flex-shrink-0 cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>Download Sample</span>
+                </button>
+              </div>
+
+              <div
+                onClick={() => importRecordFileInputRef.current?.click()}
+                className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-gov-blue-500 dark:hover:border-gov-blue-400 rounded-2xl p-7 text-center cursor-pointer transition-colors group"
+              >
+                <input
+                  ref={importRecordFileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportRecordFileChange}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:bg-gov-blue-50 dark:group-hover:bg-gov-blue-950/30 flex items-center justify-center transition-colors">
+                    <Upload size={22} className="text-slate-400 group-hover:text-gov-blue-500 transition-colors" />
+                  </div>
+                  {importRecordFile ? (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-gov-blue-600 dark:text-gov-blue-400">{importRecordFile.name}</p>
+                      <p className="text-[11px] text-slate-500">{(importRecordFile.size / 1024).toFixed(1)} KB — Click to change file</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Click to select Patient CSV file</p>
+                      <p className="text-[11px] text-slate-500">Supports standard .csv health record exports</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {importRecordErrors.length > 0 && (
+                <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 p-4 space-y-1.5 max-h-36 overflow-y-auto">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <AlertCircle size={14} className="text-rose-500 flex-shrink-0" />
+                    <p className="text-xs font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide">Validation Errors ({importRecordErrors.length})</p>
+                  </div>
+                  {importRecordErrors.map((err, i) => (
+                    <p key={i} className="text-[11px] text-rose-600 dark:text-rose-400 font-medium pl-5">{err}</p>
+                  ))}
+                </div>
+              )}
+
+              {importRecordSuccess !== null && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-2 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+                  <CheckCircle2 size={16} className="text-emerald-500" />
+                  <span>Successfully imported {importRecordSuccess} patient record{importRecordSuccess !== 1 ? 's' : ''}!</span>
+                </div>
+              )}
+
+              {importRecordRows.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest">
+                      Preview — First {Math.min(importRecordRows.length, 5)} of {importRecordRows.length} Patient{importRecordRows.length > 1 ? 's' : ''}
+                    </p>
+                    <span className="text-[10px] font-bold text-gov-blue-600 dark:text-gov-blue-400 bg-gov-blue-50 dark:bg-gov-blue-950/40 px-2 py-0.5 rounded-md">
+                      {importRecordRows.length} Valid Row{importRecordRows.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700 max-h-48 overflow-y-auto">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 sticky top-0">
+                          {['Patient Name', 'Age', 'Blood', 'Allergies', 'Conditions', 'Status'].map(col => (
+                            <th key={col} className="px-3 py-2 text-left font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">{col}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importRecordRows.slice(0, 5).map((row, i) => (
+                          <tr key={i} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="px-3 py-2 font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">{row.resident_name}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.age}</td>
+                            <td className="px-3 py-2 font-bold text-rose-600 dark:text-rose-400 whitespace-nowrap">{row.blood_type}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">{row.allergies}</td>
+                            <td className="px-3 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap max-w-[140px] truncate">{row.conditions}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                row.status === 'Healthy'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400'
+                                  : 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400'
+                              }`}>
+                                {row.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowImportRecordModal(false);
+                  setImportRecordFile(null);
+                  setImportRecordRows([]);
+                  setImportRecordErrors([]);
+                }}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteImportRecord}
+                disabled={isImportingRecord || importRecordRows.length === 0}
+                className="flex items-center gap-2 px-5 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                {isImportingRecord ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Importing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload size={13} />
+                    <span>Import {importRecordRows.length > 0 ? `${importRecordRows.length} Records` : 'Records'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

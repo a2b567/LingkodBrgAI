@@ -11,6 +11,7 @@ import (
 	"backend/internal/config"
 	"backend/internal/middleware"
 	"backend/internal/models"
+	"backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -217,7 +218,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	// Generate verification details
-	otp := "123456" // Hardcoded mock OTP for testing
+	otp := generateRandomOTP()
 	expiry := time.Now().Add(10 * time.Minute)
 	user.OTP = otp
 	user.OTPExpiry = &expiry
@@ -238,8 +239,17 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		IPAddress: c.ClientIP(),
 	})
 
+	// Send real OTP email (non-blocking goroutine so registration response is fast)
+	if services.GlobalEmailService != nil {
+		go func(email, username, otpCode string) {
+			if err := services.GlobalEmailService.SendOTPEmail(email, username, otpCode, "ACCOUNT_VERIFICATION"); err != nil {
+				fmt.Printf("[EMAIL ERROR] Failed to send verification OTP to %s: %v\n", email, err)
+			}
+		}(user.Email, user.Username, otp)
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Registration successful. Please verify using OTP '123456'.",
+		"message": "Registration successful. Please check your email for the 6-digit verification code.",
 		"user": gin.H{
 			"username": user.Username,
 			"email":    user.Email,
@@ -334,14 +344,14 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Log the mock email to terminal
-	fmt.Printf("\n==================================================\n")
-	fmt.Printf("[EMAIL MOCK] To: %s\n", user.Email)
-	fmt.Printf("[EMAIL MOCK] Subject: Password Reset Request (Barangay Lawrence)\n")
-	fmt.Printf("[EMAIL MOCK] Body: Hello %s,\n", user.Username)
-	fmt.Printf("[EMAIL MOCK]       You requested a password reset. Your OTP is: %s\n", otp)
-	fmt.Printf("[EMAIL MOCK]       This code is valid for 15 minutes.\n")
-	fmt.Printf("==================================================\n\n")
+	// Send real password-reset OTP email (non-blocking)
+	if services.GlobalEmailService != nil {
+		go func(email, username, otpCode string) {
+			if err := services.GlobalEmailService.SendOTPEmail(email, username, otpCode, "PASSWORD_RESET"); err != nil {
+				fmt.Printf("[EMAIL ERROR] Failed to send password reset OTP to %s: %v\n", email, err)
+			}
+		}(user.Email, user.Username, otp)
+	}
 
 	// Audit Log
 	db.Create(&models.AuditLog{
@@ -352,8 +362,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "A verification OTP has been sent to your email.",
-		"otp":     otp, // Sandbox convenient parameter
+		"message": "A verification OTP has been sent to your email address. Please check your inbox.",
 	})
 }
 

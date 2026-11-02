@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, Plus, Search, Edit2, Trash2, 
   MapPin, Loader2, Sparkles, UserPlus, XCircle, Users, ShieldAlert,
   User, DollarSign, Phone, Trash, CheckCircle2, ChevronRight, RefreshCw,
-  Eye, EyeOff, Info
+  Eye, EyeOff, Info, Download, Upload, FileText, AlertCircle, UserCheck
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Household, Resident, HouseholdMemberInfo } from '../types';
@@ -26,6 +26,11 @@ export const Households: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Resident Selector Modal states for Household creation
+  const [showResidentPickerModal, setShowResidentPickerModal] = useState(false);
+  const [residentPickerSearch, setResidentPickerSearch] = useState('');
+  const [selectedRelationForMember, setSelectedRelationForMember] = useState<string>('Asawa (Spouse)');
   const [activeTab, setActiveTab] = useState<'head' | 'family' | 'housing' | 'economy' | 'contact'>('head');
 
   // View Details modal state
@@ -35,6 +40,7 @@ export const Households: React.FC = () => {
     household_number: '',
     poverty_level: 'Non-Poor',
     address: '',
+    head_id: '',
 
     // 1. Household Head Details
     head_first_name: '',
@@ -131,6 +137,7 @@ export const Households: React.FC = () => {
       household_number: h.household_number || `HH-2026-${Math.floor(100 + Math.random() * 900)}`,
       poverty_level: h.poverty_level || 'Non-Poor',
       address: h.address || '',
+      head_id: h.head_id || h.head?.id || '',
       head_first_name: h.head_first_name || (h.head?.first_name || ''),
       head_middle_name: h.head_middle_name || (h.head?.middle_name || ''),
       head_last_name: h.head_last_name || (h.head?.last_name || ''),
@@ -203,6 +210,53 @@ export const Households: React.FC = () => {
     setForm({ ...form, family_members_list: updated });
   };
 
+  const handleAddResidentToFamily = (r: Resident) => {
+    const exists = form.family_members_list.some(m => m.id === r.id || m.full_name.toLowerCase().trim() === `${r.first_name} ${r.last_name}`.toLowerCase().trim());
+    if (exists) {
+      alert(`${r.first_name} ${r.last_name} ay kasalukuyan nang miyembro ng pamilyang ito.`);
+      return;
+    }
+
+    const newMember: HouseholdMemberInfo = {
+      id: r.id,
+      full_name: `${r.first_name} ${r.middle_name ? r.middle_name + ' ' : ''}${r.last_name}${r.suffix ? ' ' + r.suffix : ''}`.trim(),
+      relation: selectedRelationForMember,
+      birthdate: r.birthdate ? r.birthdate.split('T')[0] : '',
+      gender: r.gender || 'Female',
+      civil_status: r.civil_status || 'Single',
+      education_level: 'High School',
+      occupation: r.occupation || 'None',
+      monthly_income: '0',
+    };
+
+    setForm({
+      ...form,
+      family_members_list: [...form.family_members_list, newMember],
+    });
+
+    setShowResidentPickerModal(false);
+  };
+
+  const handleSelectHeadFromResident = (residentId: string) => {
+    if (!residentId) return;
+    const r = residents.find(x => x.id === residentId);
+    if (!r) return;
+    setForm({
+      ...form,
+      head_id: r.id,
+      head_first_name: r.first_name,
+      head_middle_name: r.middle_name || '',
+      head_last_name: r.last_name,
+      head_birthdate: r.birthdate ? r.birthdate.split('T')[0] : '',
+      head_gender: r.gender || 'Male',
+      head_civil_status: r.civil_status || 'Single',
+      head_occupation: r.occupation || '',
+      address: r.address || form.address,
+      contact_number: r.contact_number || form.contact_number,
+      email_address: r.email || form.email_address,
+    });
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -244,6 +298,206 @@ export const Households: React.FC = () => {
     }
   };
 
+  // Import/Export state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [importErrors, setImportErrors] = useState<string[]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importSuccess, setImportSuccess] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // CSV Export
+  const handleExportCSV = () => {
+    const headers = [
+      'household_number','address','purok','poverty_level',
+      'head_first_name','head_middle_name','head_last_name',
+      'head_birthdate','head_birthplace','head_gender','head_civil_status',
+      'head_religion','head_education','head_occupation','head_monthly_income',
+      'housing_tenure','house_materials','number_of_rooms',
+      'water_source','power_source','toilet_type','waste_disposal',
+      'total_family_income','other_income_sources',
+      'is_4ps_member','special_categories','philhealth_coverage',
+      'contact_number','email_address',
+    ];
+    const rows = households.map(h => [
+      h.household_number || '',
+      h.address || '',
+      h.purok || '',
+      h.poverty_level || '',
+      h.head_first_name || h.head?.first_name || '',
+      h.head_middle_name || h.head?.middle_name || '',
+      h.head_last_name || h.head?.last_name || '',
+      h.head_birthdate || '',
+      h.head_birthplace || '',
+      h.head_gender || h.head?.gender || '',
+      h.head_civil_status || h.head?.civil_status || '',
+      h.head_religion || '',
+      h.head_education || '',
+      h.head_occupation || h.head?.occupation || '',
+      h.head_monthly_income || '',
+      h.housing_tenure || '',
+      h.house_materials || '',
+      h.number_of_rooms || '',
+      h.water_source || '',
+      h.power_source || '',
+      h.toilet_type || '',
+      h.waste_disposal || '',
+      h.total_family_income || '',
+      h.other_income_sources || '',
+      h.is_4ps_member ? 'true' : 'false',
+      h.special_categories || '',
+      h.philhealth_coverage || '',
+      h.contact_number || '',
+      h.email_address || '',
+    ]);
+    const csvContent = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `households_export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Download Sample CSV Format
+  const handleDownloadSample = () => {
+    const headers = [
+      'household_number','address','purok','poverty_level',
+      'head_first_name','head_middle_name','head_last_name',
+      'head_birthdate','head_birthplace','head_gender','head_civil_status',
+      'head_religion','head_education','head_occupation','head_monthly_income',
+      'housing_tenure','house_materials','number_of_rooms',
+      'water_source','power_source','toilet_type','waste_disposal',
+      'total_family_income','other_income_sources',
+      'is_4ps_member','special_categories','philhealth_coverage',
+      'contact_number','email_address',
+    ];
+    const sample = [
+      'HH-2026-001','Block 1 Lot 2 San Isidro','Purok 1','Non-Poor',
+      'Juan','Reyes','Dela Cruz',
+      '1980-05-15','San Isidro','Male','Married',
+      'Roman Catholic','College','Carpenter','15000',
+      'Owned','Concrete','4',
+      'Maynilad / Local Waterworks','Meralco / Local Electric Coop','Flush Toilet','Garbage Collection',
+      '20000','None',
+      'false','None','Yes',
+      '09171234567','juan.delacruz@email.com',
+    ];
+    const csvContent = [headers, sample]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'household_sample_format.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Parse CSV for Import
+  const parseCSV = (text: string): { headers: string[]; rows: Record<string, string>[] } => {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+    const rows = lines.slice(1).map(line => {
+      const vals: string[] = [];
+      let inQuote = false, cur = '';
+      for (const ch of line) {
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { vals.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+      vals.push(cur);
+      return Object.fromEntries(headers.map((h, i) => [h, (vals[i] || '').trim()]));
+    });
+    return { headers, rows };
+  };
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportFile(file);
+    setImportErrors([]);
+    setImportSuccess(0);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      try {
+        const { rows } = parseCSV(text);
+        const errors: string[] = [];
+        rows.forEach((row, i) => {
+          if (!row.household_number) errors.push(`Row ${i + 2}: Missing household_number`);
+          if (!row.head_first_name) errors.push(`Row ${i + 2}: Missing head_first_name`);
+          if (!row.head_last_name) errors.push(`Row ${i + 2}: Missing head_last_name`);
+          if (!row.address) errors.push(`Row ${i + 2}: Missing address`);
+        });
+        setImportErrors(errors);
+        setImportPreview(rows.slice(0, 5));
+      } catch {
+        setImportErrors(['Failed to parse CSV. Make sure it matches the sample format.']);
+        setImportPreview([]);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportSubmit = async () => {
+    if (!importFile || importErrors.length > 0) return;
+    setIsImporting(true);
+    setImportSuccess(0);
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const text = ev.target?.result as string;
+      const { rows } = parseCSV(text);
+      let successCount = 0;
+      for (const row of rows) {
+        try {
+          await api.households.create({
+            household_number: row.household_number || '',
+            address: row.address || '',
+            purok: row.purok || '',
+            poverty_level: row.poverty_level || 'Non-Poor',
+            head_first_name: row.head_first_name || '',
+            head_middle_name: row.head_middle_name || '',
+            head_last_name: row.head_last_name || '',
+            head_birthdate: row.head_birthdate || '',
+            head_birthplace: row.head_birthplace || '',
+            head_gender: row.head_gender || 'Male',
+            head_civil_status: row.head_civil_status || 'Single',
+            head_religion: row.head_religion || 'Roman Catholic',
+            head_education: row.head_education || 'College',
+            head_occupation: row.head_occupation || '',
+            head_monthly_income: row.head_monthly_income || '',
+            family_members_list: [],
+            housing_tenure: row.housing_tenure || 'Owned',
+            house_materials: row.house_materials || 'Concrete',
+            number_of_rooms: row.number_of_rooms || '2',
+            water_source: row.water_source || 'Maynilad / Local Waterworks',
+            power_source: row.power_source || 'Meralco / Local Electric Coop',
+            toilet_type: row.toilet_type || 'Flush Toilet',
+            waste_disposal: row.waste_disposal || 'Garbage Collection',
+            total_family_income: row.total_family_income || '',
+            other_income_sources: row.other_income_sources || 'None',
+            is_4ps_member: row.is_4ps_member === 'true',
+            special_categories: row.special_categories || 'None',
+            philhealth_coverage: row.philhealth_coverage || 'Yes',
+            contact_number: row.contact_number || '',
+            email_address: row.email_address || '',
+          } as any);
+          successCount++;
+        } catch {}
+      }
+      setImportSuccess(successCount);
+      setIsImporting(false);
+      if (successCount > 0) fetchHouseholds();
+    };
+    reader.readAsText(importFile);
+  };
+
   // Compute overview stats from loaded data
   const totalHouseholds = households.length;
   const indigentCount = households.filter(h => h.poverty_level === 'Indigent' || h.poverty_level === 'Poor').length;
@@ -259,9 +513,35 @@ export const Households: React.FC = () => {
         subtitle="Complete RBI profiling: Household Heads, Family Members, Housing Conditions, 4Ps & Socio-Economic Index."
         badge={<Badge variant="neutral">{totalHouseholds} Registered</Badge>}
         actions={
-          <Button onClick={handleOpenAdd} leftIcon={<Plus size={15} />}>
-            Create Household
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleDownloadSample}
+              title="Download sample CSV format"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <FileText size={13} />
+              Sample Format
+            </button>
+            <button
+              onClick={() => { setShowImportModal(true); setImportFile(null); setImportPreview([]); setImportErrors([]); setImportSuccess(0); }}
+              title="Import households from CSV"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+            >
+              <Upload size={13} />
+              Import CSV
+            </button>
+            <button
+              onClick={handleExportCSV}
+              title="Export all households to CSV"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-gov-blue-200 dark:border-gov-blue-800 bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-700 dark:text-gov-blue-400 hover:bg-gov-blue-100 dark:hover:bg-gov-blue-900/40 transition-colors"
+            >
+              <Download size={13} />
+              Export CSV
+            </button>
+            <Button onClick={handleOpenAdd} leftIcon={<Plus size={15} />}>
+              Create Household
+            </Button>
+          </div>
         }
       />
 
@@ -561,6 +841,30 @@ export const Households: React.FC = () => {
               {/* TAB 1: Impormasyon ng Household Head */}
               {activeTab === 'head' && (
                 <div className="space-y-4">
+                  {/* Quick Select from Registered Residents */}
+                  <div className="p-3.5 bg-gov-blue-50/70 dark:bg-gov-blue-950/40 border border-gov-blue-200 dark:border-gov-blue-800 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 flex items-center justify-center flex-shrink-0">
+                        <UserCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">Pumili mula sa Rehistradong Residente</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">Piliin ang residente para awtomatikong mapunan ang impormasyon ng Household Head</p>
+                      </div>
+                    </div>
+                    <select
+                      onChange={(e) => handleSelectHeadFromResident(e.target.value)}
+                      defaultValue=""
+                      className="bg-white dark:bg-slate-900 border border-gov-blue-300 dark:border-gov-blue-700 text-slate-800 dark:text-white text-xs font-bold rounded-xl px-3 py-2 focus:outline-none cursor-pointer max-w-xs truncate shadow-sm"
+                    >
+                      <option value="">-- Piliin ang Head mula sa Residents --</option>
+                      {residents.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.last_name}, {r.first_name} {r.middle_name || ''} ({r.gender}, {r.age ? `${r.age}yo` : ''})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="border-b border-slate-100 dark:border-slate-800 pb-2">
                     <h4 className="text-xs font-black uppercase tracking-wider text-gov-blue-600 dark:text-gov-blue-400 flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-gov-blue-500"></span>
@@ -709,7 +1013,7 @@ export const Households: React.FC = () => {
               {/* TAB 2: Komposisyon ng Pamilya */}
               {activeTab === 'family' && (
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2 flex-wrap gap-2">
                     <div>
                       <h4 className="text-xs font-black uppercase tracking-wider text-gov-blue-600 dark:text-gov-blue-400 flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-gov-blue-500"></span>
@@ -719,21 +1023,61 @@ export const Households: React.FC = () => {
                         Ilista ang lahat ng miyembro ng pamilya o kasambahay na nakatira sa parehong tirahan.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleAddFamilyMember}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
-                    >
-                      <Plus size={14} />
-                      Dagdag Miyembro
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowResidentPickerModal(true);
+                          setResidentPickerSearch('');
+                          setSelectedRelationForMember('Asawa (Spouse)');
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                        title="Pumili mula sa mga rehistradong residente para idagdag bilang miyembro"
+                      >
+                        <UserCheck size={14} />
+                        <span>Pumili sa Residents</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleAddFamilyMember}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer"
+                      >
+                        <Plus size={14} />
+                        <span>Dagdag Miyembro</span>
+                      </button>
+                    </div>
                   </div>
 
                   {form.family_members_list.length === 0 ? (
-                    <div className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center">
-                      <Users size={36} className="mx-auto mb-2 text-slate-400" />
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">Walang karagdagang miyembro ng pamilya na nairehistro.</p>
-                      <p className="text-[11px] text-slate-400 mt-1">I-click ang "+ Dagdag Miyembro" sa itaas para magdagdag ng asawa, anak, o kamag-anak.</p>
+                    <div className="p-8 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-center space-y-3">
+                      <Users size={36} className="mx-auto text-slate-400" />
+                      <div>
+                        <p className="text-xs font-bold text-slate-600 dark:text-slate-300">Walang karagdagang miyembro ng pamilya na nairehistro.</p>
+                        <p className="text-[11px] text-slate-400 mt-1">Maaari kang pumili mula sa opisyal na Resident Registry o manu-manong maglagay ng detalye.</p>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowResidentPickerModal(true);
+                            setResidentPickerSearch('');
+                            setSelectedRelationForMember('Asawa (Spouse)');
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
+                        >
+                          <UserCheck size={14} />
+                          <span>Pumili mula sa Rehistradong Residente</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddFamilyMember}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        >
+                          <Plus size={14} />
+                          <span>Manu-manong Idagdag</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -743,6 +1087,37 @@ export const Households: React.FC = () => {
                             <span className="text-[11px] font-black text-gov-blue-600 dark:text-gov-blue-400 uppercase tracking-wider">
                               Miyembro #{idx + 1}
                             </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-slate-400 hidden sm:inline">Punan mula sa Residente:</span>
+                              <select
+                                onChange={(e) => {
+                                  const resId = e.target.value;
+                                  if (!resId) return;
+                                  const r = residents.find(x => x.id === resId);
+                                  if (!r) return;
+                                  const updated = [...form.family_members_list];
+                                  updated[idx] = {
+                                    ...updated[idx],
+                                    id: r.id,
+                                    full_name: `${r.first_name} ${r.middle_name ? r.middle_name + ' ' : ''}${r.last_name}${r.suffix ? ' ' + r.suffix : ''}`.trim(),
+                                    birthdate: r.birthdate ? r.birthdate.split('T')[0] : '',
+                                    gender: r.gender || 'Female',
+                                    civil_status: r.civil_status || 'Single',
+                                    occupation: r.occupation || '',
+                                  };
+                                  setForm({ ...form, family_members_list: updated });
+                                }}
+                                defaultValue=""
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-200 focus:outline-none max-w-[150px] truncate cursor-pointer"
+                              >
+                                <option value="">-- Piliin ang Residente --</option>
+                                {residents.map((r) => (
+                                  <option key={r.id} value={r.id}>
+                                    {r.last_name}, {r.first_name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
                             <button
                               type="button"
                               onClick={() => handleRemoveFamilyMember(idx)}
@@ -1229,6 +1604,181 @@ export const Households: React.FC = () => {
         </div>
       )}
 
+      {/* ── Resident Picker Modal ── */}
+      {showResidentPickerModal && (
+        <div className="fixed inset-0 z-[60] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[85vh]">
+
+            {/* Header */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <UserCheck size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                    Pumili ng Rehistradong Residente
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Piliin ang residente mula sa opisyal na registry para idagdag bilang miyembro ng pamilya.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowResidentPickerModal(false)}
+                title="Close"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer transition-colors"
+              >
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            {/* Relation selector + Search */}
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 flex-shrink-0 space-y-3">
+              {/* Relation type */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="text-[10px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                  Relasyon sa Head:
+                </label>
+                <select
+                  value={selectedRelationForMember}
+                  onChange={(e) => setSelectedRelationForMember(e.target.value)}
+                  className="flex-1 min-w-[180px] bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-700 text-slate-800 dark:text-white text-xs font-bold rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 cursor-pointer shadow-sm"
+                >
+                  <option value="Asawa (Spouse)">Asawa (Spouse)</option>
+                  <option value="Anak (Son / Daughter)">Anak (Son / Daughter)</option>
+                  <option value="Magulang (Parent)">Magulang (Parent)</option>
+                  <option value="Kapatid (Sibling)">Kapatid (Sibling)</option>
+                  <option value="Apo (Grandchild)">Apo (Grandchild)</option>
+                  <option value="Kamag-anak (Relative)">Kamag-anak (Relative)</option>
+                  <option value="Kasambahay / Helper">Kasambahay / Helper</option>
+                </select>
+              </div>
+              {/* Search */}
+              <div className="relative">
+                <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Hanapin ang residente sa pangalan, QR ID, o tirahan..."
+                  value={residentPickerSearch}
+                  onChange={(e) => setResidentPickerSearch(e.target.value)}
+                  autoFocus
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-4 py-2.5 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 transition-shadow"
+                />
+              </div>
+            </div>
+
+            {/* Resident List */}
+            <div className="overflow-y-auto flex-1 p-4 space-y-2 custom-scrollbar">
+              {(() => {
+                const q = residentPickerSearch.toLowerCase().trim();
+                const filtered = residents.filter((r) => {
+                  const fullName = `${r.first_name} ${r.middle_name || ''} ${r.last_name}`.toLowerCase();
+                  return !q || fullName.includes(q) || (r.qr_id || '').toLowerCase().includes(q) || (r.address || '').toLowerCase().includes(q);
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-12 text-center space-y-2">
+                      <Users size={32} className="mx-auto text-slate-300 dark:text-slate-700" />
+                      <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Walang nahanap na residente.</p>
+                      <p className="text-[11px] text-slate-400">Subukang maghanap gamit ang ibang pangalan o QR ID.</p>
+                    </div>
+                  );
+                }
+
+                return filtered.map((r) => {
+                  const alreadyAdded = form.family_members_list.some(
+                    (m) => m.id === r.id || m.full_name.toLowerCase().trim() === `${r.first_name} ${r.last_name}`.toLowerCase().trim()
+                  );
+                  const isHead = form.head_id === r.id || (
+                    form.head_first_name.toLowerCase() === r.first_name.toLowerCase() &&
+                    form.head_last_name.toLowerCase() === r.last_name.toLowerCase()
+                  );
+                  const disabled = alreadyAdded || isHead;
+
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      disabled={disabled}
+                      onClick={() => handleAddResidentToFamily(r)}
+                      className={`w-full text-left flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer ${
+                        disabled
+                          ? 'bg-slate-50 dark:bg-slate-950/40 border-slate-100 dark:border-slate-800/60 opacity-60 cursor-not-allowed'
+                          : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-600 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30 hover:shadow-md'
+                      }`}
+                    >
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-xl bg-gov-blue-100 dark:bg-gov-blue-950/50 text-gov-blue-600 dark:text-gov-blue-400 flex items-center justify-center font-black text-sm flex-shrink-0 uppercase">
+                        {r.first_name.charAt(0)}{r.last_name.charAt(0)}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-xs font-black text-slate-900 dark:text-white truncate">
+                            {r.last_name}, {r.first_name} {r.middle_name || ''} {r.suffix || ''}
+                          </p>
+                          {alreadyAdded && (
+                            <span className="text-[9px] bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+                              ✓ Naidagdag na
+                            </span>
+                          )}
+                          {isHead && !alreadyAdded && (
+                            <span className="text-[9px] bg-gov-blue-100 dark:bg-gov-blue-900/40 text-gov-blue-700 dark:text-gov-blue-300 font-bold px-1.5 py-0.5 rounded-full border border-gov-blue-200 dark:border-gov-blue-800 flex-shrink-0">
+                              Household Head
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {r.gender} · {r.age ? `${r.age} taon` : ''} · {r.civil_status}
+                          </span>
+                          {r.qr_id && (
+                            <span className="text-[10px] font-mono text-gov-blue-500 dark:text-gov-blue-400 bg-gov-blue-50 dark:bg-gov-blue-950/40 px-1.5 py-0.5 rounded">
+                              {r.qr_id}
+                            </span>
+                          )}
+                        </div>
+                        {r.address && (
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5 flex items-center gap-1">
+                            <MapPin size={9} />
+                            {r.address}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Action icon */}
+                      {!disabled && (
+                        <div className="flex-shrink-0 w-7 h-7 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                          <Plus size={14} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/30 dark:bg-slate-950/30 flex-shrink-0 flex items-center justify-between gap-3">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="font-bold text-emerald-600 dark:text-emerald-400">{residents.length}</span> rehistradong residente ·{' '}
+                <span className="font-bold text-gov-blue-600 dark:text-gov-blue-400">{form.family_members_list.length}</span> miyembro naidagdag na
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowResidentPickerModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                Tapos Na
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── View Household Details Modal ── */}
       {viewingHousehold && (
         <HouseholdDetailsModal
@@ -1290,6 +1840,287 @@ export const Households: React.FC = () => {
                 <button type="submit" disabled={isSaving} className="px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold shadow-md disabled:opacity-50 transition-colors cursor-pointer">Assign Member</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Import CSV Modal ── */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <Upload size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">Import Households from CSV</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Bulk upload household profiles using the standard CSV format</p>
+                </div>
+              </div>
+              <button onClick={() => setShowImportModal(false)} title="Close" className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer">
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+
+              {/* Download sample reminder */}
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/30 border border-gov-blue-100 dark:border-gov-blue-900/50">
+                <FileText size={16} className="text-gov-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-gov-blue-700 dark:text-gov-blue-300">Use the correct format</p>
+                  <p className="text-[11px] text-gov-blue-600 dark:text-gov-blue-400 mt-0.5">Download the sample CSV to see the required column order before importing.</p>
+                </div>
+                <button
+                  onClick={handleDownloadSample}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-bold rounded-lg bg-gov-blue-600 hover:bg-gov-blue-700 text-white transition-colors flex-shrink-0"
+                >
+                  <Download size={11} />
+                  Sample
+                </button>
+              </div>
+
+              {/* File Upload Area */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="relative border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-600 rounded-2xl p-8 text-center cursor-pointer transition-colors group"
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv"
+                  onChange={handleImportFileChange}
+                  className="hidden"
+                />
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-950/30 flex items-center justify-center transition-colors">
+                    <Upload size={22} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
+                  </div>
+                  {importFile ? (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{importFile.name}</p>
+                      <p className="text-[11px] text-slate-500">Click to change file</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Click to select CSV file</p>
+                      <p className="text-[11px] text-slate-500">Only .csv files are accepted</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Validation Errors */}
+              {importErrors.length > 0 && (
+                <div className="rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50 dark:bg-rose-950/20 p-4 space-y-1.5 max-h-36 overflow-y-auto">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <AlertCircle size={14} className="text-rose-500 flex-shrink-0" />
+                    <p className="text-xs font-black text-rose-700 dark:text-rose-400 uppercase tracking-wide">Validation Errors ({importErrors.length})</p>
+                  </div>
+                  {importErrors.map((err, i) => (
+                    <p key={i} className="text-[11px] text-rose-600 dark:text-rose-400 font-medium pl-5">{err}</p>
+                  ))}
+                </div>
+              )}
+
+              {/* Preview Table */}
+              {importPreview.length > 0 && importErrors.length === 0 && (
+                <div>
+                  <p className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-widest mb-2">
+                    Preview — First {importPreview.length} Row{importPreview.length > 1 ? 's' : ''}
+                  </p>
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700">
+                    <table className="w-full text-[10px]">
+                      <thead>
+                        <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                          {['household_number','head_first_name','head_last_name','address','purok','poverty_level'].map(col => (
+                            <th key={col} className="px-3 py-2 text-left font-black text-slate-500 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap">{col}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importPreview.map((row, i) => (
+                          <tr key={i} className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            {['household_number','head_first_name','head_last_name','address','purok','poverty_level'].map(col => (
+                              <td key={col} className="px-3 py-2 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap max-w-[120px] truncate">{row[col] || '—'}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Success message */}
+              {importSuccess > 0 && (
+                <div className="flex items-center gap-2 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50">
+                  <CheckCircle2 size={16} className="text-emerald-500 flex-shrink-0" />
+                  <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
+                    Successfully imported {importSuccess} household{importSuccess > 1 ? 's' : ''}!
+                  </p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowImportModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                >
+                  {importSuccess > 0 ? 'Close' : 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleImportSubmit}
+                  disabled={!importFile || importErrors.length > 0 || isImporting || importSuccess > 0}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-md transition-colors cursor-pointer"
+                >
+                  {isImporting ? (
+                    <><Loader2 size={13} className="animate-spin" /> Importing...</>
+                  ) : (
+                    <><Upload size={13} /> Import Now</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+    
+      {/* ── Resident Picker Modal for Household Members ── */}
+      {showResidentPickerModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden my-auto">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <UserCheck size={18} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">Pumili ng Rehistradong Residente</h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Idagdag ang residente bilang miyembro ng pamilya / kasambahay</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setShowResidentPickerModal(false)} 
+                title="Isara" 
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <XCircle size={22} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Relation Selector & Search */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block">
+                    Relasyon sa Household Head *
+                  </label>
+                  <select
+                    value={selectedRelationForMember}
+                    onChange={(e) => setSelectedRelationForMember(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Asawa (Spouse)">Asawa (Spouse)</option>
+                    <option value="Anak (Son / Daughter)">Anak (Son / Daughter)</option>
+                    <option value="Magulang (Parent)">Magulang (Parent)</option>
+                    <option value="Kapatid (Sibling)">Kapatid (Sibling)</option>
+                    <option value="Apo (Grandchild)">Apo (Grandchild)</option>
+                    <option value="Kamag-anak (Relative)">Kamag-anak (Relative)</option>
+                    <option value="Kasambahay / Helper">Kasambahay / Helper</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block">
+                    Maghanap ng Residente
+                  </label>
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Pangalan, address, QR..."
+                      value={residentPickerSearch}
+                      onChange={(e) => setResidentPickerSearch(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs font-medium text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Residents List */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  <span>Rehistradong Residente</span>
+                  <span>Aksyon</span>
+                </div>
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {residents
+                    .filter(r => {
+                      if (!residentPickerSearch.trim()) return true;
+                      const q = residentPickerSearch.toLowerCase();
+                      const name = `${r.first_name} ${r.middle_name || ''} ${r.last_name}`.toLowerCase();
+                      const addr = (r.address || '').toLowerCase();
+                      const qr = (r.qr_id || '').toLowerCase();
+                      return name.includes(q) || addr.includes(q) || qr.includes(q);
+                    })
+                    .map((r) => {
+                      const isAlreadyInFamily = form.family_members_list.some(m => m.id === r.id);
+                      return (
+                        <div key={r.id} className="p-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 flex items-center justify-between gap-3 transition-colors">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center text-[10px] font-black flex-shrink-0">
+                              {r.first_name[0]}{r.last_name[0]}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                                {r.last_name}, {r.first_name} {r.middle_name || ''} {r.suffix || ''}
+                              </p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                                {r.gender} • {r.civil_status} {r.age ? `• ${r.age} yo` : ''} • {r.address}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleAddResidentToFamily(r)}
+                            disabled={isAlreadyInFamily}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:hover:bg-emerald-600 text-white transition-all shadow-sm flex-shrink-0 cursor-pointer"
+                          >
+                            <Plus size={12} />
+                            <span>{isAlreadyInFamily ? 'Kasama na' : 'Idagdag'}</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  {residents.length === 0 && (
+                    <div className="p-8 text-center text-xs text-slate-400">
+                      Walang nakitang rehistradong residente.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowResidentPickerModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              >
+                Isara
+              </button>
+            </div>
           </div>
         </div>
       )}

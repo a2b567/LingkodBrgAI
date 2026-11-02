@@ -21,36 +21,7 @@ interface QueueItem {
 const CLINIC_QUEUE_KEY = 'lingkod_clinic_queue';
 const MY_TICKET_KEY = 'lingkod_my_clinic_ticket';
 
-// Initial realistic default queue data so mobile phone never opens to a blank screen
-const DEFAULT_INITIAL_QUEUE: QueueItem[] = [
-  {
-    id: 'cq-101',
-    residentName: 'Juan Dela Cruz',
-    service: 'General Medical Consultation',
-    queueNumber: 101,
-    timestamp: Date.now() - 1000 * 60 * 15,
-    status: 'waiting',
-    isPriority: true,
-  },
-  {
-    id: 'cq-102',
-    residentName: 'Maria Santos',
-    service: 'Prenatal & Maternal Checkup',
-    queueNumber: 102,
-    timestamp: Date.now() - 1000 * 60 * 10,
-    status: 'waiting',
-    isPriority: true,
-  },
-  {
-    id: 'cq-103',
-    residentName: 'Pedro Reyes',
-    service: 'Blood Pressure & Vitals Check',
-    queueNumber: 103,
-    timestamp: Date.now() - 1000 * 60 * 5,
-    status: 'waiting',
-    isPriority: false,
-  }
-];
+
 
 export const ClinicQueueView: React.FC = () => {
   const { user } = useAuthStore();
@@ -82,15 +53,13 @@ export const ClinicQueueView: React.FC = () => {
       const saved = localStorage.getItem(CLINIC_QUEUE_KEY);
       if (saved) {
         const parsed: QueueItem[] = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setQueueList(parsed);
         } else {
-          setQueueList(DEFAULT_INITIAL_QUEUE);
-          localStorage.setItem(CLINIC_QUEUE_KEY, JSON.stringify(DEFAULT_INITIAL_QUEUE));
+          setQueueList([]);
         }
       } else {
-        setQueueList(DEFAULT_INITIAL_QUEUE);
-        localStorage.setItem(CLINIC_QUEUE_KEY, JSON.stringify(DEFAULT_INITIAL_QUEUE));
+        setQueueList([]);
       }
 
       // Check if user has their own ticket
@@ -100,7 +69,7 @@ export const ClinicQueueView: React.FC = () => {
       }
       setLastUpdated(new Date());
     } catch {
-      setQueueList(DEFAULT_INITIAL_QUEUE);
+      setQueueList([]);
     }
   };
 
