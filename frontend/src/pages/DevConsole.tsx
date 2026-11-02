@@ -3,8 +3,9 @@ import {
   Terminal, Activity, Users, ShieldAlert, RefreshCw, Search,
   ChevronLeft, ChevronRight, Filter, Clock, Globe, User,
   AlertTriangle, CheckCircle, LogIn, FileText, Trash2, Edit,
-  BarChart2, Cpu, Database, Eye, AlertOctagon, MonitorX, Layers
+  BarChart2, Cpu, Database, Eye, AlertOctagon
 } from 'lucide-react';
+
 import { api } from '../services/api';
 
 

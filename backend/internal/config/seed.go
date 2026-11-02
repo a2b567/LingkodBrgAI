@@ -51,6 +51,13 @@ func SeedDatabase(db *gorm.DB) error {
 			Role:         "Treasurer",
 			IsVerified:   true,
 		},
+		{
+			Username:     "devuser",
+			Email:        "dev@barangay.gov",
+			PasswordHash: hashPassword("Dev@2026!"),
+			Role:         "Developer",
+			IsVerified:   true,
+		},
 	}
 
 	for _, u := range defaultUsers {
