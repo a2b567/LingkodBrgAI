@@ -772,7 +772,35 @@ export const api = {
 
       return { response };
     },
-  }
+  },
+
+  dev: {
+    auditLogs: (params?: { page?: number; limit?: number; search?: string; action?: string }) =>
+      withFallback(
+        () => client.get<{ data: any[]; total: number; page: number; limit: number }>('/dev/audit-logs', { params }).then(r => r.data),
+        () => ({ data: [], total: 0, page: 1, limit: 25 })
+      ),
+
+    users: (params?: { page?: number; limit?: number; search?: string; role?: string }) =>
+      withFallback(
+        () => client.get<{ data: any[]; total: number; page: number; limit: number }>('/dev/users', { params }).then(r => r.data),
+        () => ({ data: [], total: 0, page: 1, limit: 25 })
+      ),
+
+    stats: () =>
+      withFallback(
+        () => client.get<any>('/dev/stats').then(r => r.data),
+        () => ({
+          total_users: 0,
+          total_residents: 0,
+          total_staff: 0,
+          total_audit_logs: 0,
+          total_ai_queries: 0,
+          logins_last_24h: 0,
+          top_actions: [],
+        })
+      ),
+  },
 };
 
 export default client;

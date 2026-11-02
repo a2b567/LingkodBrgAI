@@ -45,6 +45,7 @@ func SetupRouter() *gin.Engine {
 	analyticsHandler := &handlers.AnalyticsHandler{}
 	licenseHandler := &handlers.LicenseHandler{}
 	healthHandler := &handlers.HealthHandler{}
+	devHandler := &handlers.DevHandler{}
 
 	// Public Routes
 	api := r.Group("/api")
@@ -193,6 +194,15 @@ func SetupRouter() *gin.Engine {
 				adminOnly.PUT("/users/staff/:id", authHandler.UpdateStaffAccount)
 				adminOnly.DELETE("/users/staff/:id", authHandler.DeleteStaffAccount)
 			}
+		}
+
+		// Developer Console Routes (Developer role only)
+		devOnly := protected.Group("/dev")
+		devOnly.Use(middleware.RequireRoles("Developer"))
+		{
+			devOnly.GET("/audit-logs", devHandler.GetAuditLogs)
+			devOnly.GET("/users", devHandler.GetAllUsers)
+			devOnly.GET("/stats", devHandler.GetSystemStats)
 		}
 	}
 

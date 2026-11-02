@@ -4,8 +4,9 @@ import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
   Briefcase, Calendar, Settings, LogOut, Sun, Moon,
   Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle, UserCog, Stethoscope,
-  ShieldCheck, Eye, EyeOff
+  ShieldCheck, Eye, EyeOff, Terminal
 } from 'lucide-react';
+
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { usePrivacyStore } from '../store/privacyStore';
@@ -156,18 +157,20 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['all'] },
-    { name: 'Residents', path: '/residents', icon: <Users size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
-    { name: 'Households', path: '/households', icon: <Home size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
-    { name: 'Health Records', path: '/health-records', icon: <Activity size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff'] },
-    { name: 'Clinic Queue', path: '/clinic-queue', icon: <Stethoscope size={18} />, roles: ['Resident'] },
-    { name: 'Certificates', path: '/certificates', icon: <FileText size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
     { name: 'Appointments', path: '/appointments', icon: <Calendar size={18} />, roles: ['all'] },
-    { name: 'Certificates Schedule', path: '/queue-schedule', icon: <ListOrdered size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
     { name: 'Blotter Records', path: '/blotter', icon: <AlertOctagon size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Staff'] },
     { name: 'Businesses', path: '/businesses', icon: <Briefcase size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff'] },
+    { name: 'Certificates', path: '/certificates', icon: <FileText size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
+    { name: 'Certificates Schedule', path: '/queue-schedule', icon: <ListOrdered size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Treasurer', 'Staff', 'Resident'] },
+    { name: 'Clinic Queue', path: '/clinic-queue', icon: <Stethoscope size={18} />, roles: ['Resident'] },
+    { name: 'Health Records', path: '/health-records', icon: <Activity size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Health Worker', 'Staff'] },
+    { name: 'Households', path: '/households', icon: <Home size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
+    { name: 'Residents', path: '/residents', icon: <Users size={18} />, roles: ['Super Admin', 'Barangay Captain', 'Secretary', 'Health Worker', 'Staff'] },
     { name: 'Settings', path: '/settings', icon: <Settings size={18} />, roles: ['all'] },
     { name: 'Staff Accounts', path: '/staff-accounts', icon: <UserCog size={18} />, roles: ['Super Admin', 'Barangay Captain'] },
+    { name: 'Dev Console', path: '/dev-console', icon: <Terminal size={18} />, roles: ['Developer'] },
   ];
+
 
   const allowedItems = navItems.filter(item =>
     item.roles.includes('all') || (user && (user.role === 'Super Admin' || item.roles.includes(user.role)))

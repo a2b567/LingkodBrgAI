@@ -487,7 +487,7 @@ func (h *AuthHandler) CreateStaffAccount(c *gin.Context) {
 	}
 
 	if !allowedStaffRoles[req.Role] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid staff role. Allowed: Barangay Captain, Secretary, Treasurer, Health Worker, Staff, Super Admin"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid staff role. Allowed: Barangay Captain, Secretary, Treasurer, Health Worker, Staff, Super Admin, Developer"})
 		return
 	}
 
