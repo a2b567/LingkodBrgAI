@@ -306,7 +306,7 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 
 	db := config.DB
 	var user models.User
-	if err := db.Where("username = ?", req.Username).First(&user).Error; err != nil {
+	if err := db.Where("username = ? OR email = ?", req.Username, req.Username).First(&user).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
 	}
