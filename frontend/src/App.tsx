@@ -79,6 +79,8 @@ export const App: React.FC = () => {
       <Routes>
         {/* Public Verification Page */}
         <Route path="/verify/document/:hash" element={<VerifyDocument />} />
+        <Route path="/verify/resident/:hash" element={<VerifyDocument />} />
+        <Route path="/verify/:hash" element={<VerifyDocument />} />
 
         {/* Public Auth Routes */}
         <Route 

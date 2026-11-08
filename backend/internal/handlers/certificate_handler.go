@@ -408,7 +408,7 @@ func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"valid":        true,
 			"account_type": "Certificate",
-			"message":      "Document is authentic and issued by Barangay Lawrence.",
+			"message":      "Document is authentic and issued by Barangay San Isidro.",
 			"document":     cert.DocumentNumber,
 			"type":         cert.Type,
 			"recipient":    cert.Resident.FirstName + " " + cert.Resident.LastName,
@@ -424,7 +424,7 @@ func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"valid":        true,
 			"account_type": "Resident",
-			"message":      "Resident Account is authentic and registered in Barangay Lawrence.",
+			"message":      "Resident Account is authentic and registered in Barangay San Isidro.",
 			"recipient":    res.FirstName + " " + res.LastName,
 			"qr_id":        res.QRID,
 			"address":      res.Address,
@@ -435,15 +435,32 @@ func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 		return
 	}
 
-	// 3. Fallback: Check mock resident pattern if ID starts with QR-RES-
-	if strings.HasPrefix(hash, "QR-RES-") || strings.HasPrefix(hash, "res-") {
+	// 2b. Try finding Resident via linked User account
+	var user models.User
+	if err := db.Preload("Resident").Where("CAST(id AS TEXT) = ? OR username = ? OR email = ?", hash, hash, hash).First(&user).Error; err == nil && user.Resident != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"valid":        true,
 			"account_type": "Resident",
-			"message":      "Resident Account ID is authentic and registered in Barangay Lawrence.",
+			"message":      "Resident Account is authentic and registered in Barangay San Isidro.",
+			"recipient":    user.Resident.FirstName + " " + user.Resident.LastName,
+			"qr_id":        user.Resident.QRID,
+			"address":      user.Resident.Address,
+			"voter_status": user.Resident.VoterStatus,
+			"civil_status": user.Resident.CivilStatus,
+			"gender":       user.Resident.Gender,
+		})
+		return
+	}
+
+	// 3. Fallback: Check mock resident pattern if ID starts with QR-RES- or SANISIDRO- or res-
+	if strings.HasPrefix(hash, "QR-RES-") || strings.HasPrefix(hash, "res-") || strings.HasPrefix(hash, "SANISIDRO-") {
+		c.JSON(http.StatusOK, gin.H{
+			"valid":        true,
+			"account_type": "Resident",
+			"message":      "Resident Account ID is authentic and registered in Barangay San Isidro.",
 			"recipient":    "Verified Barangay Resident",
 			"qr_id":        hash,
-			"address":      "Barangay Lawrence Main District",
+			"address":      "Barangay San Isidro Main District",
 			"voter_status": "Registered Voter",
 			"civil_status": "Single",
 		})

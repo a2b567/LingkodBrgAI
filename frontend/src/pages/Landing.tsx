@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Calendar, AlertOctagon, Briefcase, Sun, Moon, 
   ArrowRight, Search, ShieldCheck, Sparkles, MessageSquareCode, 
-  ChevronRight, MapPin, Phone, Mail, Clock, CheckCircle2, QrCode, Camera, X
+  ChevronRight, MapPin, Phone, Mail, Clock, CheckCircle2, QrCode, Camera, X, Upload
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
@@ -25,6 +25,8 @@ export const Landing: React.FC = () => {
   const animFrameRef = useRef<number>(0);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Live database stats fetched from backend
   const [liveStats, setLiveStats] = useState<{
@@ -154,6 +156,20 @@ export const Landing: React.FC = () => {
     setCameraReady(false);
   }, []);
 
+  const processScannedValue = useCallback((raw: string) => {
+    stopCamera();
+    setIsScannerOpen(false);
+    const cleaned = raw.trim();
+    try {
+      const url = new URL(cleaned);
+      const parts = url.pathname.split('/').filter(Boolean);
+      const hash = parts[parts.length - 1];
+      navigate(`/verify/document/${hash}`);
+    } catch {
+      navigate(`/verify/document/${cleaned}`);
+    }
+  }, [navigate, stopCamera]);
+
   const scanFrame = useCallback(() => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -172,23 +188,45 @@ export const Landing: React.FC = () => {
         inversionAttempts: 'dontInvert',
       });
       if (code?.data) {
-        stopCamera();
-        setIsScannerOpen(false);
-        const raw = code.data.trim();
-        // If it's a full URL, extract the hash from the path
-        try {
-          const url = new URL(raw);
-          const parts = url.pathname.split('/');
-          const hash = parts[parts.length - 1];
-          navigate(`/verify/document/${hash}`);
-        } catch {
-          navigate(`/verify/document/${raw}`);
-        }
+        processScannedValue(code.data);
         return;
       }
       animFrameRef.current = requestAnimationFrame(scanFrame);
     });
-  }, [navigate, stopCamera]);
+  }, [processScannedValue]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+        const imageData = ctx.getImageData(0, 0, img.width, img.height);
+        import('jsqr').then(({ default: jsQR }) => {
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth',
+          });
+          if (code?.data) {
+            processScannedValue(code.data);
+          } else {
+            setUploadError('Walang QR code na nabasa sa litrato. Pakitiyak na malinaw ang QR image.');
+          }
+        });
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const startCamera = useCallback(async () => {
     setCameraError(null);
@@ -1087,12 +1125,15 @@ export const Landing: React.FC = () => {
 
               {/* Error state */}
               {cameraError && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 z-20">
-                  <Camera size={36} className="text-rose-400" />
-                  <p className="text-xs font-bold text-rose-300 text-center">{cameraError}</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-5 z-20 bg-slate-950/90 text-center">
+                  <Camera size={32} className="text-rose-400" />
+                  <p className="text-xs font-bold text-rose-300">{cameraError}</p>
+                  <p className="text-[10px] text-slate-400 max-w-[260px] leading-relaxed">
+                    💡 Tip: Click the camera/lock icon in your browser address bar and select <strong className="text-white">"Always allow"</strong>, or upload a photo below.
+                  </p>
                   <button
                     onClick={startCamera}
-                    className="mt-2 px-4 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold rounded-xl transition-colors"
+                    className="mt-1 px-4 py-1.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
                   >
                     Try Again
                   </button>
@@ -1108,6 +1149,30 @@ export const Landing: React.FC = () => {
               )}
             </div>
 
+            {/* Quick Upload QR Photo / Screenshot */}
+            <div className="space-y-1.5">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageUpload} 
+                accept="image/*" 
+                className="hidden" 
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all shadow-sm group"
+              >
+                <Upload size={14} className="text-gov-blue-500 group-hover:scale-110 transition-transform" />
+                Upload QR Image / Screenshot
+              </button>
+              {uploadError && (
+                <p className="text-[10px] font-bold text-rose-500 text-center">
+                  {uploadError}
+                </p>
+              )}
+            </div>
+
             <div className="space-y-3">
               <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 block">
                 Or enter Code / Hash manually:
@@ -1117,14 +1182,13 @@ export const Landing: React.FC = () => {
                   type="text"
                   value={verifyHash}
                   onChange={(e) => setVerifyHash(e.target.value)}
-                  placeholder="e.g. QR-RES-LAWRENCE or hash..."
+                  placeholder="e.g. QR-RES-..., SANISIDRO-..., or hash"
                   className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 text-xs font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-gov-blue-500"
                 />
                 <button
                   onClick={() => {
                     if (verifyHash.trim()) {
-                      setIsScannerOpen(false);
-                      navigate(`/verify/document/${verifyHash.trim()}`);
+                      processScannedValue(verifyHash.trim());
                     }
                   }}
                   className="bg-gov-blue-600 hover:bg-gov-blue-700 text-white font-extrabold text-xs px-5 rounded-2xl transition-colors uppercase tracking-wider"
