@@ -308,8 +308,9 @@ export const DevConsole: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   {(stats.top_actions || []).map((a, i) => {
-                    const max = stats.top_actions[0]?.count || 1;
-                    const pct = Math.round((a.count / max) * 100);
+                    const max = (stats.top_actions?.[0]?.count) || 1;
+                    const aCount = a?.count ?? 0;
+                    const pct = Math.round((aCount / max) * 100);
                     return (
                       <div key={i} className="flex items-center gap-3">
                         <span className="w-36 text-[11px] font-bold text-slate-600 dark:text-slate-400 truncate">{a.action}</span>
@@ -319,7 +320,7 @@ export const DevConsole: React.FC = () => {
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="w-10 text-right text-[11px] font-black text-slate-700 dark:text-slate-300">{a.count.toLocaleString()}</span>
+                        <span className="w-10 text-right text-[11px] font-black text-slate-700 dark:text-slate-300">{aCount.toLocaleString()}</span>
                       </div>
                     );
                   })}

@@ -16,11 +16,6 @@ export const PWAInstallBanner: React.FC = () => {
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
 
-  // Do not show PWA installation prompt for Developer account
-  if (user?.role === 'Developer') {
-    return null;
-  }
-
   useEffect(() => {
     // Check if already in standalone / installed PWA mode
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
@@ -81,7 +76,7 @@ export const PWAInstallBanner: React.FC = () => {
     sessionStorage.setItem('pwa_banner_dismissed', 'true');
   };
 
-  if (isInstalled || isDismissed) {
+  if (isInstalled || isDismissed || user?.role === 'Developer') {
     return null;
   }
 
