@@ -1,0 +1,14 @@
+backend/*.exe
+backend/server.exe
+backend/*.db
+backend/*.db-journal
+backend/*.db-wal
+backend/*.db-shm
+backend/uploads/
+*.exe
+.git
+.github
+node_modules
+frontend/node_modules
+desktop.ini
+Thumbs.db
