@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
   Users, Home, AlertTriangle, Briefcase, Cpu, UserCheck, Copy, Check, ChevronDown, ChevronUp, Sparkles, Send, Monitor, Clock, PhoneCall, CheckCircle2,
@@ -66,6 +66,10 @@ export const Dashboard: React.FC = () => {
 
   if (user && user.role === 'Resident') {
     return <ResidentDashboard />;
+  }
+
+  if (user && user.role === 'Developer') {
+    return <Navigate to="/dev-console" replace />;
   }
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
