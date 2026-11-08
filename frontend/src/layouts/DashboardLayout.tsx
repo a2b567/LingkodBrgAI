@@ -224,7 +224,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             {sidebarOpen && (
               <div className="flex flex-col justify-center truncate">
                 <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white leading-tight">
-                  LingkodBrgy
+                  LINGKODBRGY
                 </span>
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   San Isidro Portal
