@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X, Smartphone } from 'lucide-react';
+import { useAuthStore } from '../store/authStore';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -7,12 +8,18 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export const PWAInstallBanner: React.FC = () => {
+  const { user } = useAuthStore();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallable, setIsInstallable] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+
+  // Do not show PWA installation prompt for Developer account
+  if (user?.role === 'Developer') {
+    return null;
+  }
 
   useEffect(() => {
     // Check if already in standalone / installed PWA mode

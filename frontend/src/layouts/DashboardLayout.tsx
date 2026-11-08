@@ -189,12 +189,20 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
 
   const allowedItems = navItems.filter(item => {
     if (!user) return false;
-    if (item.roles.includes('all')) return true;
-    // Dev Console is strictly for the Developer role and hidden from Super Admin/admin
-    if (item.name === 'Dev Console') {
-      return user.role === 'Developer';
+
+    // Developer account navigation: clean and focused on Dev Console, Dashboard, and Settings (no Appointments)
+    if (user.role === 'Developer') {
+      if (item.name === 'Appointments') return false;
+      return item.name === 'Dev Console' || item.name === 'Dashboard' || item.name === 'Settings';
     }
-    return user.role === 'Super Admin' || user.role === 'Developer' || item.roles.includes(user.role);
+
+    // Dev Console is strictly for the Developer role and hidden from Super Admin and other staff
+    if (item.name === 'Dev Console') {
+      return false;
+    }
+
+    if (item.roles.includes('all')) return true;
+    return user.role === 'Super Admin' || item.roles.includes(user.role);
   });
 
   return (
