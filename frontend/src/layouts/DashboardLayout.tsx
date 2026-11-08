@@ -194,7 +194,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     if (item.name === 'Dev Console') {
       return user.role === 'Developer';
     }
-    return user.role === 'Super Admin' || item.roles.includes(user.role);
+    return user.role === 'Super Admin' || user.role === 'Developer' || item.roles.includes(user.role);
   });
 
   return (

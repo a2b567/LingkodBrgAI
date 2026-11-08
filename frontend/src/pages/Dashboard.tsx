@@ -263,6 +263,23 @@ export const Dashboard: React.FC = () => {
         }
       } catch (err) {
         console.error('Failed to fetch dashboard stats', err);
+        // Graceful fallback stats so the dashboard UI renders cleanly even if offline or cold-starting
+        setStats({
+          total_residents: 0,
+          total_households: 0,
+          indigent_households: 0,
+          active_incidents: 0,
+          active_businesses: 0,
+          voters_count: 0,
+          senior_citizens: 0,
+          solo_parents: 0,
+          pwd_residents: 0,
+          total_clearances: 0,
+          total_ai_queries: 0,
+          age_demographics: { children: 0, youth: 0, adults: 0, seniors: 0 },
+          gender_ratio: { Male: 0, Female: 0 },
+          revenue_history: [],
+        });
         setIsLoading(false);
       }
     };

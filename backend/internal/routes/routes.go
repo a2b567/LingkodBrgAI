@@ -124,6 +124,7 @@ func SetupRouter() *gin.Engine {
 			"Treasurer", 
 			"Health Worker", 
 			"Staff",
+			"Developer",
 		))
 		{
 			// Resident Management
@@ -190,7 +191,7 @@ func SetupRouter() *gin.Engine {
 
 			// Staff Account Management (Super Admin + Barangay Captain only)
 			adminOnly := staffOnly.Group("")
-			adminOnly.Use(middleware.RequireRoles("Super Admin", "Barangay Captain"))
+			adminOnly.Use(middleware.RequireRoles("Super Admin", "Barangay Captain", "Developer"))
 			{
 				adminOnly.GET("/users/staff", authHandler.ListStaffAccounts)
 				adminOnly.POST("/users/staff", authHandler.CreateStaffAccount)
