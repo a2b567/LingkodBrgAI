@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api';
+import { useAuthStore } from '../store/authStore';
 import { 
   Heart, Search, FileText, Pill, Activity, User, Stethoscope, Droplet,
   Clock, CheckCircle2, SearchX, Package, AlertTriangle, PackagePlus, Trash2,
   Eye, Volume2, Filter, UserPlus,
-  FileSpreadsheet, Upload, Download, XCircle, AlertCircle, Loader2
+  FileSpreadsheet, Upload, Download, XCircle, AlertCircle, Loader2,
+  History, Minus
 } from 'lucide-react';
 
 interface HealthRecord {
@@ -38,19 +40,38 @@ interface MedicineStock {
   minStock: number;
 }
 
+export interface MedicineDispenseLog {
+  id: string;
+  medicineId?: string;
+  medicineName: string;
+  category: string;
+  quantity: number;
+  unit: string;
+  recipientName: string;
+  purpose: string;
+  dispensedBy: string;
+  notes?: string;
+  date: string;
+  timestamp: string;
+  remainingStock: number;
+}
+
 export const HealthRecords: React.FC = () => {
+  const { user } = useAuthStore();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [bloodFilter, setBloodFilter] = useState<string>('All');
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
   const [records, setRecords] = useState<HealthRecord[]>([]);
-  const [view, setView] = useState<'records' | 'queue' | 'stock'>('records');
+  const [view, setView] = useState<'records' | 'queue' | 'stock' | 'dispense-logs'>('records');
   const [selectedPatientChart, setSelectedPatientChart] = useState<HealthRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<Partial<HealthRecord>>({
     resident_name: '', blood_type: 'O+', allergies: '', conditions: '', last_checkup: '', status: 'Healthy'
   });
 
+  // Resident names for autocomplete suggestions
+  const [residentNames, setResidentNames] = useState<string[]>([]);
   useEffect(() => {
     api.health.listRecords().then(data => {
       setRecords(Array.isArray(data) ? data : []);
@@ -63,12 +84,18 @@ export const HealthRecords: React.FC = () => {
     }).catch(() => {
       setMedicineStock([]);
     });
+
+    api.residents.list().then(res => {
+      if (Array.isArray(res)) {
+        setResidentNames(res.map((r: any) => `${r.first_name || ''} ${r.middle_name ? r.middle_name[0] + '.' : ''} ${r.last_name || ''}`.trim()).filter(Boolean));
+      }
+    }).catch(() => {});
   }, []);
 
   const filteredRecords = records.filter(r => {
-    const matchesSearch = r.resident_name.toLowerCase().includes(search.toLowerCase()) ||
-                          r.conditions.toLowerCase().includes(search.toLowerCase()) ||
-                          r.allergies.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (r.resident_name || '').toLowerCase().includes(search.toLowerCase()) ||
+                          (r.conditions || '').toLowerCase().includes(search.toLowerCase()) ||
+                          (r.allergies || '').toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'All' || r.status === statusFilter;
     const matchesBlood = bloodFilter === 'All' || r.blood_type === bloodFilter;
     return matchesSearch && matchesStatus && matchesBlood;
@@ -96,52 +123,198 @@ export const HealthRecords: React.FC = () => {
     setForm({ resident_name: '', blood_type: 'O+', allergies: '', conditions: '', last_checkup: '', status: 'Healthy' });
   };
 
-  // --- Medicine Dispensing ---
+  // --- Medicine Dispensing & Audit Logs ---
   const [isDispenseModalOpen, setIsDispenseModalOpen] = useState(false);
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
-  const [dispenseForm, setDispenseForm] = useState({ medicineName: '', quantity: 1 });
+  const [dispenseFeedback, setDispenseFeedback] = useState<string | null>(null);
+  const [dispenseLogSearch, setDispenseLogSearch] = useState('');
+  const [dispenseLogMedFilter, setDispenseLogMedFilter] = useState('All');
+
+  const [dispenseLogs, setDispenseLogs] = useState<MedicineDispenseLog[]>(() => {
+    try {
+      const saved = localStorage.getItem('medicine_dispense_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [dispenseForm, setDispenseForm] = useState({
+    medicineName: '',
+    quantity: 1,
+    recipientName: '',
+    purpose: 'Lagnat / Sakit ng Ulo',
+    notes: '',
+    selectedRecordId: null as string | null,
+  });
+
+  const handleOpenDispenseForMed = (med: MedicineStock) => {
+    setDispenseForm({
+      medicineName: med.name,
+      quantity: 1,
+      recipientName: '',
+      purpose: 'Lagnat / Sakit ng Ulo',
+      notes: '',
+      selectedRecordId: null,
+    });
+    setIsDispenseModalOpen(true);
+  };
+
+  const handleOpenDispenseForRecord = (record: HealthRecord) => {
+    setDispenseForm({
+      medicineName: medicineStock[0]?.name || '',
+      quantity: 1,
+      recipientName: record.resident_name,
+      purpose: record.conditions ? `Para sa: ${record.conditions}` : 'Medical assistance',
+      notes: '',
+      selectedRecordId: record.id,
+    });
+    setIsDispenseModalOpen(true);
+  };
+
+  const handleOpenGeneralDispense = () => {
+    const firstMed = medicineStock[0]?.name || '';
+    setDispenseForm({
+      medicineName: firstMed,
+      quantity: 1,
+      recipientName: '',
+      purpose: 'Lagnat / Sakit ng Ulo',
+      notes: '',
+      selectedRecordId: null,
+    });
+    setIsDispenseModalOpen(true);
+  };
 
   const handleDispense = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRecordId || !dispenseForm.medicineName) return;
-
-    const stockItem = medicineStock.find(m => m.name === dispenseForm.medicineName);
-    if (stockItem && stockItem.stock < dispenseForm.quantity) {
-      alert(`Insufficient stock! Only ${stockItem.stock} ${stockItem.unit} of ${stockItem.name} available.`);
+    if (!dispenseForm.medicineName) {
+      alert('Piliin ang gamot na ibabawas.');
+      return;
+    }
+    if (!dispenseForm.recipientName.trim()) {
+      alert('Pakilagay kung sinong pasyente o residente ang tumanggap ng gamot (Saan Napunta).');
       return;
     }
 
-    api.health.dispenseMedicine(selectedRecordId, dispenseForm).catch(console.error);
+    const stockItem = medicineStock.find(m => m.name === dispenseForm.medicineName);
+    if (!stockItem) {
+      alert('Hindi mahanap ang gamot sa inventory stock.');
+      return;
+    }
 
+    if (stockItem.stock < dispenseForm.quantity) {
+      alert(`Kulang ang stock! Mayroon na lamang ${stockItem.stock} ${stockItem.unit} ng ${stockItem.name} na natitira.`);
+      return;
+    }
+
+    const newStockCount = Math.max(0, stockItem.stock - dispenseForm.quantity);
+
+    // 1. Deduct stock in backend
+    try {
+      await api.health.restock(stockItem.id, -dispenseForm.quantity);
+    } catch (err) {
+      console.warn('Backend restock fallback:', err);
+    }
+
+    // 2. Update frontend stock state immediately
     setMedicineStock(prev => prev.map(m =>
-      m.name === dispenseForm.medicineName ? { ...m, stock: Math.max(0, m.stock - dispenseForm.quantity) } : m
+      m.name === dispenseForm.medicineName ? { ...m, stock: newStockCount } : m
     ));
 
-    setRecords(prev => prev.map(record => {
-      if (record.id === selectedRecordId) {
-        const updated = {
-          ...record,
-          dispensedItems: [...(record.dispensedItems || []), {
-            medicineName: dispenseForm.medicineName,
-            quantity: dispenseForm.quantity,
-            date: new Date().toISOString().split('T')[0]
-          }]
-        };
-        if (selectedPatientChart?.id === record.id) {
-          setSelectedPatientChart(updated);
+    // 3. Create persistent Audit Trail entry (saan napunta ang gamot)
+    const newLog: MedicineDispenseLog = {
+      id: `DISP-${Date.now()}`,
+      medicineId: stockItem.id,
+      medicineName: stockItem.name,
+      category: stockItem.category,
+      quantity: dispenseForm.quantity,
+      unit: stockItem.unit,
+      recipientName: dispenseForm.recipientName.trim(),
+      purpose: dispenseForm.purpose.trim() || 'General Medical Assistance',
+      dispensedBy: user?.username || 'Health Worker',
+      notes: dispenseForm.notes?.trim() || '',
+      date: new Date().toISOString().split('T')[0],
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      remainingStock: newStockCount,
+    };
+
+    const updatedLogs = [newLog, ...dispenseLogs];
+    setDispenseLogs(updatedLogs);
+    try {
+      localStorage.setItem('medicine_dispense_logs', JSON.stringify(updatedLogs));
+    } catch {}
+
+    // 4. Also update patient record if tied to a record
+    if (dispenseForm.selectedRecordId) {
+      api.health.dispenseMedicine(dispenseForm.selectedRecordId, {
+        medicineName: dispenseForm.medicineName,
+        quantity: dispenseForm.quantity,
+      }).catch(console.error);
+
+      setRecords(prev => prev.map(record => {
+        if (record.id === dispenseForm.selectedRecordId) {
+          const updated = {
+            ...record,
+            dispensedItems: [...(record.dispensedItems || []), {
+              medicineName: dispenseForm.medicineName,
+              quantity: dispenseForm.quantity,
+              date: new Date().toISOString().split('T')[0]
+            }]
+          };
+          if (selectedPatientChart?.id === record.id) {
+            setSelectedPatientChart(updated);
+          }
+          return updated;
         }
-        return updated;
-      }
-      return record;
-    }));
+        return record;
+      }));
+    }
+
+    setDispenseFeedback(`✓ Naibawas ang ${dispenseForm.quantity} ${stockItem.unit} ng ${stockItem.name} para kay ${dispenseForm.recipientName}! (Natirang stock: ${newStockCount} ${stockItem.unit})`);
+    setTimeout(() => setDispenseFeedback(null), 6000);
 
     setIsDispenseModalOpen(false);
-    setDispenseForm({ medicineName: '', quantity: 1 });
-    setSelectedRecordId(null);
+    setDispenseForm({ medicineName: '', quantity: 1, recipientName: '', purpose: 'Lagnat / Sakit ng Ulo', notes: '', selectedRecordId: null });
   };
 
-  const totalMedicinesDispensed = records.reduce((total, record) =>
-    total + (record.dispensedItems?.reduce((sum, item) => sum + item.quantity, 0) || 0), 0);
+  const handleExportDispenseLogCSV = () => {
+    if (dispenseLogs.length === 0) {
+      alert('Walang talaan ng naipamahaging gamot upang i-export.');
+      return;
+    }
+    const headers = ['date', 'time', 'medicine_name', 'category', 'quantity_dispensed', 'unit', 'recipient_patient', 'purpose_diagnosis', 'dispensed_by', 'remaining_stock', 'notes'];
+    const rows = dispenseLogs.map(l => [
+      l.date,
+      l.timestamp,
+      l.medicineName,
+      l.category,
+      l.quantity,
+      l.unit,
+      l.recipientName,
+      l.purpose,
+      l.dispensedBy,
+      l.remainingStock,
+      l.notes || '',
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `barangay_medicine_dispense_log_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const totalMedicinesDispensed = dispenseLogs.reduce((sum, item) => sum + (item.quantity || 0), 0)
+    + records.reduce((total, record) =>
+      total + (record.dispensedItems?.reduce((sum, item) => sum + item.quantity, 0) || 0), 0);
 
   const [medicineStock, setMedicineStock] = useState<MedicineStock[]>([]);
   const [stockForm, setStockForm] = useState({ name: '', category: 'Analgesic', quantity: 50, unit: 'tablets', minStock: 10 });
@@ -197,6 +370,19 @@ export const HealthRecords: React.FC = () => {
     const matchesCategory = categoryFilter === 'All' || m.category === categoryFilter;
     const matchesSearch = m.name.toLowerCase().includes(search.toLowerCase());
     return matchesCategory && matchesSearch;
+  });
+
+  const filteredDispenseLogs = dispenseLogs.filter(log => {
+    const matchesMed = dispenseLogMedFilter === 'ALL' || dispenseLogMedFilter === 'All' || log.medicineName === dispenseLogMedFilter;
+    const term = dispenseLogSearch.toLowerCase().trim();
+    if (!term) return matchesMed;
+    const matchesSearch =
+      log.recipientName?.toLowerCase().includes(term) ||
+      log.medicineName?.toLowerCase().includes(term) ||
+      log.purpose?.toLowerCase().includes(term) ||
+      log.dispensedBy?.toLowerCase().includes(term) ||
+      (log.notes && log.notes.toLowerCase().includes(term));
+    return matchesMed && matchesSearch;
   });
 
   const lowStockCount = medicineStock.filter(m => m.stock <= m.minStock).length;
@@ -705,6 +891,23 @@ export const HealthRecords: React.FC = () => {
                 </span>
               )}
             </button>
+
+            <button
+              onClick={() => setView('dispense-logs')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                view === 'dispense-logs'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              <History size={14} />
+              <span>Saan Napunta ang Gamot</span>
+              {dispenseLogs.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                  {dispenseLogs.length}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Action Buttons */}
@@ -797,11 +1000,44 @@ export const HealthRecords: React.FC = () => {
 
               <button
                 type="button"
+                onClick={handleOpenGeneralDispense}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs transition-colors shadow-subtle cursor-pointer"
+                title="Mag-dispense o mag-bawas ng gamot sa inventory"
+              >
+                <Pill size={14} />
+                <span>Dispense Medicine</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setIsAddStockModalOpen(true)}
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors shadow-subtle cursor-pointer"
               >
                 <PackagePlus size={15} />
                 <span>Add Medicine</span>
+              </button>
+            </div>
+          )}
+
+          {view === 'dispense-logs' && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleExportDispenseLogCSV}
+                className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                title="I-export ang kumpletong talaan ng naipamahaging gamot sa CSV"
+              >
+                <FileSpreadsheet size={14} className="text-emerald-600 dark:text-emerald-400" />
+                <span>Export Log (CSV)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenGeneralDispense}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs transition-colors shadow-subtle cursor-pointer"
+              >
+                <Pill size={14} />
+                <span>Dispense Medicine</span>
               </button>
             </div>
           )}
@@ -850,6 +1086,19 @@ export const HealthRecords: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Dispense Success Feedback Alert */}
+      {dispenseFeedback && (
+        <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 p-4 rounded-2xl text-xs font-bold flex items-center justify-between shadow-sm animate-fade-in">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{dispenseFeedback}</span>
+          </div>
+          <button onClick={() => setDispenseFeedback(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* ============ VIEW: RECORDS ============ */}
       {view === 'records' && (
@@ -983,7 +1232,7 @@ export const HealthRecords: React.FC = () => {
                           Chart
                         </button>
                         <button
-                          onClick={() => { setSelectedRecordId(record.id); setIsDispenseModalOpen(true); }}
+                          onClick={() => handleOpenDispenseForRecord(record)}
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 dark:text-blue-300 rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors border border-blue-200 dark:border-blue-800 cursor-pointer"
                         >
                           <Pill size={13} />
@@ -1243,17 +1492,32 @@ export const HealthRecords: React.FC = () => {
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="flex items-center gap-2 justify-end">
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <button
+                              onClick={() => handleOpenDispenseForMed(med)}
+                              title="Bawas Stock / Ibigay sa Residente"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-300 rounded-xl text-[10px] font-black uppercase border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer"
+                            >
+                              <Minus size={12} /> Bawas
+                            </button>
                             <button
                               onClick={() => handleRestock(med.id, 20)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 rounded-xl text-[10px] font-black uppercase border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
+                              title="Dagdag +20 Stock"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 rounded-xl text-[10px] font-black uppercase border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
                             >
-                              <PackagePlus size={13} /> +20
+                              <PackagePlus size={12} /> +20
+                            </button>
+                            <button
+                              onClick={() => { setDispenseLogMedFilter(med.name); setView('dispense-logs'); }}
+                              title="Tignan kung saan napunta ang gamot na ito"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-300 rounded-xl text-[10px] font-black uppercase border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
+                            >
+                              <History size={12} /> History
                             </button>
                             <button
                               onClick={() => handleDeleteStock(med.id)}
                               title="Delete Medicine"
-                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-400 rounded-xl border border-rose-200 dark:border-rose-800/60 transition-colors cursor-pointer"
+                              className="p-1.5 bg-slate-100 hover:bg-rose-100 text-slate-500 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/50 dark:text-slate-400 dark:hover:text-rose-300 rounded-xl border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer"
                             >
                               <Trash2 size={13} />
                             </button>
@@ -1262,6 +1526,136 @@ export const HealthRecords: React.FC = () => {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============ VIEW: Saan Napunta Ang Gamot (Dispense History / Audit Trail) ============ */}
+      {view === 'dispense-logs' && (
+        <div className="space-y-6 animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full sm:w-96">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="text"
+                placeholder="Hanapin pasyente, gamot, dahilan, o health worker..."
+                value={dispenseLogSearch}
+                onChange={e => setDispenseLogSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-rose-500/20 shadow-sm"
+              />
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <select
+                value={dispenseLogMedFilter}
+                onChange={e => setDispenseLogMedFilter(e.target.value)}
+                className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:outline-none shadow-sm cursor-pointer"
+              >
+                <option value="ALL">Lahat ng Gamot</option>
+                {medicineStock.map(m => (
+                  <option key={m.id} value={m.name}>{m.name}</option>
+                ))}
+              </select>
+              <button
+                onClick={handleOpenGeneralDispense}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-lg shadow-rose-600/20 cursor-pointer"
+              >
+                <Pill size={15} /> Magbawas / Mag-dispense
+              </button>
+              <button
+                onClick={handleExportDispenseLogCSV}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-600/20 cursor-pointer"
+              >
+                <Download size={15} /> Export CSV
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="px-6 py-4">Petsa & Oras</th>
+                    <th className="px-6 py-4">Gamot / Bakuna</th>
+                    <th className="px-6 py-4 text-center">Bilang Na Bawas</th>
+                    <th className="px-6 py-4">Kanino Napunta (Pasyente / Residente)</th>
+                    <th className="px-6 py-4">Dahilan / Rekomendasyon</th>
+                    <th className="px-6 py-4">Health Worker</th>
+                    <th className="px-6 py-4">Natitirang Stock</th>
+                    <th className="px-6 py-4">Notes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  {filteredDispenseLogs.length > 0 ? (
+                    filteredDispenseLogs.map(log => (
+                      <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Clock size={13} className="text-slate-400" />
+                            <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                              {log.date} {log.timestamp ? `• ${log.timestamp}` : ''}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <Pill size={14} className="text-rose-500" />
+                            {log.medicineName}
+                          </p>
+                          <span className="text-[10px] text-slate-400 font-semibold">{log.category}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-black font-mono text-xs border border-rose-200 dark:border-rose-800/60">
+                            -{log.quantity} {log.unit}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-500 text-white font-black text-xs flex items-center justify-center">
+                              {log.recipientName ? log.recipientName.slice(0, 1).toUpperCase() : 'P'}
+                            </div>
+                            <div>
+                              <p className="font-black text-sm text-slate-900 dark:text-white">{log.recipientName}</p>
+                              {log.medicineId && (
+                                <p className="text-[10px] text-slate-400 font-mono">ID: {log.medicineId}</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold">
+                            {log.purpose}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                            {log.dispensedBy}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-xs font-black text-slate-700 dark:text-slate-300">
+                            {log.remainingStock} {log.unit}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs text-slate-500 italic">
+                            {log.notes || '—'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                        <History size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-700" />
+                        <p className="font-bold text-sm">Walang tala ng nabawas na gamot.</p>
+                        <p className="text-xs text-slate-500 mt-1">Kapag nag-bawas o nag-dispense ng gamot gamit ang "- Bawas", lilitaw rito ang buong detalye kung kanino napunta.</p>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -1339,7 +1733,7 @@ export const HealthRecords: React.FC = () => {
             <div className="flex justify-end gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
-                onClick={() => { setSelectedRecordId(selectedPatientChart.id); setIsDispenseModalOpen(true); }}
+                onClick={() => handleOpenDispenseForRecord(selectedPatientChart)}
                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-extrabold rounded-2xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
               >
                 <Pill size={15} /> Dispense Medicine
@@ -1400,31 +1794,112 @@ export const HealthRecords: React.FC = () => {
         </div>
       )}
 
-      {/* ============ MODAL: Dispense Medicine ============ */}
+      {/* ============ MODAL: Dispense Medicine (Bawas Gamot & San Napunta) ============ */}
       {isDispenseModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-sm w-full shadow-2xl p-6">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-              <Pill className="text-blue-500" />
-              Dispense Medicine
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full shadow-2xl p-6">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1.5 flex items-center gap-2">
+              <Pill className="text-rose-500" />
+              Bawas Gamot / Dispense Medicine
             </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              I-record ang pagbawas ng stock at kung kaninong pasyente o residente ito napunta.
+            </p>
             <form onSubmit={handleDispense} className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">Select Medicine / Vaccine</label>
-                <select required value={dispenseForm.medicineName} onChange={e => setDispenseForm({...dispenseForm, medicineName: e.target.value})} className={inputCls}>
-                  <option value="">-- Select Item --</option>
+                <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                  Piliin ang Gamot / Bakuna <span className="text-rose-500">*</span>
+                </label>
+                <select
+                  required
+                  value={dispenseForm.medicineName}
+                  onChange={e => setDispenseForm({...dispenseForm, medicineName: e.target.value})}
+                  className={inputCls}
+                >
+                  <option value="">-- Piliin ang Gamot --</option>
                   {medicineStock.map(m => (
-                    <option key={m.id} value={m.name}>{m.name} ({m.stock} {m.unit} in stock)</option>
+                    <option key={m.id} value={m.name}>
+                      {m.name} ({m.stock} {m.unit} natitira)
+                    </option>
                   ))}
                 </select>
               </div>
+
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">Quantity</label>
-                <input required type="number" min="1" value={dispenseForm.quantity} onChange={e => setDispenseForm({...dispenseForm, quantity: parseInt(e.target.value) || 1})} className={inputCls} />
+                <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                  Bilang / Quantity na Ibabawas <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  value={dispenseForm.quantity}
+                  onChange={e => setDispenseForm({...dispenseForm, quantity: parseInt(e.target.value) || 1})}
+                  className={inputCls}
+                />
               </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                  Kanino Napunta (Pangalan ng Pasyente / Residente) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  required
+                  type="text"
+                  list="resident-names-list"
+                  placeholder="e.g. Maria Clara Santos o piliin sa listahan"
+                  value={dispenseForm.recipientName}
+                  onChange={e => setDispenseForm({...dispenseForm, recipientName: e.target.value})}
+                  className={inputCls}
+                />
+                <datalist id="resident-names-list">
+                  {residentNames.map((name, i) => (
+                    <option key={i} value={name} />
+                  ))}
+                </datalist>
+                <p className="text-[10px] text-slate-400 mt-1">May auto-complete mula sa registered residents ng barangay.</p>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                  Dahilan / Rekomendasyon (Purpose)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Lagnat, Ubo, Maintenance, First Aid, Reseta ni Doc"
+                  value={dispenseForm.purpose}
+                  onChange={e => setDispenseForm({...dispenseForm, purpose: e.target.value})}
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                  Karagdagang Tala / Notes (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. 1 tableta bawat 8 oras pagkatapos kumain..."
+                  value={dispenseForm.notes}
+                  onChange={e => setDispenseForm({...dispenseForm, notes: e.target.value})}
+                  className={inputCls}
+                />
+              </div>
+
               <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
-                <button type="button" onClick={() => setIsDispenseModalOpen(false)} className="px-4 py-2 font-bold text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer">Cancel</button>
-                <button type="submit" className="px-5 py-2.5 font-black text-xs text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-lg shadow-blue-600/30 cursor-pointer">Confirm Dispense</button>
+                <button
+                  type="button"
+                  onClick={() => setIsDispenseModalOpen(false)}
+                  className="px-4 py-2 font-bold text-xs text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 font-black text-xs text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/30 flex items-center gap-2 cursor-pointer"
+                >
+                  <Pill size={14} /> I-bawas at I-rekord
+                </button>
               </div>
             </form>
           </div>

@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
   Briefcase, Calendar, Settings, LogOut, Sun, Moon,
   Menu, X, ShieldAlert, ListOrdered, Activity, Bell, CheckCheck, Megaphone, AlertTriangle, UserCog, Stethoscope,
-  ShieldCheck, Eye, EyeOff, Terminal
+  ShieldCheck, Eye, EyeOff, Terminal, Volume2, VolumeX
 } from 'lucide-react';
 
 import { useAuthStore } from '../store/authStore';
@@ -13,6 +13,7 @@ import { usePrivacyStore } from '../store/privacyStore';
 import { AIFloatingPanel } from '../components/AIFloatingPanel';
 import { api } from '../services/api';
 import type { Notification } from '../types';
+import { playNotificationSound, isNotificationSoundEnabled, setNotificationSoundEnabled } from '../utils/notificationSound';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -28,8 +29,18 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [popupToast, setPopupToast] = useState<{ title: string; content: string; type?: string } | null>(null);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(isNotificationSoundEnabled());
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Listen for notification sound preference changes from Settings or anywhere in app
+  useEffect(() => {
+    const handleSoundChange = (e: any) => {
+      setIsSoundEnabled(typeof e.detail === 'boolean' ? e.detail : isNotificationSoundEnabled());
+    };
+    window.addEventListener('notification-sound-change', handleSoundChange);
+    return () => window.removeEventListener('notification-sound-change', handleSoundChange);
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -120,6 +131,10 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
               return;
             }
 
+            // Play notification sound chime if enabled
+            const isUrgent = data.type === 'Alert' || data.type === 'Emergency';
+            playNotificationSound(isUrgent);
+
             const newNotif: Notification = {
               id: Date.now().toString(),
               title: data.title,
@@ -172,9 +187,15 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
 
-  const allowedItems = navItems.filter(item =>
-    item.roles.includes('all') || (user && (user.role === 'Super Admin' || item.roles.includes(user.role)))
-  );
+  const allowedItems = navItems.filter(item => {
+    if (!user) return false;
+    if (item.roles.includes('all')) return true;
+    // Dev Console is strictly for the Developer role and hidden from Super Admin/admin
+    if (item.name === 'Dev Console') {
+      return user.role === 'Developer';
+    }
+    return user.role === 'Super Admin' || item.roles.includes(user.role);
+  });
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
@@ -353,15 +374,34 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
                         </span>
                       )}
                     </div>
-                    {unreadCount > 0 && (
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={handleMarkAllRead}
-                        className="text-[11px] font-semibold text-gov-blue-600 dark:text-gov-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        onClick={() => {
+                          const next = !isSoundEnabled;
+                          setIsSoundEnabled(next);
+                          setNotificationSoundEnabled(next);
+                          if (next) playNotificationSound(false, true);
+                        }}
+                        title={isSoundEnabled ? "Notification sound is ON (click to mute)" : "Notification sound is MUTED (click to enable sound)"}
+                        className={`px-2 py-1 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer border ${
+                          isSoundEnabled
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                            : 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        }`}
                       >
-                        <CheckCheck size={13} />
-                        Mark all read
+                        {isSoundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                        <span className="text-[10px] font-bold">{isSoundEnabled ? 'Sound ON' : 'Muted'}</span>
                       </button>
-                    )}
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-[11px] font-semibold text-gov-blue-600 dark:text-gov-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                        >
+                          <CheckCheck size={13} />
+                          Mark all read
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80">

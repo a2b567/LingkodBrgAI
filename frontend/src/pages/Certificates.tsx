@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { 
   FileText, Plus, Check, X, Search, ArrowDownToLine, Signature, MonitorSmartphone,
   Activity, Clock, CheckCircle2, XCircle, CreditCard, Sparkles, AlertCircle,
-  Edit3, Trash2, UserCheck, Printer
+  Edit3, Trash2, UserCheck, Printer, Upload, FileUp, RotateCcw, Download, Layers, Image as ImageIcon,
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignJustify, Type
 } from 'lucide-react';
 import { api } from '../services/api';
 import type { Certificate, Resident } from '../types';
@@ -90,6 +91,17 @@ export const Certificates: React.FC = () => {
     setIsIDModalOpen(true);
   };
 
+  // Cedula (CTC) Pre-Printed Form Modal State
+  const [isCedulaModalOpen, setIsCedulaModalOpen] = useState(false);
+  const [cedulaCertToView, setCedulaCertToView] = useState<Certificate | null>(null);
+  const [cedulaCopied, setCedulaCopied] = useState(false);
+
+  const handleOpenCedulaModal = (cert: Certificate) => {
+    setCedulaCertToView(cert);
+    setCedulaCopied(false);
+    setIsCedulaModalOpen(true);
+  };
+
   // Printable Official Certificate Modal State
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [certToPrint, setCertToPrint] = useState<Certificate | null>(null);
@@ -137,6 +149,119 @@ export const Certificates: React.FC = () => {
       signatoryTitle: 'Punong Barangay',
     });
     setIsPrintModalOpen(true);
+  };
+
+  // Custom Certificate Import State
+  const [customCertFile, setCustomCertFile] = useState<{
+    file: File | null;
+    url: string | null;
+    name: string;
+    type: 'image' | 'pdf';
+    mode: 'replace' | 'background';
+    bgOpacity: number;
+    hideDefaultHeader: boolean;
+    hideDefaultBorder: boolean;
+  } | null>(null);
+
+  const [leftLogoUrl, setLeftLogoUrl] = useState<string | null>(null);
+  const [rightLogoUrl, setRightLogoUrl] = useState<string | null>(null);
+  const [activeImportTab, setActiveImportTab] = useState<'document' | 'data' | 'logos'>('document');
+  const [showImportSection, setShowImportSection] = useState(false);
+  const [importFeedback, setImportFeedback] = useState<string | null>(null);
+  const [certFontFamily, setCertFontFamily] = useState<'serif' | 'sans'>('serif');
+  const [isDocsMode, setIsDocsMode] = useState<boolean>(true);
+
+  const certFileInputRef = useRef<HTMLInputElement>(null);
+  const jsonFileInputRef = useRef<HTMLInputElement>(null);
+  const leftLogoInputRef = useRef<HTMLInputElement>(null);
+  const rightLogoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDocumentFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileType = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image';
+    const objectUrl = URL.createObjectURL(file);
+
+    setCustomCertFile({
+      file,
+      url: objectUrl,
+      name: file.name,
+      type: fileType,
+      mode: 'replace',
+      bgOpacity: 0.95,
+      hideDefaultHeader: false,
+      hideDefaultBorder: false,
+    });
+    setImportFeedback(`File "${file.name}" uploaded! Certificate preview updated.`);
+    setTimeout(() => setImportFeedback(null), 4000);
+    e.target.value = '';
+  };
+
+  const handleJsonFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        setPrintForm(prev => ({
+          ...prev,
+          docNo: data.docNo || data.document_number || data.controlNo || prev.docNo,
+          residentName: data.residentName || data.name || data.fullName || prev.residentName,
+          civilStatus: data.civilStatus || data.civil_status || prev.civilStatus,
+          citizenship: data.citizenship || prev.citizenship,
+          address: data.address || prev.address,
+          type: data.type || data.certificateType || prev.type,
+          purpose: data.purpose || prev.purpose,
+          remarks: data.remarks || prev.remarks,
+          issueDate: data.issueDate || data.issue_date || prev.issueDate,
+          orNo: data.orNo || data.or_number || prev.orNo,
+          fee: data.fee !== undefined ? Number(data.fee) : prev.fee,
+          signatoryName: data.signatoryName || data.signatory || prev.signatoryName,
+          signatoryTitle: data.signatoryTitle || data.title || prev.signatoryTitle,
+        }));
+        setImportFeedback(`Successfully imported fields from "${file.name}"!`);
+        setTimeout(() => setImportFeedback(null), 4000);
+      } catch (err) {
+        alert("Failed to parse JSON file. Please ensure it is valid JSON.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleExportJsonTemplate = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(printForm, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `certificate-template-${printForm.docNo || 'sample'}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handleLogoUpload = (type: 'left' | 'right', e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    if (type === 'left') setLeftLogoUrl(objectUrl);
+    if (type === 'right') setRightLogoUrl(objectUrl);
+    setImportFeedback(`${type === 'left' ? 'Barangay' : 'City/Municipal'} seal updated!`);
+    setTimeout(() => setImportFeedback(null), 4000);
+    e.target.value = '';
+  };
+
+  const handleResetCustomTemplate = () => {
+    if (customCertFile?.url) {
+      URL.revokeObjectURL(customCertFile.url);
+    }
+    setCustomCertFile(null);
+    setLeftLogoUrl(null);
+    setRightLogoUrl(null);
+    setImportFeedback("Reset back to default official certificate layout.");
+    setTimeout(() => setImportFeedback(null), 3000);
   };
 
   // Form states
@@ -738,6 +863,15 @@ export const Certificates: React.FC = () => {
                             <CreditCard size={13} />
                             Print ID Card
                           </button>
+                        ) : cert.type === 'Cedula' ? (
+                          <button
+                            onClick={() => handleOpenCedulaModal(cert)}
+                            className="p-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 rounded-xl transition-colors flex items-center gap-1 text-[10px] font-bold cursor-pointer border border-amber-200 dark:border-amber-900/40"
+                            title="Pre-printed BIR Cedula Form (Walang A4 Print)"
+                          >
+                            <FileText size={13} />
+                            Cedula Form
+                          </button>
                         ) : (
                           <button
                             onClick={() => handleOpenPrintModal(cert)}
@@ -868,15 +1002,23 @@ export const Certificates: React.FC = () => {
                   {cert.type === 'Barangay ID' ? (
                     <button
                       onClick={() => handleOpenIDModal(cert)}
-                      className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                      className="flex-1 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       <CreditCard size={14} />
                       <span>ID Card</span>
                     </button>
+                  ) : cert.type === 'Cedula' ? (
+                    <button
+                      onClick={() => handleOpenCedulaModal(cert)}
+                      className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <FileText size={14} />
+                      <span>Cedula Form</span>
+                    </button>
                   ) : (
                     <button
                       onClick={() => handleOpenPrintModal(cert)}
-                      className="flex-1 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm"
+                      className="flex-1 py-2 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       <Printer size={14} />
                       <span>Print/Preview</span>
@@ -1554,6 +1696,155 @@ export const Certificates: React.FC = () => {
         </div>
       )}
 
+      {/* 9.5. Modal - Cedula (CTC) Pre-Printed Form Record */}
+      {isCedulaModalOpen && cedulaCertToView && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl max-w-2xl w-full shadow-2xl p-5 sm:p-7 text-slate-900 dark:text-white relative animate-scale-up space-y-5 my-auto">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-tr from-amber-500 to-amber-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                    Community Tax Certificate (Cedula)
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                      PRE-PRINTED BIR FORM
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Opisyal na talaan para sa physical security carbon paper</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsCedulaModalOpen(false)} 
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* BIR Official Notice Box */}
+            <div className="bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 p-3.5 rounded-2xl text-xs space-y-1">
+              <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-200">
+                <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                <span>Hindi kailangang i-print sa A4 bond paper</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-amber-800/90 dark:text-amber-300/90 pl-6">
+                Ang Cedula (CTC) ay ini-isyu gamit ang opisyal na serialized pre-printed carbon stationery ng BIR/LGU. Kopyahin lamang ang mga detalye sa ibaba upang isulat o i-encode sa inyong pisikal na Cedula form.
+              </p>
+            </div>
+
+            {/* Resident / Taxpayer Details Card */}
+            <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 text-xs">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                <span className="font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 text-[11px]">
+                  Mga Detalye ng Taxpayer
+                </span>
+                <span className="font-mono font-bold text-gov-gold-600 dark:text-gov-gold-400 bg-gov-gold-500/10 px-2 py-0.5 rounded-lg border border-gov-gold-500/30">
+                  {cedulaCertToView.document_number}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Pangalan (Full Name)</span>
+                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                    {cedulaCertToView.resident 
+                      ? `${cedulaCertToView.resident.first_name} ${cedulaCertToView.resident.middle_name || ''} ${cedulaCertToView.resident.last_name}` 
+                      : 'RESIDENT USER'}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Kasarian / Civil Status</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {cedulaCertToView.resident?.gender || 'Male'} / {cedulaCertToView.resident?.civil_status || 'Single'}
+                  </span>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Tirahan (Address)</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {cedulaCertToView.resident?.address || 'Barangay San Isidro, Bay, Laguna'}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Citizenship</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">Filipino</span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Tax Year</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">{new Date().getFullYear()}</span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Purpose / Layunin</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {cedulaCertToView.purpose || 'General Identification / Employment'}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Community Tax Fee</span>
+                  <span className="font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                    ₱{(cedulaCertToView.fee || 50).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCedulaModalOpen(false);
+                  handleOpenPrintModal(cedulaCertToView);
+                }}
+                className="text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 underline cursor-pointer"
+              >
+                Buksan pa rin sa A4 editor kung kinakailangan
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const text = `CEDULA RECORD:
+Control No: ${cedulaCertToView.document_number}
+Taxpayer: ${cedulaCertToView.resident?.first_name || ''} ${cedulaCertToView.resident?.last_name || ''}
+Address: ${cedulaCertToView.resident?.address || ''}
+Civil Status: ${cedulaCertToView.resident?.civil_status || 'Single'}
+Citizenship: Filipino
+Year: ${new Date().getFullYear()}
+Fee: ₱${cedulaCertToView.fee || 50}`;
+                    navigator.clipboard.writeText(text);
+                    setCedulaCopied(true);
+                    setTimeout(() => setCedulaCopied(false), 3000);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+                >
+                  {cedulaCopied ? '✓ Nakopya Na!' : 'Kopyahin ang Detalye'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsCedulaModalOpen(false)}
+                  className="px-6 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-md shadow-amber-600/30 transition-all cursor-pointer"
+                >
+                  Isara (Done)
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* 10. Modal - Printable & Live Editable Official Certificate */}
       {isPrintModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
@@ -1577,6 +1868,23 @@ export const Certificates: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
+                {/* Import File Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowImportSection(!showImportSection)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    showImportSection || customCertFile
+                      ? 'bg-gradient-to-r from-gov-blue-600 to-indigo-600 text-white shadow-md shadow-gov-blue-600/30 border border-gov-blue-400/40'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  <FileUp size={14} />
+                  <span>{customCertFile ? 'Custom File Active' : 'Import File / Template'}</span>
+                  {customCertFile && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  )}
+                </button>
+
                 <button
                   type="button"
                   onClick={() => setIsEditingPrintForm(!isEditingPrintForm)}
@@ -1598,15 +1906,386 @@ export const Certificates: React.FC = () => {
               </div>
             </div>
 
+            {/* Cedula Pre-Printed Government Form Notice Banner */}
+            {(certToPrint?.type === 'Cedula' || printForm.type.toLowerCase().includes('cedula')) && (
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 p-3 rounded-2xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shrink-0">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                  <span>
+                    <strong>Paalala sa Cedula:</strong> May sarili nang opisyal na pre-printed form (BIR CTC carbon security paper) ang barangay. Hindi kinakailangang i-print ito sa A4 paper.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPrintModalOpen(false);
+                    if (certToPrint) handleOpenCedulaModal(certToPrint);
+                  }}
+                  className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-[11px] shrink-0 cursor-pointer shadow-sm"
+                >
+                  Buksan ang Cedula Form Record
+                </button>
+              </div>
+            )}
+
+            {/* Import Feedback Alert */}
+            {importFeedback && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                  <span>{importFeedback}</span>
+                </div>
+                <button onClick={() => setImportFeedback(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-white">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* Expandable Import Section Panel */}
+            {showImportSection && (
+              <div className="bg-slate-50 dark:bg-slate-950/90 border border-gov-blue-500/30 rounded-2xl p-4 space-y-4 shrink-0 shadow-lg text-xs">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-gov-gold-500" />
+                    <h4 className="font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                      Import &amp; Customize Certificate Document
+                    </h4>
+                    <span className="text-[10px] text-slate-500">Mag-import ng template, background stationery, o JSON data</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {customCertFile && (
+                      <button
+                        type="button"
+                        onClick={handleResetCustomTemplate}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-300 dark:border-rose-900/60 transition-colors"
+                      >
+                        <RotateCcw size={12} />
+                        <span>Reset to Default Layout</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowImportSection(false)}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabs inside Import Section */}
+                <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveImportTab('document')}
+                    className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+                      activeImportTab === 'document'
+                        ? 'bg-gov-blue-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    <ImageIcon size={14} />
+                    <span>1. Custom File (Image / PDF)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveImportTab('data')}
+                    className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+                      activeImportTab === 'data'
+                        ? 'bg-gov-blue-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    <FileText size={14} />
+                    <span>2. Import Form Data (.JSON)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveImportTab('logos')}
+                    className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 transition-all ${
+                      activeImportTab === 'logos'
+                        ? 'bg-gov-blue-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800'
+                    }`}
+                  >
+                    <Layers size={14} />
+                    <span>3. Barangay Logos / Seals</span>
+                  </button>
+                </div>
+
+                {/* Hidden native file inputs */}
+                <input
+                  type="file"
+                  ref={certFileInputRef}
+                  onChange={handleDocumentFileUpload}
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf"
+                  className="hidden"
+                />
+                <input
+                  type="file"
+                  ref={jsonFileInputRef}
+                  onChange={handleJsonFileUpload}
+                  accept=".json,application/json"
+                  className="hidden"
+                />
+                <input
+                  type="file"
+                  ref={leftLogoInputRef}
+                  onChange={(e) => handleLogoUpload('left', e)}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <input
+                  type="file"
+                  ref={rightLogoInputRef}
+                  onChange={(e) => handleLogoUpload('right', e)}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {/* Tab 1: Custom Document File */}
+                {activeImportTab === 'document' && (
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <div className="md:col-span-6">
+                      <div
+                        onClick={() => certFileInputRef.current?.click()}
+                        className="border-2 border-dashed border-gov-blue-400/50 hover:border-gov-blue-500 bg-white/60 dark:bg-slate-900/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-gov-blue-50/20 group"
+                      >
+                        <div className="w-10 h-10 rounded-xl bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <Upload size={20} />
+                        </div>
+                        <div className="text-center">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                            Click to upload Certificate File
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            Supports PNG, JPG, WebP, SVG, and PDF
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="md:col-span-6 space-y-2">
+                      {customCertFile ? (
+                        <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
+                              📄 {customCertFile.name}
+                            </span>
+                            <span className="text-[10px] px-2 py-0.5 rounded-full font-extrabold uppercase bg-gov-blue-500/10 text-gov-blue-600 dark:text-gov-blue-400">
+                              {customCertFile.type}
+                            </span>
+                          </div>
+
+                          {/* Mode Selection */}
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Display Mode</label>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setCustomCertFile({ ...customCertFile, mode: 'replace' })}
+                                className={`p-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                                  customCertFile.mode === 'replace'
+                                    ? 'bg-gov-blue-600 text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                }`}
+                              >
+                                Full Document
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setCustomCertFile({ ...customCertFile, mode: 'background' })}
+                                className={`p-1.5 rounded-lg text-[11px] font-bold transition-all ${
+                                  customCertFile.mode === 'background'
+                                    ? 'bg-gov-blue-600 text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                }`}
+                              >
+                                Background Stationery
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Toggles if background mode */}
+                          {customCertFile.mode === 'background' && (
+                            <div className="pt-1 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-slate-600 dark:text-slate-400">Stationery Opacity:</span>
+                                <span className="font-bold font-mono">{Math.round(customCertFile.bgOpacity * 100)}%</span>
+                              </div>
+                              <input
+                                type="range"
+                                min="0.1"
+                                max="1"
+                                step="0.05"
+                                value={customCertFile.bgOpacity}
+                                onChange={(e) => setCustomCertFile({ ...customCertFile, bgOpacity: parseFloat(e.target.value) })}
+                                className="w-full accent-gov-blue-600 cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                              />
+                              <div className="flex items-center gap-3 pt-1">
+                                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-slate-600 dark:text-slate-400">
+                                  <input
+                                    type="checkbox"
+                                    checked={customCertFile.hideDefaultHeader}
+                                    onChange={(e) => setCustomCertFile({ ...customCertFile, hideDefaultHeader: e.target.checked })}
+                                    className="rounded accent-gov-blue-600"
+                                  />
+                                  <span>Hide Default Header</span>
+                                </label>
+                                <label className="flex items-center gap-1.5 cursor-pointer text-[10px] text-slate-600 dark:text-slate-400">
+                                  <input
+                                    type="checkbox"
+                                    checked={customCertFile.hideDefaultBorder}
+                                    onChange={(e) => setCustomCertFile({ ...customCertFile, hideDefaultBorder: e.target.checked })}
+                                    className="rounded accent-gov-blue-600"
+                                  />
+                                  <span>Hide Outer Border</span>
+                                </label>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-slate-500 text-[11px] leading-relaxed">
+                          <p className="font-semibold text-slate-700 dark:text-slate-300 mb-1">Paano gumagana:</p>
+                          <ul className="list-disc list-inside space-y-1 text-slate-500 dark:text-slate-400 text-[10px]">
+                            <li><strong>Full Document:</strong> Ipapalit ang uploaded file (Canva design, scanned certificate, etc.) sa preview at print.</li>
+                            <li><strong>Background Stationery:</strong> Magiging background watermark/stationery ang file habang ang mga field text ay nakapatong sa ibabaw.</li>
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 2: JSON Data Import */}
+                {activeImportTab === 'data' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                    <div
+                      onClick={() => jsonFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-indigo-400/50 hover:border-indigo-500 bg-white/60 dark:bg-slate-900/60 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all hover:bg-indigo-50/20 group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <FileText size={20} />
+                      </div>
+                      <div className="text-center">
+                        <span className="font-bold text-slate-800 dark:text-slate-200 block">
+                          Upload .JSON Form Data
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          Auto-fills resident name, control no, remarks, signatory, etc.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        onClick={handleExportJsonTemplate}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 font-bold transition-all shadow-sm cursor-pointer"
+                      >
+                        <Download size={15} />
+                        <span>Download Sample JSON Template</span>
+                      </button>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
+                        I-download ang template na ito para magkaroon ka ng file na pwedeng i-edit at i-import muli anumang oras para sa mabilisang certificate generation.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tab 3: Logos / Seals */}
+                {activeImportTab === 'logos' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Left Logo */}
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Barangay Official Seal (Left)</span>
+                      <div className="flex items-center gap-3">
+                        {leftLogoUrl ? (
+                          <img src={leftLogoUrl} alt="Barangay Seal" className="w-12 h-12 object-contain border border-slate-200 dark:border-slate-700 rounded-lg p-1 bg-white" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 text-[10px]">
+                            No Seal
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => leftLogoInputRef.current?.click()}
+                            className="px-2.5 py-1 rounded-lg bg-gov-blue-600 text-white font-bold text-[10px] hover:bg-gov-blue-700"
+                          >
+                            Upload Left Seal
+                          </button>
+                          {leftLogoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setLeftLogoUrl(null)}
+                              className="block text-[10px] text-rose-500 hover:underline"
+                            >
+                              Remove Seal
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Logo */}
+                    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">City / Municipal Seal (Right)</span>
+                      <div className="flex items-center gap-3">
+                        {rightLogoUrl ? (
+                          <img src={rightLogoUrl} alt="City Seal" className="w-12 h-12 object-contain border border-slate-200 dark:border-slate-700 rounded-lg p-1 bg-white" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 text-[10px]">
+                            No Seal
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => rightLogoInputRef.current?.click()}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-bold text-[10px] hover:bg-indigo-700"
+                          >
+                            Upload Right Seal
+                          </button>
+                          {rightLogoUrl && (
+                            <button
+                              type="button"
+                              onClick={() => setRightLogoUrl(null)}
+                              className="block text-[10px] text-rose-500 hover:underline"
+                            >
+                              Remove Seal
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Split Screen: Live Editor & Printable Sheet Preview */}
             <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 gap-5 pr-1 min-h-0">
               
               {/* Left Column: Live Field Editor Controls */}
               {isEditingPrintForm && (
                 <div className="lg:col-span-4 bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 shrink-0 text-xs overflow-y-auto max-h-[72vh]">
-                  <h4 className="text-xs font-black uppercase text-gov-gold-600 dark:text-gov-gold-400 tracking-wider flex items-center gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2">
-                    <Edit3 size={14} /> Live Field Editor
-                  </h4>
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                    <h4 className="text-xs font-black uppercase text-gov-gold-600 dark:text-gov-gold-400 tracking-wider flex items-center gap-1.5">
+                      <Edit3 size={14} /> Live Field Editor
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowImportSection(true)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-gov-blue-600 dark:text-gov-blue-400 hover:underline cursor-pointer"
+                    >
+                      <FileUp size={12} />
+                      <span>Import File</span>
+                    </button>
+                  </div>
 
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase block mb-1">Document Control No.</label>
@@ -1736,120 +2415,303 @@ export const Certificates: React.FC = () => {
               {/* Right Column: Live Printable Certificate Document Preview */}
               <div className={`${isEditingPrintForm ? 'lg:col-span-8' : 'lg:col-span-12'} bg-slate-100/80 dark:bg-slate-950/80 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col items-center overflow-y-auto max-h-[72vh]`}>
                 
+                {/* Word / Google Docs Formatting Toolbar */}
+                <div className="w-full max-w-[210mm] mb-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2.5 shadow-sm flex flex-wrap items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsDocsMode(!isDocsMode)}
+                      className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        isDocsMode 
+                          ? 'bg-gov-blue-600 text-white shadow-sm shadow-gov-blue-600/30' 
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      <Type size={13} />
+                      <span>{isDocsMode ? '📝 Word/Docs Direct Edit: ON' : 'Direct Edit: OFF'}</span>
+                    </button>
+                    <span className="text-[11px] text-slate-500 hidden md:inline">
+                      I-click ang kahit anong text sa certificate para mag-type at mag-edit tulad sa Word/Docs.
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      title="Bold (Ctrl+B)"
+                      onClick={() => document.execCommand('bold')}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                    >
+                      <Bold size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Italic (Ctrl+I)"
+                      onClick={() => document.execCommand('italic')}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                    >
+                      <Italic size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Underline (Ctrl+U)"
+                      onClick={() => document.execCommand('underline')}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold cursor-pointer"
+                    >
+                      <Underline size={13} />
+                    </button>
+                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
+                    <button
+                      type="button"
+                      title="Align Left"
+                      onClick={() => document.execCommand('justifyLeft')}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+                    >
+                      <AlignLeft size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Align Center"
+                      onClick={() => document.execCommand('justifyCenter')}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+                    >
+                      <AlignCenter size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Justify"
+                      onClick={() => document.execCommand('justifyFull')}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+                    >
+                      <AlignJustify size={13} />
+                    </button>
+                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
+                    <button
+                      type="button"
+                      title="Toggle Font Family"
+                      onClick={() => setCertFontFamily(prev => prev === 'serif' ? 'sans' : 'serif')}
+                      className="px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Type size={12} />
+                      <span>{certFontFamily === 'serif' ? 'Formal Serif' : 'Modern Sans'}</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Official Certificate Printable Container */}
                 <div 
                   id="printable-certificate-sheet" 
-                  className="w-full max-w-[210mm] min-h-[275mm] bg-white text-slate-950 p-8 sm:p-12 shadow-2xl relative flex flex-col justify-between border-8 border-double border-gov-blue-950 my-auto text-left font-serif"
+                  className={`w-full max-w-[210mm] min-h-[275mm] bg-white text-slate-950 p-8 sm:p-12 shadow-2xl relative flex flex-col justify-between my-auto text-left overflow-hidden ${
+                    certFontFamily === 'serif' ? 'font-serif' : 'font-sans'
+                  } ${
+                    customCertFile?.hideDefaultBorder ? 'border-0' : 'border-8 border-double border-gov-blue-950'
+                  }`}
                 >
-                  <div className="space-y-6 relative z-10">
-                    
-                    {/* Header Letterhead */}
-                    <div className="flex items-center justify-between border-b-2 border-gov-blue-950 pb-4">
-                      <div className="text-center space-y-0.5 flex-1 mx-2">
-                        <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">REPUBLIC OF THE PHILIPPINES</span>
-                        <span className="text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans">PROVINCE OF LAGUNA • MUNICIPALITY OF BAY</span>
-                        <h2 className="text-xl font-black tracking-tight text-gov-blue-950 uppercase font-display mt-0.5">BARANGAY SAN ISIDRO</h2>
-                        <span className="text-[12px] font-bold text-gov-blue-900 tracking-wider uppercase block font-sans">OFFICE OF THE PUNONG BARANGAY</span>
-                      </div>
+                  {/* If Full Document Replacement Mode is selected with an uploaded Image or PDF */}
+                  {customCertFile?.mode === 'replace' ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center relative z-10 my-auto">
+                      {customCertFile.type === 'image' ? (
+                        <img 
+                          src={customCertFile.url!} 
+                          alt="Custom Uploaded Certificate" 
+                          className="w-full h-auto object-contain max-h-[265mm]" 
+                        />
+                      ) : (
+                        <iframe 
+                          src={customCertFile.url!} 
+                          title="Custom Uploaded Certificate PDF" 
+                          className="w-full min-h-[265mm] border-0" 
+                        />
+                      )}
                     </div>
+                  ) : (
+                    <>
+                      {/* Background Stationery Layer if custom file is in background mode */}
+                      {customCertFile?.mode === 'background' && customCertFile.type === 'image' && (
+                        <div 
+                          className="absolute inset-0 z-0 pointer-events-none bg-contain bg-center bg-no-repeat"
+                          style={{
+                            backgroundImage: `url(${customCertFile.url})`,
+                            opacity: customCertFile.bgOpacity,
+                          }}
+                        />
+                      )}
 
-                    {/* Certificate Title */}
-                    <div className="text-center space-y-2 py-4">
-                      <h1 className="text-2xl sm:text-3xl font-black text-gov-blue-950 uppercase tracking-wider font-display underline decoration-gov-gold-500 underline-offset-8">
-                        {printForm.type || 'BARANGAY CLEARANCE'}
-                      </h1>
-                      <span className="text-[11px] font-bold font-mono text-slate-600 uppercase tracking-widest block font-sans pt-1">
-                        Control No: <strong className="text-slate-955">{printForm.docNo}</strong>
-                      </span>
-                    </div>
-
-                    {/* Salutation */}
-                    <div className="pt-2 font-bold text-sm text-slate-955 uppercase tracking-wider font-sans">
-                      TO WHOM IT MAY CONCERN:
-                    </div>
-
-                    {/* Main Certification Paragraph */}
-                    <div className="text-justify text-sm sm:text-base leading-relaxed text-slate-900 space-y-4 font-serif">
-                      <p className="indent-8">
-                        This is to certify that <strong className="text-gov-blue-950 uppercase text-base tracking-wide font-sans">{printForm.residentName}</strong>, of legal age, <strong>{printForm.civilStatus}</strong>, <strong>{printForm.citizenship}</strong>, is a bona fide resident of <strong>{printForm.address}</strong>.
-                      </p>
-
-                      <p className="indent-8">
-                        This certification is issued upon the request of the above-named person for the purpose of: <strong className="text-gov-blue-900 uppercase font-sans text-sm">{printForm.purpose}</strong> and for whatever legal intents and purposes it may serve.
-                      </p>
-
-                      <p className="indent-8">
-                        <strong className="font-sans text-xs uppercase tracking-wider text-slate-700">REMARKS:</strong> {printForm.remarks}
-                      </p>
-
-                      <p className="indent-8 pt-4">
-                        Given and issued this <strong>{new Date(printForm.issueDate).getDate()}th</strong> day of <strong>{new Date(printForm.issueDate).toLocaleString('default', { month: 'long' })}</strong>, <strong>{new Date(printForm.issueDate).getFullYear()}</strong> at Barangay San Isidro, Bay, Laguna, Republic of the Philippines.
-                      </p>
-                    </div>
-
-                  </div>
-
-                  {/* Signatures & Footer Verification Row */}
-                  <div className="pt-10 relative z-10 space-y-6">
-                    
-                    <div className="grid grid-cols-2 gap-8 items-end">
-                      {/* Left: Applicant Signature Box & Payment Metadata */}
-                      <div className="space-y-3 font-sans text-xs">
-                        {certToPrint?.signature || certToPrint?.e_signature_path ? (
-                          <div className="space-y-1">
-                            <img src={certToPrint.signature || getPdfUrl(certToPrint.e_signature_path)} alt="Applicant Signature" className="h-12 object-contain" />
-                            <div className="border-t border-slate-400 w-44 pt-0.5 text-[9px] font-bold text-slate-500 uppercase">APPLICANT SIGNATURE</div>
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            <div className="h-10 border-b border-slate-400 w-44"></div>
-                            <div className="text-[9px] font-bold text-slate-500 uppercase">APPLICANT SIGNATURE / THUMBMARK</div>
+                      <div className="space-y-6 relative z-10">
+                        
+                        {/* Header Letterhead (Hidden if custom template already has letterhead) */}
+                        {!customCertFile?.hideDefaultHeader && (
+                          <div className="flex items-center justify-between border-b-2 border-gov-blue-950 pb-4">
+                            {leftLogoUrl ? (
+                              <img src={leftLogoUrl} alt="Barangay Seal" className="w-16 h-16 object-contain shrink-0" />
+                            ) : (
+                              <div className="w-12 h-12" />
+                            )}
+                            <div className="text-center space-y-0.5 flex-1 mx-2">
+                              <span 
+                                contentEditable={isDocsMode} 
+                                suppressContentEditableWarning 
+                                className={`text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans ${isDocsMode ? 'docs-editable' : ''}`}
+                              >
+                                REPUBLIC OF THE PHILIPPINES
+                              </span>
+                              <span 
+                                contentEditable={isDocsMode} 
+                                suppressContentEditableWarning 
+                                className={`text-[11px] font-bold tracking-widest text-slate-600 uppercase block font-sans ${isDocsMode ? 'docs-editable' : ''}`}
+                              >
+                                PROVINCE OF LAGUNA • MUNICIPALITY OF BAY
+                              </span>
+                              <h2 
+                                contentEditable={isDocsMode} 
+                                suppressContentEditableWarning 
+                                className={`text-xl font-black tracking-tight text-gov-blue-950 uppercase font-display mt-0.5 ${isDocsMode ? 'docs-editable' : ''}`}
+                              >
+                                BARANGAY SAN ISIDRO
+                              </h2>
+                              <span 
+                                contentEditable={isDocsMode} 
+                                suppressContentEditableWarning 
+                                className={`text-[12px] font-bold text-gov-blue-900 tracking-wider uppercase block font-sans ${isDocsMode ? 'docs-editable' : ''}`}
+                              >
+                                OFFICE OF THE PUNONG BARANGAY
+                              </span>
+                            </div>
+                            {rightLogoUrl ? (
+                              <img src={rightLogoUrl} alt="City Seal" className="w-16 h-16 object-contain shrink-0" />
+                            ) : (
+                              <div className="w-12 h-12" />
+                            )}
                           </div>
                         )}
 
-                        <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[10px] space-y-1 text-slate-700 font-mono">
-                          <div>O.R. No: <strong>{printForm.orNo}</strong></div>
-                          <div>Amount Paid: <strong>{printForm.fee > 0 ? `₱${printForm.fee.toFixed(2)}` : 'FREE'}</strong></div>
-                          <div>Date Issued: <strong>{printForm.issueDate}</strong></div>
+                        {/* Certificate Title */}
+                        <div className="text-center space-y-2 py-4">
+                          <h1 
+                            contentEditable={isDocsMode} 
+                            suppressContentEditableWarning 
+                            className={`text-2xl sm:text-3xl font-black text-gov-blue-950 uppercase tracking-wider font-display underline decoration-gov-gold-500 underline-offset-8 inline-block ${isDocsMode ? 'docs-editable' : ''}`}
+                          >
+                            {printForm.type || 'BARANGAY CLEARANCE'}
+                          </h1>
+                          <span className="text-[11px] font-bold font-mono text-slate-600 uppercase tracking-widest block font-sans pt-1">
+                            Control No: <strong 
+                              contentEditable={isDocsMode} 
+                              suppressContentEditableWarning 
+                              className={`text-slate-950 ${isDocsMode ? 'docs-editable' : ''}`}
+                            >{printForm.docNo}</strong>
+                          </span>
                         </div>
-                      </div>
 
-                      {/* Right: Official Barangay Captain Signature */}
-                      <div className="text-center space-y-1 font-sans">
-                        <div className="font-serif italic text-xs text-gov-blue-900 h-6">Approved &amp; Signed</div>
-                        <h4 className="text-sm font-black text-gov-blue-950 uppercase tracking-tight underline underline-offset-2">
-                          {printForm.signatoryName}
-                        </h4>
-                        <span className="text-[11px] font-extrabold text-slate-800 uppercase tracking-wider block">
-                          {printForm.signatoryTitle}
-                        </span>
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block pt-0.5">
-                          BARANGAY SAN ISIDRO, BAY, LAGUNA
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Bottom Live Cryptographic QR Verification Footer */}
-                    <div className="border-t-2 border-slate-200 pt-3 flex items-center justify-between text-[9px] text-slate-600 font-sans">
-                      <div className="flex items-center gap-3">
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/verify/document/${certToPrint?.qr_hash || printForm.docNo}`)}`} 
-                          alt="Verification QR" 
-                          className="w-12 h-12 object-contain border border-slate-300 p-0.5 rounded bg-white shrink-0" 
-                        />
-                        <div>
-                          <span className="font-bold text-slate-900 uppercase block">AUTHENTIC DIGITAL BARANGAY DOCUMENT</span>
-                          <span>Scan QR code to verify e-clearance validity on the official portal.</span>
-                          <span className="font-mono block text-slate-500">HASH: {certToPrint?.qr_hash || 'SHA-256-VERIFIED'}</span>
+                        {/* Salutation */}
+                        <div 
+                          contentEditable={isDocsMode} 
+                          suppressContentEditableWarning 
+                          className={`pt-2 font-bold text-sm text-slate-950 uppercase tracking-wider font-sans inline-block ${isDocsMode ? 'docs-editable' : ''}`}
+                        >
+                          TO WHOM IT MAY CONCERN:
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <span className="font-bold text-slate-800 block">NOT VALID WITHOUT OFFICIAL SEAL</span>
-                        <span>LingkodBrgyAi Digital Governance System</span>
-                      </div>
-                    </div>
 
-                  </div>
+                        {/* Main Certification Paragraphs (Editable like MS Word / Google Docs) */}
+                        <div 
+                          contentEditable={isDocsMode} 
+                          suppressContentEditableWarning 
+                          className={`text-justify text-sm sm:text-base leading-relaxed text-slate-900 space-y-4 p-2 -mx-2 rounded ${certFontFamily === 'serif' ? 'font-serif' : 'font-sans'} ${isDocsMode ? 'docs-editable' : ''}`}
+                        >
+                          <p className="indent-8">
+                            This is to certify that <strong className="text-gov-blue-950 uppercase text-base tracking-wide font-sans">{printForm.residentName}</strong>, of legal age, <strong>{printForm.civilStatus}</strong>, <strong>{printForm.citizenship}</strong>, is a bona fide resident of <strong>{printForm.address}</strong>.
+                          </p>
+
+                          <p className="indent-8">
+                            This certification is issued upon the request of the above-named person for the purpose of: <strong className="text-gov-blue-900 uppercase font-sans text-sm">{printForm.purpose}</strong> and for whatever legal intents and purposes it may serve.
+                          </p>
+
+                          <p className="indent-8">
+                            <strong className="font-sans text-xs uppercase tracking-wider text-slate-700">REMARKS:</strong> {printForm.remarks}
+                          </p>
+
+                          <p className="indent-8 pt-4">
+                            Given and issued this <strong>{new Date(printForm.issueDate).getDate()}th</strong> day of <strong>{new Date(printForm.issueDate).toLocaleString('default', { month: 'long' })}</strong>, <strong>{new Date(printForm.issueDate).getFullYear()}</strong> at Barangay San Isidro, Bay, Laguna, Republic of the Philippines.
+                          </p>
+                        </div>
+
+                      </div>
+
+                      {/* Signatures & Footer Verification Row */}
+                      <div className="pt-10 relative z-10 space-y-6">
+                        
+                        <div className="grid grid-cols-2 gap-8 items-end">
+                          {/* Left: Applicant Signature Box & Payment Metadata */}
+                          <div className="space-y-3 font-sans text-xs">
+                            {certToPrint?.signature || certToPrint?.e_signature_path ? (
+                              <div className="space-y-1">
+                                <img src={certToPrint.signature || getPdfUrl(certToPrint.e_signature_path)} alt="Applicant Signature" className="h-12 object-contain" />
+                                <div className="border-t border-slate-400 w-44 pt-0.5 text-[9px] font-bold text-slate-500 uppercase">APPLICANT SIGNATURE</div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                <div className="h-10 border-b border-slate-400 w-44"></div>
+                                <div className="text-[9px] font-bold text-slate-500 uppercase">APPLICANT SIGNATURE / THUMBMARK</div>
+                              </div>
+                            )}
+
+                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-[10px] space-y-1 text-slate-700 font-mono">
+                              <div>O.R. No: <strong contentEditable={isDocsMode} suppressContentEditableWarning className={isDocsMode ? 'docs-editable' : ''}>{printForm.orNo}</strong></div>
+                              <div>Amount Paid: <strong contentEditable={isDocsMode} suppressContentEditableWarning className={isDocsMode ? 'docs-editable' : ''}>{printForm.fee > 0 ? `₱${printForm.fee.toFixed(2)}` : 'FREE'}</strong></div>
+                              <div>Date Issued: <strong contentEditable={isDocsMode} suppressContentEditableWarning className={isDocsMode ? 'docs-editable' : ''}>{printForm.issueDate}</strong></div>
+                            </div>
+                          </div>
+
+                          {/* Right: Official Barangay Captain Signature */}
+                          <div className="text-center space-y-1 font-sans">
+                            <div contentEditable={isDocsMode} suppressContentEditableWarning className={`font-serif italic text-xs text-gov-blue-900 h-6 ${isDocsMode ? 'docs-editable' : ''}`}>Approved &amp; Signed</div>
+                            <h4 
+                              contentEditable={isDocsMode} 
+                              suppressContentEditableWarning 
+                              className={`text-sm font-black text-gov-blue-950 uppercase tracking-tight underline underline-offset-2 ${isDocsMode ? 'docs-editable' : ''}`}
+                            >
+                              {printForm.signatoryName}
+                            </h4>
+                            <span 
+                              contentEditable={isDocsMode} 
+                              suppressContentEditableWarning 
+                              className={`text-[11px] font-extrabold text-slate-800 uppercase tracking-wider block ${isDocsMode ? 'docs-editable' : ''}`}
+                            >
+                              {printForm.signatoryTitle}
+                            </span>
+                            <span 
+                              contentEditable={isDocsMode} 
+                              suppressContentEditableWarning 
+                              className={`text-[9px] font-bold text-slate-500 uppercase tracking-widest block pt-0.5 ${isDocsMode ? 'docs-editable' : ''}`}
+                            >
+                              BARANGAY SAN ISIDRO, BAY, LAGUNA
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Live Cryptographic QR Verification Footer */}
+                        <div className="border-t-2 border-slate-200 pt-3 flex items-center justify-between text-[9px] text-slate-600 font-sans">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(`${window.location.origin}/verify/document/${certToPrint?.qr_hash || printForm.docNo}`)}`} 
+                              alt="Verification QR" 
+                              className="w-12 h-12 object-contain border border-slate-300 p-0.5 rounded bg-white shrink-0" 
+                            />
+                            <div>
+                              <span className="font-bold text-slate-900 uppercase block">AUTHENTIC DIGITAL BARANGAY DOCUMENT</span>
+                              <span>Scan QR code to verify e-clearance validity on the official portal.</span>
+                              <span className="font-mono block text-slate-500">HASH: {certToPrint?.qr_hash || 'SHA-256-VERIFIED'}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-slate-800 block">NOT VALID WITHOUT OFFICIAL SEAL</span>
+                            <span>LingkodBrgyAi Digital Governance System</span>
+                          </div>
+                        </div>
+
+                      </div>
+                    </>
+                  )}
 
                 </div>
 

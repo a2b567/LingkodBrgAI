@@ -234,4 +234,26 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  #printable-certificate-sheet [contenteditable] {
+    outline: none !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+/* Inline Docs-style interactive certificate editing */
+.docs-editable {
+  transition: all 0.15s ease-in-out;
+  border-radius: 4px;
+  cursor: text;
+}
+.docs-editable:hover {
+  outline: 1.5px dashed #3b82f6 !important;
+  background-color: rgba(59, 130, 246, 0.04);
+}
+.docs-editable:focus {
+  outline: 2px solid #2563eb !important;
+  background-color: rgba(59, 130, 246, 0.08);
 }

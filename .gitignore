@@ -23,3 +23,8 @@ frontend/node_modules/
 
 # Build output
 frontend/dist/
+
+# OS metadata
+desktop.ini
+Thumbs.db
+.DS_Store

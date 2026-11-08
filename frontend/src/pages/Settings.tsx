@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Lock, Moon, Sun, QrCode, Check, Megaphone, Plus, Trash2, Globe,
   ImagePlus, Trash, Save, RotateCcw, AlertTriangle, KeyRound,
-  User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso
+  User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso,
+  Bell, Volume2, VolumeX, Sparkles
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { api } from '../services/api';
 import { PageHeader, Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Input, Badge, Modal } from '../components/ui';
+import { playNotificationSound, isNotificationSoundEnabled, setNotificationSoundEnabled } from '../utils/notificationSound';
 
-type ActiveTab = 'profile' | 'security' | 'portal' | 'fees' | 'danger';
+type ActiveTab = 'profile' | 'notifications' | 'security' | 'portal' | 'fees' | 'danger';
 
 export const Settings: React.FC = () => {
   const { user } = useAuthStore();
@@ -33,6 +35,32 @@ export const Settings: React.FC = () => {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState('');
   const [passwordErrorMsg, setPasswordErrorMsg] = useState('');
+
+  // Notification Sound Preferences
+  const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled());
+  const [testAlertSent, setTestAlertSent] = useState(false);
+
+  useEffect(() => {
+    const handleSoundChange = (e: any) => {
+      setSoundEnabled(typeof e.detail === 'boolean' ? e.detail : isNotificationSoundEnabled());
+    };
+    window.addEventListener('notification-sound-change', handleSoundChange);
+    return () => window.removeEventListener('notification-sound-change', handleSoundChange);
+  }, []);
+
+  const handleToggleSound = (enabled: boolean) => {
+    setSoundEnabled(enabled);
+    setNotificationSoundEnabled(enabled);
+    if (enabled) {
+      playNotificationSound(false, true);
+    }
+  };
+
+  const handleTestChime = (urgent: boolean = false) => {
+    playNotificationSound(urgent, true);
+    setTestAlertSent(true);
+    setTimeout(() => setTestAlertSent(false), 3500);
+  };
 
   // Landing Page Config
   const [address, setAddress] = useState(localStorage.getItem('brgy_address') || 'Brgy. Hall, Main Road, Laguna');
@@ -230,6 +258,7 @@ export const Settings: React.FC = () => {
 
   const navTabs: Array<{ id: ActiveTab; label: string; icon: React.ReactNode; staffOnly?: boolean; color?: string }> = [
     { id: 'profile', label: 'My Profile', icon: <User size={15} /> },
+    { id: 'notifications', label: 'Notifications & Sound', icon: <Bell size={15} /> },
     { id: 'security', label: 'Security', icon: <Shield size={15} /> },
     { id: 'portal', label: 'Portal & Public Page', icon: <Globe size={15} />, staffOnly: true },
     { id: 'fees', label: 'Certificate Fees', icon: <PhilippinePeso size={15} />, staffOnly: true },
@@ -405,6 +434,160 @@ export const Settings: React.FC = () => {
                     </Button>
                   </div>
                 </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ─────────── TAB: NOTIFICATIONS & SOUND ─────────── */}
+          {activeTab === 'notifications' && (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center">
+                    <Bell size={18} className="text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <CardTitle>Notification & Alert Audio Settings</CardTitle>
+                    <CardDescription>
+                      I-customize ang tunog at audio feedback ng portal tuwing may bagong transaksyon, request, o opisyal na anunsyo.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {testAlertSent && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-bold rounded-2xl flex items-center justify-between animate-fade-in shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Volume2 size={16} className="text-emerald-600 shrink-0" />
+                      <span>Tumutunog na ang sample notification chime! Gumagana nang maayos ang audio system ng browser.</span>
+                    </div>
+                    <Badge variant="success">Audio OK</Badge>
+                  </div>
+                )}
+
+                {/* Master Sound Switch */}
+                <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-start gap-3.5">
+                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
+                      soundEnabled
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800'
+                        : 'bg-slate-100 text-slate-400 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                    }`}>
+                      {soundEnabled ? <Volume2 size={22} /> : <VolumeX size={22} />}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                          Notification Alert Sound (Tunog ng Notipikasyon)
+                        </h4>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          soundEnabled
+                            ? 'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+                            : 'bg-slate-200 text-slate-600 border-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                        }`}>
+                          {soundEnabled ? 'Naka-ON (May Tunog)' : 'Naka-OFF (Muted)'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                        Magpatunog ng banayad at malinaw na chime kapag may bagong document request mula sa kiosk, approved certificate, o opisyal na anunsyo.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSound(!soundEnabled)}
+                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
+                        soundEnabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                      }`}
+                      aria-label="Toggle notification sound"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-md ${
+                          soundEnabled ? 'translate-x-8' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sound Test Panel */}
+                <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4 shadow-sm">
+                  <div>
+                    <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
+                      Subukan ang Tunog (Audio Preview Test)
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      I-click ang mga button sa ibaba upang marinig ang tunog anumang oras:
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleTestChime(false)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-gov-blue-50 hover:bg-gov-blue-100 text-gov-blue-700 dark:bg-gov-blue-950/60 dark:hover:bg-gov-blue-900/60 dark:text-gov-blue-300 rounded-xl text-xs font-extrabold border border-gov-blue-200 dark:border-gov-blue-800 transition-all cursor-pointer shadow-subtle hover:scale-[1.02] active:scale-95"
+                    >
+                      <Volume2 size={16} />
+                      <span>Subukan: Standard Chime 🔔</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleTestChime(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 dark:text-rose-300 rounded-xl text-xs font-extrabold border border-rose-200 dark:border-rose-800 transition-all cursor-pointer shadow-subtle hover:scale-[1.02] active:scale-95"
+                    >
+                      <AlertTriangle size={16} />
+                      <span>Subukan: Emergency Alert Tone 🚨</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Guide: What triggers notification & sound */}
+                <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 space-y-3">
+                  <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider flex items-center gap-2">
+                    <Sparkles size={14} className="text-amber-500" />
+                    Kailan Awtomatikong Tutunog ang Notification?
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" /> Kiosk / Online Requests
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Tutunog agad kapag may residenteng nagsumite ng bagong request para sa Clearance o Certificates.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" /> Status Updates
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Tutunog sa residente kapag handa na para sa pickup o release ang kanyang opisyal na dokumento.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-purple-500" /> Opisyal na Anunsyo
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Tutunog kapag may bagong anunsyo mula sa Punong Barangay ukol sa ayuda o medical mission.
+                      </p>
+                    </div>
+
+                    <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-rose-500" /> Emergency Alerts
+                      </p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Tutunog ng dobleng alert tone tuwing may emergency advisory o babala sa bagyo at baha.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

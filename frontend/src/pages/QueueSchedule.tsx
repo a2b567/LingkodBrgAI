@@ -81,26 +81,24 @@ export const QueueSchedule: React.FC = () => {
 
   // Persist and sync queue slots with QueueMonitor and backend certificates
   const loadSlots = async () => {
-    let localSlots: QueueSlot[] = [];
+    let dismissedIds: string[] = [];
     try {
-      const saved = localStorage.getItem('lingkod_queue_slots');
-      if (saved) {
-        localSlots = JSON.parse(saved);
-      }
+      const savedDismissed = localStorage.getItem('lingkod_queue_dismissed');
+      if (savedDismissed) dismissedIds = JSON.parse(savedDismissed);
     } catch (e) {}
 
-    // Fetch backend certificates
+    // 1. Fetch real pending certificates from backend (Primary Source of Truth)
     let backendQueueSlots: QueueSlot[] = [];
     try {
       const backendCerts = await api.certificates.list();
-      if (backendCerts && backendCerts.length > 0) {
+      if (Array.isArray(backendCerts) && backendCerts.length > 0) {
         backendQueueSlots = backendCerts
-          .filter((c: any) => c.status === 'Pending')
+          .filter((c: any) => c.status === 'Pending' && !dismissedIds.includes(`backend-${c.id}`))
           .map((c: any, idx: number) => {
             const resName = c.resident ? `${c.resident.first_name} ${c.resident.last_name}` : 'Kiosk Applicant';
-            const ticketNo = `Q-${(idx + 1).toString().padStart(3, '0')}`;
+            const ticketNo = c.document_number ? `Q-${c.document_number.slice(-3)}` : `Q-${(idx + 1).toString().padStart(3, '0')}`;
             return {
-              id: `backend-${c.id}`,
+              id: `backend-${c.id || idx}`,
               ticket_number: ticketNo,
               resident_name: resName,
               cert_type: c.type,
@@ -111,13 +109,51 @@ export const QueueSchedule: React.FC = () => {
             };
           });
       }
-    } catch (err) {}
+    } catch (err) {
+      console.warn('QueueSchedule cert sync error:', err);
+    }
 
-    const realKioskSlots = localSlots.filter(s => s.id.startsWith('kiosk-'));
-    const realBackendSlots = backendQueueSlots.filter(b => !realKioskSlots.some(k => k.id === b.id));
-    const nonSampleLocalSlots = localSlots.filter(s => !s.id.startsWith('q-sample-') && !s.id.startsWith('kiosk-'));
+    // 2. Read local storage for manual kiosk slots and status overrides
+    let localSlots: QueueSlot[] = [];
+    try {
+      const saved = localStorage.getItem('lingkod_queue_slots');
+      if (saved) {
+        localSlots = JSON.parse(saved);
+      }
+    } catch (e) {}
 
-    const finalSlots = [...realKioskSlots, ...realBackendSlots, ...nonSampleLocalSlots];
+    // 3. Strict Deduplication: one entry per person + document type, and one per unique ID
+    const finalSlots: QueueSlot[] = [];
+    const seenSignatures = new Set<string>();
+    const seenIds = new Set<string>();
+
+    // Put real backend slots first
+    for (const bSlot of backendQueueSlots) {
+      const sig = `${bSlot.resident_name}__${bSlot.cert_type}`.toLowerCase();
+      // Check if localSlots has a status override (e.g. 'Serving' or 'Completed') for this slot
+      const localMatch = localSlots.find(l => l.id === bSlot.id || `${l.resident_name}__${l.cert_type}`.toLowerCase() === sig);
+      const slotToAdd: QueueSlot = localMatch ? { ...bSlot, status: localMatch.status } : bSlot;
+
+      if (!seenSignatures.has(sig) && !seenIds.has(slotToAdd.id)) {
+        seenSignatures.add(sig);
+        seenIds.add(slotToAdd.id);
+        finalSlots.push(slotToAdd);
+      }
+    }
+
+    // Only append genuine non-backend local slots (e.g. manual slots or kiosk walk-ins)
+    for (const lSlot of localSlots) {
+      if (!lSlot || !lSlot.id) continue;
+      // Discard any old backend clones or sample dummy slots
+      if (lSlot.id.startsWith('backend-') || lSlot.id.startsWith('q-sample-') || dismissedIds.includes(lSlot.id)) continue;
+      const sig = `${lSlot.resident_name}__${lSlot.cert_type}`.toLowerCase();
+      if (!seenSignatures.has(sig) && !seenIds.has(lSlot.id)) {
+        seenSignatures.add(sig);
+        seenIds.add(lSlot.id);
+        finalSlots.push(lSlot);
+      }
+    }
+
     setQueueSlots(finalSlots);
     try {
       localStorage.setItem('lingkod_queue_slots', JSON.stringify(finalSlots));
@@ -199,6 +235,10 @@ export const QueueSchedule: React.FC = () => {
 
   const handleClearAllQueue = () => {
     if (window.confirm("⚠️ Clear ALL queue tickets? This will reset the waiting queue to 0.")) {
+      try {
+        const allIds = queueSlots.map(s => s.id);
+        localStorage.setItem('lingkod_queue_dismissed', JSON.stringify(allIds));
+      } catch (e) {}
       localStorage.setItem('lingkod_queue_slots', JSON.stringify([]));
       setQueueSlots([]);
     }
@@ -206,6 +246,14 @@ export const QueueSchedule: React.FC = () => {
 
   const handleDeleteSlot = (id: string) => {
     if (window.confirm("Are you sure you want to remove this ticket from the queue?")) {
+      try {
+        const savedDismissed = localStorage.getItem('lingkod_queue_dismissed');
+        const list = savedDismissed ? JSON.parse(savedDismissed) : [];
+        if (!list.includes(id)) {
+          list.push(id);
+          localStorage.setItem('lingkod_queue_dismissed', JSON.stringify(list));
+        }
+      } catch (e) {}
       const updated = queueSlots.filter(s => s.id !== id);
       updateSlots(updated);
     }
