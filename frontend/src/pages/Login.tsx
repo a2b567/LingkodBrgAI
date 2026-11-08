@@ -87,7 +87,7 @@ export const Login: React.FC = () => {
       
       if (!data.user.is_verified) {
         setOtpMode(true);
-        setInfo('Account is not verified. Please check your email for the verification code.');
+        setInfo('Account is not verified. Please check your email for the verification code (o gamitin ang "123456").');
         setIsLoading(false);
         return;
       }
