@@ -231,7 +231,7 @@ export const api = {
 
     resetPassword: (data: any) =>
       withFallback(
-        () => client.post<{ message: string }>('/reset-password', data).then(r => r.data),
+        () => client.post<{ message: string }>('/auth/reset-password', data).then(r => r.data),
         () => ({ message: 'Password reset successfully' })
       ),
   },

@@ -77,6 +77,7 @@ func SetupRouter() *gin.Engine {
 			auth.POST("/forgot-password", authHandler.ForgotPassword)
 			auth.POST("/reset-password", authHandler.ResetPassword)
 		}
+		api.POST("/reset-password", middleware.KioskPublicRateLimiter(), authHandler.ResetPassword)
 
 		// Public Verification (QR Scanner landing page)
 		api.GET("/verify/document/:hash", certHandler.VerifyQR)
