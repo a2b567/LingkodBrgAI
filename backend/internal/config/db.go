@@ -116,6 +116,9 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 			log.Printf("[CLOUD DB ERROR] Cloud Database migration error: %v", migrateErr)
 		} else {
 			log.Println("[CLOUD DB] Cloud Database migration completed successfully.")
+			if seedErr := SeedDatabase(CloudDB); seedErr != nil {
+				log.Printf("[CLOUD DB WARNING] Cloud Database seed warning: %v", seedErr)
+			}
 		}
 	}
 

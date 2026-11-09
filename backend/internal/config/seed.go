@@ -58,6 +58,13 @@ func SeedDatabase(db *gorm.DB) error {
 			Role:         "Developer",
 			IsVerified:   true,
 		},
+		{
+			Username:     "lawrence",
+			Email:        "lawrencebelenaranas123@gmail.com",
+			PasswordHash: hashPassword("Lawrence@2026!"),
+			Role:         "Resident",
+			IsVerified:   true,
+		},
 	}
 
 	for _, u := range defaultUsers {
@@ -95,6 +102,28 @@ func SeedDatabase(db *gorm.DB) error {
 			UpdatedAt:     time.Now(),
 		}
 		db.Create(&defaultLicense)
+	}
+
+	// Ensure resident profile exists for lawrence
+	var lawrenceUser models.User
+	if err := db.Where("username = ?", "lawrence").First(&lawrenceUser).Error; err == nil && lawrenceUser.ResidentID == nil {
+		lawrenceResident := models.Resident{
+			FirstName:       "Lawrence",
+			LastName:        "Aranas",
+			MiddleName:      "Belen",
+			Birthdate:       time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+			Gender:          "Male",
+			CivilStatus:     "Single",
+			Address:         "Purok 1, Barangay San Isidro, Bay, Laguna",
+			Citizenship:     "Filipino",
+			ResidencyStatus: "Permanent",
+			VoterStatus:     "Registered",
+			Email:           "lawrencebelenaranas123@gmail.com",
+			QRID:            "QR-RES-LAWRENCE",
+		}
+		if err := db.Create(&lawrenceResident).Error; err == nil {
+			db.Model(&lawrenceUser).Update("resident_id", lawrenceResident.ID)
+		}
 	}
 
 	return nil
