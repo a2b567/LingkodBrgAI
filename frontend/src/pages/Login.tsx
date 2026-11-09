@@ -44,6 +44,7 @@ export const Login: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [sandboxOtp, setSandboxOtp] = useState('');
+  const [isResending, setIsResending] = useState(false);
   
   const loginStore = useAuthStore(state => state.login);
   const navigate = useNavigate();
@@ -87,7 +88,8 @@ export const Login: React.FC = () => {
       
       if (!data.user.is_verified) {
         setOtpMode(true);
-        setInfo('Account is not verified. Please check your email for the verification code (o gamitin ang "123456").');
+        const emailHint = data.user.email ? `sa ${data.user.email}` : 'sa iyong email';
+        setInfo(`Isang 6-digit verification code ang ipinadala ${emailHint}. Pakitingnan ang iyong inbox o spam folder.`);
         setIsLoading(false);
         return;
       }
@@ -120,6 +122,19 @@ export const Login: React.FC = () => {
       setError(err.response?.data?.error || 'Invalid OTP code. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsResending(true);
+    setError('');
+    try {
+      await api.auth.forgotPassword({ email: username.trim().toLowerCase() });
+      setInfo('Bagong verification code ang ipinadala sa iyong Gmail inbox. Pakitingnan muli.');
+    } catch {
+      setError('Hindi maipadala ang OTP. Pakisubukang muli.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -489,6 +504,17 @@ export const Login: React.FC = () => {
             >
               {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Verify Code'}
             </button>
+
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                disabled={isResending}
+                onClick={handleResendOtp}
+                className="text-gov-blue-600 dark:text-gov-blue-400 hover:underline font-bold text-xs bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50"
+              >
+                {isResending ? 'Ipinapadala muli ang OTP...' : 'Hindi natanggap? I-resend ang bagong OTP sa Gmail'}
+              </button>
+            </div>
 
             <button
               type="button"
