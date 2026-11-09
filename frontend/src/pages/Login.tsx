@@ -290,8 +290,8 @@ export const Login: React.FC = () => {
                   <span className="bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded font-mono text-sm tracking-wider font-extrabold">{sandboxOtp}</span>
                 </div>
               ) : (
-                <div className="p-2.5 bg-blue-50/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-[11px] rounded-2xl border border-blue-200/40 dark:border-slate-700/50 text-center">
-                  Check your email for the 6-digit code or use master OTP <strong className="text-gov-blue-600 dark:text-gov-blue-400 font-mono font-black">123456</strong>
+                <div className="p-2.5 bg-blue-50/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-[11px] rounded-2xl border border-blue-200/40 dark:border-slate-700/50 text-center font-medium">
+                  Pakitingnan ang iyong email inbox o spam folder para sa 6-digit verification OTP code na ipinadala sa pamamagitan ng SMTP.
                 </div>
               )}
 
