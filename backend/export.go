@@ -41,6 +41,9 @@ func initAll() {
 		// Initialize WebSocket Hub
 		services.InitHub()
 
+		// Initialize Email Service
+		services.InitEmailService()
+
 		// Setup Router
 		router = routes.SetupRouter()
 	})
