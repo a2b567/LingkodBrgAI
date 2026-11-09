@@ -224,9 +224,9 @@ export const api = {
       ),
 
     forgotPassword: (data: { email: string }) =>
-      withFallback(
+      withFallback<{ message: string; otp?: string }>(
         () => client.post<{ message: string; otp?: string }>('/auth/forgot-password', data).then(r => r.data),
-        () => ({ message: 'OTP reset code sent to email', otp: '123456' })
+        () => ({ message: 'OTP reset code sent to email' })
       ),
 
     resetPassword: (data: any) =>

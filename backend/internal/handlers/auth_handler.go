@@ -30,7 +30,7 @@ type ResetPasswordRequest struct {
 func generateRandomOTP() string {
 	n, err := rand.Int(rand.Reader, big.NewInt(900000))
 	if err != nil {
-		return "123456" // secure fallback
+		return fmt.Sprintf("%06d", (time.Now().UnixNano()%900000)+100000)
 	}
 	return fmt.Sprintf("%06d", n.Int64()+100000)
 }
@@ -335,14 +335,13 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 	}
 
 	cleanOTP := strings.TrimSpace(req.OTP)
-	isWhitelisted := cleanOTP == "123456" || cleanOTP == "849201" || cleanOTP == "716294" || cleanOTP == "71694" || cleanOTP == "452189" || cleanOTP == "239313"
-	isValidOTP := isWhitelisted || (user.OTP != "" && user.OTP == cleanOTP) || (services.GlobalEmailService == nil || !services.GlobalEmailService.IsConfigured())
+	isValidOTP := user.OTP != "" && user.OTP == cleanOTP
 	if !isValidOTP {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OTP code"})
 		return
 	}
 
-	if !isWhitelisted && user.OTPExpiry != nil && time.Now().After(*user.OTPExpiry) {
+	if user.OTPExpiry != nil && time.Now().After(*user.OTPExpiry) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "OTP has expired"})
 		return
 	}
@@ -402,11 +401,6 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	resp := gin.H{
 		"message": "A verification OTP has been sent to your email address. Please check your inbox.",
 	}
-	if services.GlobalEmailService == nil || !services.GlobalEmailService.IsConfigured() {
-		resp["otp"] = otp
-		resp["message"] = "Verification OTP generated. Use code " + otp + " or master OTP 123456."
-	}
-
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -428,13 +422,12 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 	}
 
 	cleanOTP := strings.TrimSpace(req.OTP)
-	isWhitelisted := cleanOTP == "123456" || cleanOTP == "849201" || cleanOTP == "716294" || cleanOTP == "71694" || cleanOTP == "452189" || cleanOTP == "239313"
-	if (user.OTP == "" || user.OTP != cleanOTP) && !isWhitelisted {
+	if user.OTP == "" || user.OTP != cleanOTP {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid OTP code"})
 		return
 	}
 
-	if !isWhitelisted && user.OTPExpiry != nil && time.Now().After(*user.OTPExpiry) {
+	if user.OTPExpiry != nil && time.Now().After(*user.OTPExpiry) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "OTP code has expired"})
 		return
 	}
