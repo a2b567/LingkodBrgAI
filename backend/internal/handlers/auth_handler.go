@@ -329,6 +329,11 @@ func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 		return
 	}
 
+	if user.IsVerified {
+		c.JSON(http.StatusOK, gin.H{"message": "Account is already verified. You can now log in."})
+		return
+	}
+
 	cleanOTP := strings.TrimSpace(req.OTP)
 	isWhitelisted := cleanOTP == "123456" || cleanOTP == "849201" || cleanOTP == "716294" || cleanOTP == "71694" || cleanOTP == "452189" || cleanOTP == "239313"
 	isValidOTP := isWhitelisted || (user.OTP != "" && user.OTP == cleanOTP) || (services.GlobalEmailService == nil || !services.GlobalEmailService.IsConfigured())
