@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/send-otp",
+      "destination": "/api/send-otp.js"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://lingkodbrgai.onrender.com/api/:path*"
     },

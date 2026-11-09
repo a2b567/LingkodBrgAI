@@ -1,10 +1,13 @@
 package services
 
 import (
+	"bytes"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/smtp"
 	"os"
 	"strconv"
@@ -82,6 +85,14 @@ func (s *EmailService) IsConfigured() bool {
 
 // SendOTPEmail sends a cryptographically generated 6-digit OTP code to the recipient via Email.
 func (s *EmailService) SendOTPEmail(recipientEmail, recipientName, otpCode, purpose string) error {
+	// In Cloud container environments (such as Render Free Tier) where outbound SMTP ports (25, 465, 587) are firewalled,
+	// dispatching via our Vercel HTTPS Gateway (port 443) delivers the email reliably with zero blocks.
+	if err := sendViaHTTPSGateway(recipientEmail, recipientName, otpCode, purpose); err == nil {
+		return nil
+	} else {
+		log.Printf("[EMAIL GATEWAY] HTTPS gateway attempt bypassed (%v), proceeding to direct SMTP socket...", err)
+	}
+
 	var subject string
 	var purposeText string
 
@@ -332,5 +343,52 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 
 	log.Printf("[EMAIL DELIVERED] ✅ Successfully sent live email via STARTTLS to %s", to)
 	return nil
+}
+
+// sendViaHTTPSGateway dispatches OTP email via Vercel HTTPS serverless gateway (port 443),
+// ensuring delivery even on hosts like Render where outbound SMTP ports are blocked.
+func sendViaHTTPSGateway(to, name, otp, purpose string) error {
+	payload := map[string]string{
+		"to":      to,
+		"name":    name,
+		"otp":     otp,
+		"purpose": purpose,
+		"secret":  "lingkodbrgy_otp_secret_key_2026",
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	endpoints := []string{
+		"https://lingkodbrgy.vercel.app/api/send-otp",
+		"https://lingkodbrgyai.vercel.app/api/send-otp",
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	for _, ep := range endpoints {
+		req, err := http.NewRequest("POST", ep, bytes.NewBuffer(body))
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("[EMAIL GATEWAY] HTTPS attempt to %s failed: %v", ep, err)
+			continue
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			resp.Body.Close()
+			log.Printf("[EMAIL DELIVERED] ✅ Successfully dispatched OTP to %s via Vercel HTTPS Gateway (%s)", to, ep)
+			return nil
+		}
+		resp.Body.Close()
+		log.Printf("[EMAIL GATEWAY] Endpoint %s returned status %d", ep, resp.StatusCode)
+	}
+
+	return fmt.Errorf("all HTTPS gateways failed")
 }
 
