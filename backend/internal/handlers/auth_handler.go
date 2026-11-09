@@ -145,9 +145,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			if user.Resident != nil && user.Resident.FirstName != "" {
 				recipientName = user.Resident.FirstName + " " + user.Resident.LastName
 			}
-			go func(email, name, code string) {
-				_ = services.GlobalEmailService.SendOTPEmail(email, name, code, "ACCOUNT_VERIFICATION")
-			}(user.Email, recipientName, otp)
+			if err := services.GlobalEmailService.SendOTPEmail(user.Email, recipientName, otp, "ACCOUNT_VERIFICATION"); err != nil {
+				fmt.Printf("[EMAIL ERROR] Failed to send verification OTP on login to %s: %v\n", user.Email, err)
+			}
 		}
 	}
 
@@ -268,13 +268,11 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		IPAddress: c.ClientIP(),
 	})
 
-	// Send real OTP email (non-blocking goroutine so registration response is fast)
-	if services.GlobalEmailService != nil {
-		go func(email, username, otpCode string) {
-			if err := services.GlobalEmailService.SendOTPEmail(email, username, otpCode, "ACCOUNT_VERIFICATION"); err != nil {
-				fmt.Printf("[EMAIL ERROR] Failed to send verification OTP to %s: %v\n", email, err)
-			}
-		}(user.Email, user.Username, otp)
+	// Send real OTP email synchronously so serverless runtime waits for delivery
+	if services.GlobalEmailService != nil && services.GlobalEmailService.IsConfigured() {
+		if err := services.GlobalEmailService.SendOTPEmail(user.Email, user.Username, otp, "ACCOUNT_VERIFICATION"); err != nil {
+			fmt.Printf("[EMAIL ERROR] Failed to send verification OTP on register to %s: %v\n", user.Email, err)
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -381,13 +379,11 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	// Send real password-reset OTP email (non-blocking)
-	if services.GlobalEmailService != nil {
-		go func(email, username, otpCode string) {
-			if err := services.GlobalEmailService.SendOTPEmail(email, username, otpCode, "PASSWORD_RESET"); err != nil {
-				fmt.Printf("[EMAIL ERROR] Failed to send password reset OTP to %s: %v\n", email, err)
-			}
-		}(user.Email, user.Username, otp)
+	// Send real password-reset OTP email synchronously so serverless runtime waits for delivery
+	if services.GlobalEmailService != nil && services.GlobalEmailService.IsConfigured() {
+		if err := services.GlobalEmailService.SendOTPEmail(user.Email, user.Username, otp, "PASSWORD_RESET"); err != nil {
+			fmt.Printf("[EMAIL ERROR] Failed to send password reset OTP to %s: %v\n", user.Email, err)
+		}
 	}
 
 	// Audit Log

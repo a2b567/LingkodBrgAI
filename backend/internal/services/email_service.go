@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"net"
 	"net/smtp"
 	"os"
 	"strconv"
@@ -236,7 +237,7 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 		return nil
 	}
 
-	addr := fmt.Sprintf("%s:%d", s.Host, s.Port)
+	addr := net.JoinHostPort(s.Host, strconv.Itoa(s.Port))
 	auth := smtp.PlainAuth("", s.User, s.Password, s.Host)
 
 	// Port 465 (Direct TLS / SSL)
@@ -284,10 +285,16 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 	}
 
 	// Port 587 (Standard STARTTLS)
-	client, err := smtp.Dial(addr)
+	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
 	if err != nil {
-		log.Printf("[EMAIL ERROR] SMTP Dial error to %s: %v", addr, err)
-		return fmt.Errorf("SMTP dial error: %w", err)
+		log.Printf("[EMAIL ERROR] TCP Dial error to %s: %v", addr, err)
+		return fmt.Errorf("TCP dial error: %w", err)
+	}
+	client, err := smtp.NewClient(conn, s.Host)
+	if err != nil {
+		conn.Close()
+		log.Printf("[EMAIL ERROR] SMTP Client init error to %s: %v", addr, err)
+		return fmt.Errorf("SMTP client error: %w", err)
 	}
 	defer client.Quit()
 
