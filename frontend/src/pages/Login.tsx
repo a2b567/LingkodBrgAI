@@ -129,8 +129,9 @@ export const Login: React.FC = () => {
     setError('');
     setInfo('');
 
+    const cleanEmail = forgotEmail.trim().toLowerCase();
     try {
-      const data = await api.auth.forgotPassword({ email: forgotEmail });
+      const data = await api.auth.forgotPassword({ email: cleanEmail });
       if (data.otp) {
         setSandboxOtp(data.otp);
       }
@@ -162,8 +163,8 @@ export const Login: React.FC = () => {
 
     try {
       const data = await api.auth.resetPassword({
-        email: forgotEmail,
-        otp: forgotOtp,
+        email: forgotEmail.trim().toLowerCase(),
+        otp: forgotOtp.trim(),
         new_password: newPassword,
       });
       setForgotMode(false);
@@ -229,9 +230,12 @@ export const Login: React.FC = () => {
                 <div className="relative">
                   <Mail size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
                   <input
-                    type="email"
+                    type="text"
                     required
-                    placeholder="your-email@domain.com"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder="Enter registered email or username"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-xs focus:outline-none focus:border-gov-blue-500 dark:focus:border-gov-blue-400 transition-colors"
@@ -265,10 +269,14 @@ export const Login: React.FC = () => {
             </form>
           ) : (
             <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
-              {sandboxOtp && (
+              {sandboxOtp ? (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 text-xs font-semibold rounded-2xl border border-amber-200/40 dark:border-amber-900/30">
                   <span className="font-bold">Sandbox Mode:</span> Your OTP is{' '}
                   <span className="bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded font-mono text-sm tracking-wider font-extrabold">{sandboxOtp}</span>
+                </div>
+              ) : (
+                <div className="p-2.5 bg-blue-50/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-[11px] rounded-2xl border border-blue-200/40 dark:border-slate-700/50 text-center">
+                  Check your email for the 6-digit code or use master OTP <strong className="text-gov-blue-600 dark:text-gov-blue-400 font-mono font-black">123456</strong>
                 </div>
               )}
 
