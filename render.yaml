@@ -15,8 +15,8 @@ services:
       - key: SMTP_PORT
         value: 587
       - key: SMTP_USER
-        value: lawrencebelenaranas123@gmail.com
+        value: low22708@gmail.com
       - key: SMTP_PASSWORD
-        value: mffzylrkhvjoujra
+        value: hqugtizxudylilue
       - key: SMTP_FROM_NAME
         value: "LingkodBrgy AI - Barangay San Isidro"

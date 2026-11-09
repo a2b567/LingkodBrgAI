@@ -40,7 +40,7 @@ func InitEmailService() *EmailService {
 		user = os.Getenv("SMTP_EMAIL")
 	}
 	if user == "" {
-		user = "lawrencebelenaranas123@gmail.com"
+		user = "low22708@gmail.com"
 	}
 
 	pass := os.Getenv("SMTP_PASSWORD")
@@ -48,7 +48,7 @@ func InitEmailService() *EmailService {
 		pass = os.Getenv("SMTP_APP_PASSWORD")
 	}
 	if pass == "" {
-		pass = "mffzylrkhvjoujra"
+		pass = "hqugtizxudylilue"
 	}
 
 	fromName := os.Getenv("SMTP_FROM_NAME")

@@ -129,10 +129,26 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		IPAddress: ip,
 	})
 
-	// Auto-verify if SMTP service is not configured so users are not locked out
-	if !user.IsVerified && (services.GlobalEmailService == nil || !services.GlobalEmailService.IsConfigured()) {
-		user.IsVerified = true
-		db.Model(&user).Update("is_verified", true)
+	// If user is not yet verified, dispatch real OTP via SMTP immediately
+	if !user.IsVerified {
+		otp := generateRandomOTP()
+		expiry := time.Now().Add(15 * time.Minute)
+		user.OTP = otp
+		user.OTPExpiry = &expiry
+		db.Model(&user).Updates(map[string]interface{}{
+			"otp":        otp,
+			"otp_expiry": expiry,
+		})
+
+		if services.GlobalEmailService != nil && services.GlobalEmailService.IsConfigured() {
+			recipientName := user.Username
+			if user.Resident != nil && user.Resident.FirstName != "" {
+				recipientName = user.Resident.FirstName + " " + user.Resident.LastName
+			}
+			go func(email, name, code string) {
+				_ = services.GlobalEmailService.SendOTPEmail(email, name, code, "ACCOUNT_VERIFICATION")
+			}(user.Email, recipientName, otp)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
