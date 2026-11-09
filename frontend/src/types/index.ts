@@ -6,6 +6,7 @@ export interface User {
   is_verified: boolean;
   resident_id?: string;
   resident?: Resident;
+  household?: Household;
 }
 
 export interface Resident {
@@ -31,6 +32,7 @@ export interface Resident {
   profile_photo?: string;
   photo_url?: string;
   household_id?: string;
+  household?: Household;
   is_household_head: boolean;
   qr_id: string;
   created_at: string;

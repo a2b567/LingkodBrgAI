@@ -95,8 +95,10 @@ func SetupRouter() *gin.Engine {
 	protected.Use(middleware.AuthenticatedUserRateLimiter())
 	protected.Use(middleware.IdempotencyMiddleware())
 	{
-		// Auth profile info
+		// Auth profile info & updating
 		protected.GET("/auth/me", authHandler.GetMe)
+		protected.PUT("/auth/me", authHandler.UpdateProfile)
+		protected.PUT("/auth/profile", authHandler.UpdateProfile)
 
 		// Notifications
 		protected.GET("/notifications", notifHandler.List)

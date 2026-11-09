@@ -61,6 +61,7 @@ type Resident struct {
 	IsPWD           bool       `gorm:"default:false" json:"is_pwd"`
 	ProfilePhoto    string     `json:"profile_photo"`
 	HouseholdID     *uuid.UUID `gorm:"type:uuid;constraint:false" json:"household_id,omitempty"`
+	Household       *Household `gorm:"foreignKey:HouseholdID;constraint:false" json:"household,omitempty"`
 	IsHouseholdHead bool       `gorm:"default:false" json:"is_household_head"`
 	QRID            string     `gorm:"uniqueIndex" json:"qr_id"`
 }

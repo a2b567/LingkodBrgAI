@@ -300,13 +300,193 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		return
 	}
 
+	var linkedHousehold *models.Household
+	if user.Resident != nil && user.Resident.HouseholdID != nil {
+		var hh models.Household
+		if err := db.First(&hh, "id = ?", *user.Resident.HouseholdID).Error; err == nil {
+			linkedHousehold = &hh
+			user.Resident.Household = &hh
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"id":         user.ID,
-		"username":   user.Username,
-		"email":      user.Email,
-		"role":       user.Role,
+		"id":          user.ID,
+		"username":    user.Username,
+		"email":       user.Email,
+		"role":        user.Role,
 		"is_verified": user.IsVerified,
-		"resident":   user.Resident,
+		"resident":    user.Resident,
+		"household":   linkedHousehold,
+	})
+}
+
+type UpdateProfileRequest struct {
+	FirstName       string `json:"first_name"`
+	MiddleName      string `json:"middle_name"`
+	LastName        string `json:"last_name"`
+	Suffix          string `json:"suffix"`
+	Gender          string `json:"gender"`
+	CivilStatus     string `json:"civil_status"`
+	Occupation      string `json:"occupation"`
+	ContactNumber   string `json:"contact_number"`
+	Email           string `json:"email"`
+	Address         string `json:"address"`
+	Birthdate       string `json:"birthdate"`
+	HouseholdNumber string `json:"household_number"`
+	Purok           string `json:"purok"`
+	IsHouseholdHead bool   `json:"is_household_head"`
+	PovertyLevel    string `json:"poverty_level"`
+}
+
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req UpdateProfileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	db := config.DB
+	var user models.User
+	if err := db.Preload("Resident").First(&user, "id = ?", userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	tx := db.Begin()
+
+	if req.Email != "" && strings.TrimSpace(req.Email) != user.Email {
+		cleanEmail := strings.TrimSpace(req.Email)
+		var existingCount int64
+		tx.Model(&models.User{}).Where("LOWER(TRIM(email)) = ? AND id != ?", strings.ToLower(cleanEmail), user.ID).Count(&existingCount)
+		if existingCount > 0 {
+			tx.Rollback()
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Email is already taken by another account"})
+			return
+		}
+		user.Email = cleanEmail
+		if err := tx.Model(&user).Update("email", cleanEmail).Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update account email"})
+			return
+		}
+	}
+
+	var resident models.Resident
+	if user.ResidentID != nil {
+		if err := tx.First(&resident, "id = ?", *user.ResidentID).Error; err == nil {
+			if req.FirstName != "" {
+				resident.FirstName = strings.TrimSpace(req.FirstName)
+			}
+			if req.LastName != "" {
+				resident.LastName = strings.TrimSpace(req.LastName)
+			}
+			resident.MiddleName = strings.TrimSpace(req.MiddleName)
+			resident.Suffix = strings.TrimSpace(req.Suffix)
+			if req.Gender != "" {
+				resident.Gender = req.Gender
+			}
+			if req.CivilStatus != "" {
+				resident.CivilStatus = req.CivilStatus
+			}
+			resident.Occupation = strings.TrimSpace(req.Occupation)
+			resident.ContactNumber = strings.TrimSpace(req.ContactNumber)
+			if req.Email != "" {
+				resident.Email = strings.TrimSpace(req.Email)
+			}
+			if req.Address != "" {
+				resident.Address = strings.TrimSpace(req.Address)
+			}
+			if req.Birthdate != "" {
+				if bdate, err := time.Parse("2006-01-02", req.Birthdate); err == nil {
+					resident.Birthdate = bdate
+				}
+			}
+			resident.IsHouseholdHead = req.IsHouseholdHead
+
+			cleanHHNum := strings.TrimSpace(req.HouseholdNumber)
+			if cleanHHNum != "" {
+				var household models.Household
+				if err := tx.Where("LOWER(TRIM(household_number)) = ?", strings.ToLower(cleanHHNum)).First(&household).Error; err != nil {
+					poverty := req.PovertyLevel
+					if poverty == "" {
+						poverty = "Low Income"
+					}
+					purok := req.Purok
+					if purok == "" {
+						purok = "Purok 1"
+					}
+					hhAddr := resident.Address
+					if hhAddr == "" {
+						hhAddr = "Barangay San Isidro"
+					}
+					household = models.Household{
+						Base:            models.Base{ID: uuid.New()},
+						HouseholdNumber: cleanHHNum,
+						PovertyLevel:    poverty,
+						Purok:           purok,
+						Address:         hhAddr,
+					}
+					if req.IsHouseholdHead {
+						household.HeadID = &resident.ID
+					}
+					if err := tx.Create(&household).Error; err != nil {
+						tx.Rollback()
+						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create household"})
+						return
+					}
+				} else {
+					updates := map[string]interface{}{}
+					if req.Purok != "" {
+						updates["purok"] = req.Purok
+					}
+					if req.PovertyLevel != "" {
+						updates["poverty_level"] = req.PovertyLevel
+					}
+					if req.IsHouseholdHead {
+						updates["head_id"] = resident.ID
+					}
+					if len(updates) > 0 {
+						tx.Model(&household).Updates(updates)
+					}
+				}
+				resident.HouseholdID = &household.ID
+			}
+
+			if err := tx.Save(&resident).Error; err != nil {
+				tx.Rollback()
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save profile changes"})
+				return
+			}
+		}
+	}
+
+	tx.Commit()
+
+	db.Preload("Resident").First(&user, "id = ?", userID)
+	var linkedHousehold *models.Household
+	if user.Resident != nil && user.Resident.HouseholdID != nil {
+		var hh models.Household
+		if err := db.First(&hh, "id = ?", *user.Resident.HouseholdID).Error; err == nil {
+			linkedHousehold = &hh
+			user.Resident.Household = &hh
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "Profile and Household updated successfully",
+		"user":      user,
+		"household": linkedHousehold,
 	})
 }
 

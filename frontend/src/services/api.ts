@@ -234,6 +234,12 @@ export const api = {
         () => client.post<{ message: string }>('/auth/reset-password', data).then(r => r.data),
         () => ({ message: 'Password reset successfully' })
       ),
+
+    updateProfile: (data: any) =>
+      withFallback(
+        () => client.put<{ message: string; user: User; household?: Household }>('/auth/profile', data).then(r => r.data),
+        () => ({ message: 'Profile updated successfully', user: {} as User })
+      ),
   },
 
   staffAccounts: {

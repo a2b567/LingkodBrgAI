@@ -3,7 +3,7 @@ import {
   Lock, Moon, Sun, QrCode, Check, Megaphone, Plus, Trash2, Globe,
   ImagePlus, Trash, Save, RotateCcw, AlertTriangle, KeyRound,
   User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso,
-  Bell, Volume2, VolumeX, Sparkles
+  Bell, Volume2, VolumeX, Sparkles, Home, Users, Phone, MapPin, Briefcase
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
@@ -15,18 +15,36 @@ import { playNotificationSound, isNotificationSoundEnabled, setNotificationSound
 type ActiveTab = 'profile' | 'notifications' | 'security' | 'portal' | 'fees' | 'danger';
 
 export const Settings: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, token, login } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
   const isStaff = user && user.role !== 'Resident';
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('profile');
 
-  // Profile
+  // Account Profile
   const [username, setUsername] = useState(user?.username || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [profilePassword, setProfilePassword] = useState('');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileSuccessMsg, setProfileSuccessMsg] = useState('');
+  const [profileErrorMsg, setProfileErrorMsg] = useState('');
+
+  // Resident Citizen Details
+  const [firstName, setFirstName] = useState(user?.resident?.first_name || '');
+  const [middleName, setMiddleName] = useState(user?.resident?.middle_name || '');
+  const [lastName, setLastName] = useState(user?.resident?.last_name || '');
+  const [suffix, setSuffix] = useState(user?.resident?.suffix || '');
+  const [gender, setGender] = useState(user?.resident?.gender || 'Male');
+  const [civilStatus, setCivilStatus] = useState(user?.resident?.civil_status || 'Single');
+  const [occupation, setOccupation] = useState(user?.resident?.occupation || '');
+  const [contactNumber, setContactNumber] = useState(user?.resident?.contact_number || '');
+  const [residentAddress, setResidentAddress] = useState(user?.resident?.address || '');
+  const [birthdate, setBirthdate] = useState(user?.resident?.birthdate ? user.resident.birthdate.slice(0, 10) : '');
+
+  // Household Profiling State
+  const [householdNumber, setHouseholdNumber] = useState(user?.resident?.household?.household_number || '');
+  const [purok, setPurok] = useState(user?.resident?.household?.purok || 'Purok 1');
+  const [povertyLevel, setPovertyLevel] = useState(user?.resident?.household?.poverty_level || 'Low Income');
+  const [isHouseholdHead, setIsHouseholdHead] = useState(Boolean(user?.resident?.is_household_head));
 
   // Password
   const [currentPassword, setCurrentPassword] = useState('');
@@ -149,21 +167,80 @@ export const Settings: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      setUsername(user.username);
-      setEmail(user.email);
+      setUsername(user.username || '');
+      setEmail(user.email || '');
+      if (user.resident) {
+        setFirstName(user.resident.first_name || '');
+        setMiddleName(user.resident.middle_name || '');
+        setLastName(user.resident.last_name || '');
+        setSuffix(user.resident.suffix || '');
+        setGender(user.resident.gender || 'Male');
+        setCivilStatus(user.resident.civil_status || 'Single');
+        setOccupation(user.resident.occupation || '');
+        setContactNumber(user.resident.contact_number || '');
+        setResidentAddress(user.resident.address || '');
+        if (user.resident.birthdate) {
+          setBirthdate(user.resident.birthdate.slice(0, 10));
+        }
+        setIsHouseholdHead(Boolean(user.resident.is_household_head));
+        if (user.resident.household) {
+          setHouseholdNumber(user.resident.household.household_number || '');
+          setPurok(user.resident.household.purok || 'Purok 1');
+          setPovertyLevel(user.resident.household.poverty_level || 'Low Income');
+        }
+      }
     }
   }, [user]);
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchFreshProfile = async () => {
+      try {
+        const data = await api.auth.getMe();
+        if (data.household) {
+          setHouseholdNumber(data.household.household_number || '');
+          if (data.household.purok) setPurok(data.household.purok);
+          if (data.household.poverty_level) setPovertyLevel(data.household.poverty_level);
+        }
+      } catch (e) {}
+    };
+    fetchFreshProfile();
+  }, []);
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdatingProfile(true);
     setProfileSuccessMsg('');
-    setTimeout(() => {
+    setProfileErrorMsg('');
+
+    try {
+      const res = await api.auth.updateProfile({
+        first_name: firstName,
+        middle_name: middleName,
+        last_name: lastName,
+        suffix: suffix,
+        gender: gender,
+        civil_status: civilStatus,
+        occupation: occupation,
+        contact_number: contactNumber,
+        email: email,
+        address: residentAddress,
+        birthdate: birthdate,
+        household_number: householdNumber,
+        purok: purok,
+        is_household_head: isHouseholdHead,
+        poverty_level: povertyLevel,
+      });
+
+      if (token && res.user) {
+        login(token, res.user);
+      }
+      setProfileSuccessMsg(res.message || 'Matagumpay na na-update ang iyong Profile at Household information!');
+      setTimeout(() => setProfileSuccessMsg(''), 5000);
+    } catch (err: any) {
+      setProfileErrorMsg(err.response?.data?.error || 'Nabigong i-update ang profile. Pakisubukang muli.');
+    } finally {
       setIsUpdatingProfile(false);
-      setProfileSuccessMsg("Profile information updated successfully.");
-      setProfilePassword('');
-      setTimeout(() => setProfileSuccessMsg(''), 4000);
-    }, 1000);
+    }
   };
 
   const handlePasswordUpdate = (e: React.FormEvent) => {
@@ -378,64 +455,275 @@ export const Settings: React.FC = () => {
         {/* ── Right Column: Tab Content ── */}
         <div className="lg:col-span-3 space-y-5">
 
-          {/* ─────────── TAB 1: PROFILE ─────────── */}
+          {/* ─────────── TAB 1: PROFILE & HOUSEHOLD ─────────── */}
           {activeTab === 'profile' && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/60 border border-gov-blue-200 dark:border-gov-blue-800/60 flex items-center justify-center">
-                    <User size={18} className="text-gov-blue-600 dark:text-gov-blue-400" />
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/60 border border-gov-blue-200 dark:border-gov-blue-800/60 flex items-center justify-center">
+                        <User size={18} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                      </div>
+                      <div>
+                        <CardTitle>My Resident Profile & Household</CardTitle>
+                        <CardDescription>I-edit ang iyong personal na rekord ng pagkamamamayan at pamamahala ng pamilya o household.</CardDescription>
+                      </div>
+                    </div>
+                    {householdNumber && (
+                      <Badge variant="success" className="hidden sm:inline-flex gap-1.5 items-center">
+                        <Home size={12} />
+                        {householdNumber}
+                      </Badge>
+                    )}
                   </div>
-                  <div>
-                    <CardTitle>Account Profile Details</CardTitle>
-                    <CardDescription>Update your personal information and contact details.</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {profileSuccessMsg && (
-                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-xl flex items-center gap-2">
-                    <CheckCircle2 size={16} className="shrink-0" />
-                    {profileSuccessMsg}
-                  </div>
-                )}
-                <form onSubmit={handleProfileUpdate} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                      label="Full Name / Display Name"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      isRequired
-                      leftIcon={<User size={15} />}
-                      placeholder="e.g. Maria Santos"
-                    />
-                    <Input
-                      label="Official Email Address"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      isRequired
-                      leftIcon={<Mail size={15} />}
-                      placeholder="e.g. maria.santos@barangay.gov.ph"
-                    />
-                  </div>
-                  <Input
-                    label="Current Password (Confirmation)"
-                    type="password"
-                    value={profilePassword}
-                    onChange={(e) => setProfilePassword(e.target.value)}
-                    leftIcon={<Lock size={15} />}
-                    placeholder="Enter password to authorize profile changes..."
-                    helperText="Required to confirm that you are the verified account holder."
-                  />
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
-                    <Button type="submit" isLoading={isUpdatingProfile} leftIcon={<Save size={14} />}>
-                      Save Profile Changes
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {profileSuccessMsg && (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-2xl flex items-center gap-2.5 animate-fade-in shadow-sm">
+                      <CheckCircle2 size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                      <span>{profileSuccessMsg}</span>
+                    </div>
+                  )}
+
+                  {profileErrorMsg && (
+                    <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 text-xs font-semibold rounded-2xl flex items-center gap-2.5 animate-fade-in shadow-sm">
+                      <AlertTriangle size={18} className="shrink-0 text-rose-600 dark:text-rose-400" />
+                      <span>{profileErrorMsg}</span>
+                    </div>
+                  )}
+
+                  <form onSubmit={handleProfileUpdate} className="space-y-6">
+                    {/* 1. Account Details */}
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <KeyRound size={14} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                        Account Login Information
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Input
+                          label="Username"
+                          value={username}
+                          disabled
+                          leftIcon={<User size={15} />}
+                          helperText="Ang username ay unique identifier at hindi na maaaring palitan."
+                        />
+                        <Input
+                          label="Official Email Address"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          isRequired
+                          leftIcon={<Mail size={15} />}
+                          placeholder="e.g. maria.santos@gmail.com"
+                          helperText="Dito ipapadala ang mga opisyal na OTP at anunsyo."
+                        />
+                      </div>
+                    </div>
+
+                    {/* 2. Personal Citizen Information */}
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <User size={14} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                        Personal Citizen Information
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Input
+                          label="First Name"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          isRequired
+                          placeholder="Hal. Lawrence"
+                        />
+                        <Input
+                          label="Middle Name"
+                          value={middleName}
+                          onChange={(e) => setMiddleName(e.target.value)}
+                          placeholder="Hal. Belen"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            label="Last Name"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            isRequired
+                            placeholder="Hal. Aranas"
+                          />
+                          <Input
+                            label="Suffix"
+                            value={suffix}
+                            onChange={(e) => setSuffix(e.target.value)}
+                            placeholder="Hal. Jr., III"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Kasarian (Gender)
+                          </label>
+                          <select
+                            value={gender}
+                            onChange={(e) => setGender(e.target.value)}
+                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                          >
+                            <option value="Male">Lalaki (Male)</option>
+                            <option value="Female">Babae (Female)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Katayuang Sibil (Civil Status)
+                          </label>
+                          <select
+                            value={civilStatus}
+                            onChange={(e) => setCivilStatus(e.target.value)}
+                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                          >
+                            <option value="Single">Walang Asawa (Single)</option>
+                            <option value="Married">May Asawa (Married)</option>
+                            <option value="Widowed">Biyudo / Biyuda (Widowed)</option>
+                            <option value="Separated">Hiwalay (Separated)</option>
+                          </select>
+                        </div>
+
+                        <Input
+                          label="Araw ng Kapanganakan (Birthdate)"
+                          type="date"
+                          value={birthdate}
+                          onChange={(e) => setBirthdate(e.target.value)}
+                          isRequired
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                        <Input
+                          label="Numero ng Telepono / Mobile"
+                          value={contactNumber}
+                          onChange={(e) => setContactNumber(e.target.value)}
+                          leftIcon={<Phone size={15} />}
+                          placeholder="09123456789"
+                        />
+                        <Input
+                          label="Trabaho / Hanapbuhay (Occupation)"
+                          value={occupation}
+                          onChange={(e) => setOccupation(e.target.value)}
+                          leftIcon={<Briefcase size={15} />}
+                          placeholder="Hal. Empleyado, Negosyante, etc."
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <Input
+                          label="Kumpletong Tirahan (Complete Address / Street)"
+                          value={residentAddress}
+                          onChange={(e) => setResidentAddress(e.target.value)}
+                          isRequired
+                          leftIcon={<MapPin size={15} />}
+                          placeholder="Hal. House #123, Purok 3, Barangay San Isidro, Bay, Laguna"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 3. Household & Family Profile */}
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                          <Home size={14} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                          Impormasyon ng Household & Pamilya
+                        </h4>
+                        <span className="text-[10px] text-slate-500 font-medium">Opisyal na Tala ng Bahay</span>
+                      </div>
+
+                      <div className="p-4 rounded-2xl border border-gov-blue-200/60 dark:border-gov-blue-900/40 bg-gov-blue-50/40 dark:bg-gov-blue-950/20 mb-4 space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-gov-blue-900 dark:text-gov-blue-300">
+                          <Users size={16} className="text-gov-blue-600" />
+                          <span>Pamamahala ng Household (Family Unit)</span>
+                        </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                          Dito maaaring itakda o ayusin ang iyong <strong>Household Number</strong> upang maisama ang mga kapamilya sa parehong tirahan, mapili ang iyong <strong>Purok</strong>, at matukoy kung ikaw ang <strong>Head ng Pamilya</strong>.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <Input
+                          label="Household Number (Bahay ID)"
+                          value={householdNumber}
+                          onChange={(e) => setHouseholdNumber(e.target.value)}
+                          placeholder="Hal. HH-2026-0012"
+                          leftIcon={<Home size={15} />}
+                          helperText="Hal. HH-2026-0001 (o ilagay ang opisyal na numero ng inyong bahay)."
+                        />
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Purok / Sona
+                          </label>
+                          <select
+                            value={purok}
+                            onChange={(e) => setPurok(e.target.value)}
+                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                          >
+                            <option value="Purok 1">Purok 1</option>
+                            <option value="Purok 2">Purok 2</option>
+                            <option value="Purok 3">Purok 3</option>
+                            <option value="Purok 4">Purok 4</option>
+                            <option value="Purok 5">Purok 5</option>
+                            <option value="Purok 6">Purok 6</option>
+                            <option value="Purok 7">Purok 7</option>
+                          </select>
+                          <span className="text-[10px] text-slate-400 mt-1 block">Purok kung saan nakatirik ang bahay</span>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Klasipikasyon ng Pamilya (Poverty Level)
+                          </label>
+                          <select
+                            value={povertyLevel}
+                            onChange={(e) => setPovertyLevel(e.target.value)}
+                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                          >
+                            <option value="Non-Poor">Non-Poor (Regular Income)</option>
+                            <option value="Low Income">Low Income (Mababang Kita)</option>
+                            <option value="Poor">Poor (Kailangan ng Tulong)</option>
+                            <option value="Indigent">Indigent (Opisyal na Indigent)</option>
+                          </select>
+                          <span className="text-[10px] text-slate-400 mt-1 block">Para sa mga ayuda at serbisyong panlipunan</span>
+                        </div>
+                      </div>
+
+                      {/* Head of household checkbox */}
+                      <div className="mt-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          id="is_hh_head"
+                          checked={isHouseholdHead}
+                          onChange={(e) => setIsHouseholdHead(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-gov-blue-600 focus:ring-gov-blue-500"
+                        />
+                        <label htmlFor="is_hh_head" className="cursor-pointer text-xs">
+                          <span className="font-bold text-slate-900 dark:text-white block">
+                            Ako ang Punong Pamilya / Head of Household
+                          </span>
+                          <span className="text-slate-500 dark:text-slate-400 block mt-0.5">
+                            Lagyan ng tsek kung ikaw ang kinikilalang pinuno o kinatawan ng inyong sambahayan/pamilya sa barangay.
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                      <Button type="submit" isLoading={isUpdatingProfile} leftIcon={<Save size={14} />}>
+                        I-save ang Profile at Household
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           {/* ─────────── TAB: NOTIFICATIONS & SOUND ─────────── */}
