@@ -138,6 +138,23 @@ export const Login: React.FC = () => {
     }
   };
 
+  const handleResendForgotOtp = async () => {
+    setIsResending(true);
+    setError('');
+    try {
+      const cleanEmail = forgotEmail.trim().toLowerCase();
+      const data = await api.auth.forgotPassword({ email: cleanEmail });
+      if (data.otp) {
+        setSandboxOtp(data.otp);
+      }
+      setInfo('Bagong verification OTP ang naipadala sa iyong Gmail inbox via SMTP. Pakitingnan muli.');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Hindi maipadala ang OTP. Pakisubukang muli.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleForgotPasswordRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -296,9 +313,19 @@ export const Login: React.FC = () => {
               )}
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                  Verification OTP Code
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                    Verification OTP Code
+                  </label>
+                  <button
+                    type="button"
+                    disabled={isResending}
+                    onClick={handleResendForgotOtp}
+                    className="text-gov-blue-600 dark:text-gov-blue-400 hover:underline font-bold text-[11px] bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50"
+                  >
+                    {isResending ? 'Ipinapadala...' : 'Resend Code'}
+                  </button>
+                </div>
                 <input
                   type="text"
                   required
@@ -372,6 +399,17 @@ export const Login: React.FC = () => {
               >
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Reset Password'}
               </button>
+
+              <div className="text-center pt-1">
+                <button
+                  type="button"
+                  disabled={isResending}
+                  onClick={handleResendForgotOtp}
+                  className="text-gov-blue-600 dark:text-gov-blue-400 hover:underline font-bold text-xs bg-transparent border-0 p-0 cursor-pointer disabled:opacity-50"
+                >
+                  {isResending ? 'Ipinapadala muli ang OTP sa Gmail...' : 'Hindi natanggap ang code? I-resend ang bagong OTP sa Gmail'}
+                </button>
+              </div>
 
               <div className="flex gap-2">
                 <button
