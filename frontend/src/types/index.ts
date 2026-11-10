@@ -34,6 +34,7 @@ export interface Resident {
   household_id?: string;
   household?: Household;
   is_household_head: boolean;
+  relationship_to_head?: string;
   qr_id: string;
   created_at: string;
   updated_at: string;

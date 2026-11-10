@@ -7,6 +7,7 @@ import (
 
 	"backend/internal/config"
 	"backend/internal/models"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,20 +35,20 @@ type RevenueMonth struct {
 }
 
 type DashboardStats struct {
-	TotalResidents    int64            `json:"total_residents"`
-	TotalHouseholds   int64            `json:"total_households"`
-	IndigentCount     int64            `json:"indigent_households"`
-	ActiveIncidents   int64            `json:"active_incidents"`
-	ActiveBusinesses  int64            `json:"active_businesses"`
-	VotersCount       int64            `json:"voters_count"`
-	SeniorCount       int64            `json:"senior_citizens"`
-	SoloParentsCount  int64            `json:"solo_parents"`
-	PWDsCount         int64            `json:"pwd_residents"`
-	TotalClearances   int64            `json:"total_clearances"`
-	TotalAIQueries    int64            `json:"total_ai_queries"`
-	AgeDemographics   AgeDemographics  `json:"age_demographics"`
-	GenderRatio       map[string]int64 `json:"gender_ratio"`
-	RevenueHistory    []RevenueMonth   `json:"revenue_history"`
+	TotalResidents   int64            `json:"total_residents"`
+	TotalHouseholds  int64            `json:"total_households"`
+	IndigentCount    int64            `json:"indigent_households"`
+	ActiveIncidents  int64            `json:"active_incidents"`
+	ActiveBusinesses int64            `json:"active_businesses"`
+	VotersCount      int64            `json:"voters_count"`
+	SeniorCount      int64            `json:"senior_citizens"`
+	SoloParentsCount int64            `json:"solo_parents"`
+	PWDsCount        int64            `json:"pwd_residents"`
+	TotalClearances  int64            `json:"total_clearances"`
+	TotalAIQueries   int64            `json:"total_ai_queries"`
+	AgeDemographics  AgeDemographics  `json:"age_demographics"`
+	GenderRatio      map[string]int64 `json:"gender_ratio"`
+	RevenueHistory   []RevenueMonth   `json:"revenue_history"`
 }
 
 func (h *AnalyticsHandler) GetStats(c *gin.Context) {
@@ -74,79 +75,58 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 
 	// Custom registries
 	db.Model(&models.Resident{}).Where("civil_status = ?", "Single Parent").Count(&stats.SoloParentsCount)
+
+	// Senior Citizens check (Age >= 60)
+	seniorThreshold := time.Now().AddDate(-60, 0, 0)
+	db.Model(&models.Resident{}).Where("birthdate <= ?", seniorThreshold).Count(&stats.SeniorCount)
+
+	// PWD count
 	stats.PWDsCount = 0
 
-	// High-speed In-Memory Demographic calculation from 1 single query instead of 8 sequential network round-trips
-	type ResidentMini struct {
-		Gender    string
-		Birthdate *time.Time
-	}
-	var residentMinis []ResidentMini
-	db.Model(&models.Resident{}).Select("gender, birthdate").Find(&residentMinis)
-
-	now := time.Now()
-	seniorThreshold := now.AddDate(-60, 0, 0)
-	childThreshold := now.AddDate(-12, 0, 0)
-	youthThreshold := now.AddDate(-24, 0, 0)
-	adultThreshold := now.AddDate(-59, 0, 0)
-
-	var maleCount, femaleCount, seniorCount int64
-	var childrenCount, youthCount, adultCount, seniorsCount int64
-
-	for _, r := range residentMinis {
-		if r.Gender == "Male" {
-			maleCount++
-		} else if r.Gender == "Female" {
-			femaleCount++
-		}
-
-		if r.Birthdate != nil {
-			bd := *r.Birthdate
-			if bd.Before(seniorThreshold) || bd.Equal(seniorThreshold) {
-				seniorCount++
-			}
-			if bd.After(childThreshold) {
-				childrenCount++
-			} else if bd.After(youthThreshold) {
-				youthCount++
-			} else if bd.After(adultThreshold) {
-				adultCount++
-			} else {
-				seniorsCount++
-			}
-		}
-	}
-
-	stats.SeniorCount = seniorCount
+	// Gender Ratio
+	var maleCount, femaleCount int64
+	db.Model(&models.Resident{}).Where("gender = ?", "Male").Count(&maleCount)
+	db.Model(&models.Resident{}).Where("gender = ?", "Female").Count(&femaleCount)
 	stats.GenderRatio = map[string]int64{
 		"Male":   maleCount,
 		"Female": femaleCount,
 	}
-	stats.AgeDemographics = AgeDemographics{
-		Children: childrenCount,
-		Youth:    youthCount,
-		Adults:   adultCount,
-		Seniors:  seniorsCount,
+
+	// Age distribution breakdown
+	now := time.Now()
+	childThreshold := now.AddDate(-12, 0, 0)
+	youthThreshold := now.AddDate(-24, 0, 0)
+	adultThreshold := now.AddDate(-59, 0, 0)
+
+	db.Model(&models.Resident{}).Where("birthdate > ?", childThreshold).Count(&stats.AgeDemographics.Children)
+	db.Model(&models.Resident{}).Where("birthdate <= ? AND birthdate > ?", childThreshold, youthThreshold).Count(&stats.AgeDemographics.Youth)
+	db.Model(&models.Resident{}).Where("birthdate <= ? AND birthdate > ?", youthThreshold, adultThreshold).Count(&stats.AgeDemographics.Adults)
+	db.Model(&models.Resident{}).Where("birthdate <= ?", adultThreshold).Count(&stats.AgeDemographics.Seniors)
+
+	// Monthly Revenue stats
+	// Sum amount grouped by Month (compatible with SQLite strftime)
+	var paymentMonths []struct {
+		Month string
+		Total float64
 	}
+	db.Model(&models.Payment{}).
+		Select("strftime('%Y-%m', transaction_date) as month, SUM(amount) as total").
+		Where("status = ?", "Paid").
+		Group("strftime('%Y-%m', transaction_date)").
+		Order("month asc").
+		Scan(&paymentMonths)
 
-	// Monthly Revenue stats: calculate from paid payments (compatible with both PostgreSQL and SQLite)
-	var payments []models.Payment
-	db.Select("transaction_date, amount").Where("status = ?", "Paid").Find(&payments)
-
-	revByMonth := make(map[string]float64)
-	for _, p := range payments {
-		m := p.TransactionDate.Format("Jan")
-		revByMonth[m] += p.Amount
-	}
-
-	monthOrder := []string{"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"}
-	for _, m := range monthOrder {
-		if amt, ok := revByMonth[m]; ok {
-			stats.RevenueHistory = append(stats.RevenueHistory, RevenueMonth{
-				Month:  m,
-				Amount: amt,
-			})
+	for _, pm := range paymentMonths {
+		// Format month nicely e.g. "2026-05" -> "May" or keep key
+		t, err := time.Parse("2006-01", pm.Month)
+		monthName := pm.Month
+		if err == nil {
+			monthName = t.Format("Jan")
 		}
+		stats.RevenueHistory = append(stats.RevenueHistory, RevenueMonth{
+			Month:  monthName,
+			Amount: pm.Total,
+		})
 	}
 
 	// Default revenue structure if database payments are empty (all 0.00)

@@ -9,6 +9,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
 import { api } from '../services/api';
+import type { Household } from '../types';
 import { PageHeader, Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Input, Badge, Modal } from '../components/ui';
 import { playNotificationSound, isNotificationSoundEnabled, setNotificationSoundEnabled } from '../utils/notificationSound';
 
@@ -45,6 +46,11 @@ export const Settings: React.FC = () => {
   const [purok, setPurok] = useState(user?.resident?.household?.purok || 'Purok 1');
   const [povertyLevel, setPovertyLevel] = useState(user?.resident?.household?.poverty_level || 'Low Income');
   const [isHouseholdHead, setIsHouseholdHead] = useState(Boolean(user?.resident?.is_household_head));
+  const [relationshipToHead, setRelationshipToHead] = useState<string>(
+    user?.resident?.relationship_to_head || (user?.resident?.is_household_head ? 'Punong Pamilya (Head of Household)' : 'Anak (Child / Son / Daughter)')
+  );
+  const [availableHouseholds, setAvailableHouseholds] = useState<Household[]>([]);
+  const [householdSelectionMode, setHouseholdSelectionMode] = useState<'existing' | 'manual'>('existing');
 
   // Password
   const [currentPassword, setCurrentPassword] = useState('');
@@ -183,6 +189,11 @@ export const Settings: React.FC = () => {
           setBirthdate(user.resident.birthdate.slice(0, 10));
         }
         setIsHouseholdHead(Boolean(user.resident.is_household_head));
+        if (user.resident.relationship_to_head) {
+          setRelationshipToHead(user.resident.relationship_to_head);
+        } else if (user.resident.is_household_head) {
+          setRelationshipToHead('Punong Pamilya (Head of Household)');
+        }
         if (user.resident.household) {
           setHouseholdNumber(user.resident.household.household_number || '');
           setPurok(user.resident.household.purok || 'Purok 1');
@@ -204,7 +215,33 @@ export const Settings: React.FC = () => {
       } catch (e) {}
     };
     fetchFreshProfile();
+
+    // Fetch registered households list
+    api.households.list().then(data => {
+      if (Array.isArray(data)) {
+        setAvailableHouseholds(data);
+      }
+    }).catch(() => {});
   }, []);
+
+  const handleSelectHousehold = (hhNum: string) => {
+    setHouseholdNumber(hhNum);
+    const found = availableHouseholds.find(h => h.household_number === hhNum);
+    if (found) {
+      if (found.purok) setPurok(found.purok);
+      if (found.poverty_level) setPovertyLevel(found.poverty_level);
+      if (found.address) setResidentAddress(found.address);
+    }
+  };
+
+  const handleRelationshipChange = (val: string) => {
+    setRelationshipToHead(val);
+    if (val.includes('Punong Pamilya') || val.includes('Head')) {
+      setIsHouseholdHead(true);
+    } else {
+      setIsHouseholdHead(false);
+    }
+  };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,6 +265,7 @@ export const Settings: React.FC = () => {
         household_number: householdNumber,
         purok: purok,
         is_household_head: isHouseholdHead,
+        relationship_to_head: relationshipToHead,
         poverty_level: povertyLevel,
       });
 
@@ -640,23 +678,99 @@ export const Settings: React.FC = () => {
                       <div className="p-4 rounded-2xl border border-gov-blue-200/60 dark:border-gov-blue-900/40 bg-gov-blue-50/40 dark:bg-gov-blue-950/20 mb-4 space-y-2">
                         <div className="flex items-center gap-2 text-xs font-bold text-gov-blue-900 dark:text-gov-blue-300">
                           <Users size={16} className="text-gov-blue-600" />
-                          <span>Pamamahala ng Household (Family Unit)</span>
+                          <span>Pamamahala ng Household & Relasyon sa Pamilya</span>
                         </div>
                         <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Dito maaaring itakda o ayusin ang iyong <strong>Household Number</strong> upang maisama ang mga kapamilya sa parehong tirahan, mapili ang iyong <strong>Purok</strong>, at matukoy kung ikaw ang <strong>Head ng Pamilya</strong>.
+                          Pumili mula sa mga rehistradong pamilya o magrehistro ng bagong bahay. Tukuyin kung ano ang iyong papel sa pamilya upang awtomatikong maiugnay ang iyong talaan sa inyong tahanan.
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <Input
-                          label="Household Number (Bahay ID)"
-                          value={householdNumber}
-                          onChange={(e) => setHouseholdNumber(e.target.value)}
-                          placeholder="Hal. HH-2026-0012"
-                          leftIcon={<Home size={15} />}
-                          helperText="Hal. HH-2026-0001 (o ilagay ang opisyal na numero ng inyong bahay)."
-                        />
+                      {/* Setup Selection: Join Existing Household vs Register New */}
+                      <div className="mb-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setHouseholdSelectionMode('existing')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            householdSelectionMode === 'existing'
+                              ? 'bg-gov-blue-600 text-white shadow-sm'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Home size={13} />
+                          Pumili mula sa Rehistradong Household ({availableHouseholds.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHouseholdSelectionMode('manual')}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                            householdSelectionMode === 'manual'
+                              ? 'bg-gov-blue-600 text-white shadow-sm'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                          }`}
+                        >
+                          <Plus size={13} />
+                          Magtala ng Bagong Household ID
+                        </button>
+                      </div>
 
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* Household Selector or Manual Input */}
+                        {householdSelectionMode === 'existing' && availableHouseholds.length > 0 ? (
+                          <div>
+                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                              Piliin ang Inyong Sambahayan / Household
+                            </label>
+                            <select
+                              value={householdNumber}
+                              onChange={(e) => handleSelectHousehold(e.target.value)}
+                              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                            >
+                              <option value="">-- Piliin ang Inyong Pamilya / Household --</option>
+                              {availableHouseholds.map(hh => (
+                                <option key={hh.id} value={hh.household_number}>
+                                  {hh.household_number} — {hh.purok || 'Purok 1'} {hh.head ? `(Pinuno: ${hh.head.first_name} ${hh.head.last_name})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <span className="text-[10px] text-slate-400 mt-1 block">Awtomatikong kukunin ang purok at tirahan ng napiling pamilya.</span>
+                          </div>
+                        ) : (
+                          <Input
+                            label="Household Number (Bahay ID)"
+                            value={householdNumber}
+                            onChange={(e) => setHouseholdNumber(e.target.value)}
+                            placeholder="Hal. HH-2026-0012"
+                            leftIcon={<Home size={15} />}
+                            helperText="Hal. HH-2026-0001 (o ilagay ang opisyal na numero ng inyong bahay)."
+                          />
+                        )}
+
+                        {/* Relasyon sa Pamilya (Family Role) */}
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                            Relasyon / Papel sa Pamilya (Family Role) *
+                          </label>
+                          <select
+                            value={relationshipToHead}
+                            onChange={(e) => handleRelationshipChange(e.target.value)}
+                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                          >
+                            <option value="Punong Pamilya (Head of Household)">👑 Punong Pamilya (Head of Household)</option>
+                            <option value="Asawa (Spouse / Partner)">💍 Asawa (Spouse / Partner)</option>
+                            <option value="Anak (Child / Son / Daughter)">👶 Anak (Child / Son / Daughter)</option>
+                            <option value="Magulang (Father / Mother)">👵 Magulang (Father / Mother)</option>
+                            <option value="Kapatid (Brother / Sister)">🤝 Kapatid (Brother / Sister)</option>
+                            <option value="Apo (Grandchild)">🧒 Apo (Grandchild)</option>
+                            <option value="Lolo / Lola (Grandparent)">🧓 Lolo / Lola (Grandparent)</option>
+                            <option value="Biyanan / Manugang (In-Law)">🏡 Biyanan / Manugang (In-Law)</option>
+                            <option value="Kamag-anak (Other Relative)">👥 Kamag-anak (Other Relative)</option>
+                            <option value="Kasambahay / Boarder (Non-relative)">🚪 Kasambahay / Boarder (Non-relative)</option>
+                          </select>
+                          <span className="text-[10px] text-slate-400 mt-1 block">Awtomatikong itinatakda kung ikaw ay Pinuno o Miyembro ng pamilya.</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div>
                           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
                             Purok / Sona
@@ -695,13 +809,18 @@ export const Settings: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Head of household checkbox */}
+                      {/* Head of household indicator toggle */}
                       <div className="mt-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-start gap-3">
                         <input
                           type="checkbox"
                           id="is_hh_head"
                           checked={isHouseholdHead}
-                          onChange={(e) => setIsHouseholdHead(e.target.checked)}
+                          onChange={(e) => {
+                            setIsHouseholdHead(e.target.checked);
+                            if (e.target.checked) {
+                              setRelationshipToHead('Punong Pamilya (Head of Household)');
+                            }
+                          }}
                           className="mt-0.5 h-4 w-4 rounded border-slate-300 text-gov-blue-600 focus:ring-gov-blue-500"
                         />
                         <label htmlFor="is_hh_head" className="cursor-pointer text-xs">
@@ -709,10 +828,46 @@ export const Settings: React.FC = () => {
                             Ako ang Punong Pamilya / Head of Household
                           </span>
                           <span className="text-slate-500 dark:text-slate-400 block mt-0.5">
-                            Lagyan ng tsek kung ikaw ang kinikilalang pinuno o kinatawan ng inyong sambahayan/pamilya sa barangay.
+                            {isHouseholdHead 
+                              ? '✅ Nakatala ka bilang Opisyal na Pinuno / Kinatawan ng inyong pamilya.'
+                              : 'Miyembro o kasama sa tahanan (hindi pinuno ng pamilya).'}
                           </span>
                         </label>
                       </div>
+
+                      {/* Display family members if linked */}
+                      {user?.resident?.household?.members && user.resident.household.members.length > 0 && (
+                        <div className="mt-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                              <Users size={14} className="text-gov-blue-600" />
+                              Mga Kasamang Miyembro sa Bahay ({user.resident.household.members.length})
+                            </span>
+                            <span className="text-[10px] text-slate-400">Household: {user.resident.household.household_number}</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {user.resident.household.members.map(m => (
+                              <div key={m.id} className="p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                    {m.first_name} {m.middle_name ? `${m.middle_name[0]}. ` : ''}{m.last_name}
+                                  </p>
+                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                    {m.gender} • {m.civil_status || 'Single'}
+                                  </p>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  m.is_household_head 
+                                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300/60'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                }`}>
+                                  {m.relationship_to_head || (m.is_household_head ? 'Punong Pamilya' : 'Miyembro')}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">

@@ -303,7 +303,7 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 	var linkedHousehold *models.Household
 	if user.Resident != nil && user.Resident.HouseholdID != nil {
 		var hh models.Household
-		if err := db.First(&hh, "id = ?", *user.Resident.HouseholdID).Error; err == nil {
+		if err := db.Preload("Head").Preload("Members").First(&hh, "id = ?", *user.Resident.HouseholdID).Error; err == nil {
 			linkedHousehold = &hh
 			user.Resident.Household = &hh
 		}
@@ -321,21 +321,22 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 }
 
 type UpdateProfileRequest struct {
-	FirstName       string `json:"first_name"`
-	MiddleName      string `json:"middle_name"`
-	LastName        string `json:"last_name"`
-	Suffix          string `json:"suffix"`
-	Gender          string `json:"gender"`
-	CivilStatus     string `json:"civil_status"`
-	Occupation      string `json:"occupation"`
-	ContactNumber   string `json:"contact_number"`
-	Email           string `json:"email"`
-	Address         string `json:"address"`
-	Birthdate       string `json:"birthdate"`
-	HouseholdNumber string `json:"household_number"`
-	Purok           string `json:"purok"`
-	IsHouseholdHead bool   `json:"is_household_head"`
-	PovertyLevel    string `json:"poverty_level"`
+	FirstName          string `json:"first_name"`
+	MiddleName         string `json:"middle_name"`
+	LastName           string `json:"last_name"`
+	Suffix             string `json:"suffix"`
+	Gender             string `json:"gender"`
+	CivilStatus        string `json:"civil_status"`
+	Occupation         string `json:"occupation"`
+	ContactNumber      string `json:"contact_number"`
+	Email              string `json:"email"`
+	Address            string `json:"address"`
+	Birthdate          string `json:"birthdate"`
+	HouseholdNumber    string `json:"household_number"`
+	Purok              string `json:"purok"`
+	IsHouseholdHead    bool   `json:"is_household_head"`
+	RelationshipToHead string `json:"relationship_to_head"`
+	PovertyLevel       string `json:"poverty_level"`
 }
 
 func (h *AuthHandler) UpdateProfile(c *gin.Context) {
@@ -412,7 +413,16 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 					resident.Birthdate = bdate
 				}
 			}
-			resident.IsHouseholdHead = req.IsHouseholdHead
+			if req.RelationshipToHead != "" {
+				resident.RelationshipToHead = strings.TrimSpace(req.RelationshipToHead)
+			}
+			if strings.Contains(strings.ToLower(resident.RelationshipToHead), "head") || strings.Contains(strings.ToLower(resident.RelationshipToHead), "punong") {
+				resident.IsHouseholdHead = true
+			} else if req.RelationshipToHead != "" {
+				resident.IsHouseholdHead = false
+			} else {
+				resident.IsHouseholdHead = req.IsHouseholdHead
+			}
 
 			cleanHHNum := strings.TrimSpace(req.HouseholdNumber)
 			if cleanHHNum != "" {
@@ -477,7 +487,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	var linkedHousehold *models.Household
 	if user.Resident != nil && user.Resident.HouseholdID != nil {
 		var hh models.Household
-		if err := db.First(&hh, "id = ?", *user.Resident.HouseholdID).Error; err == nil {
+		if err := db.Preload("Head").Preload("Members").First(&hh, "id = ?", *user.Resident.HouseholdID).Error; err == nil {
 			linkedHousehold = &hh
 			user.Resident.Household = &hh
 		}

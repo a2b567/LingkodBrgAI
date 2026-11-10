@@ -60,10 +60,11 @@ type Resident struct {
 	IsSenior        bool       `gorm:"default:false" json:"is_senior"`
 	IsPWD           bool       `gorm:"default:false" json:"is_pwd"`
 	ProfilePhoto    string     `json:"profile_photo"`
-	HouseholdID     *uuid.UUID `gorm:"type:uuid;constraint:false" json:"household_id,omitempty"`
-	Household       *Household `gorm:"foreignKey:HouseholdID;constraint:false" json:"household,omitempty"`
-	IsHouseholdHead bool       `gorm:"default:false" json:"is_household_head"`
-	QRID            string     `gorm:"uniqueIndex" json:"qr_id"`
+	HouseholdID        *uuid.UUID `gorm:"type:uuid;constraint:false" json:"household_id,omitempty"`
+	Household          *Household `gorm:"foreignKey:HouseholdID;constraint:false" json:"household,omitempty"`
+	IsHouseholdHead    bool       `gorm:"default:false" json:"is_household_head"`
+	RelationshipToHead string     `gorm:"default:'Punong Pamilya'" json:"relationship_to_head"`
+	QRID               string     `gorm:"uniqueIndex" json:"qr_id"`
 }
 
 // Compute Age on retrieve helper
