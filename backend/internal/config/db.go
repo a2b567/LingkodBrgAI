@@ -65,10 +65,17 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 					DSN:                  dsn,
 					PreferSimpleProtocol: true,
 				}), &gorm.Config{
-					Logger:                                   logger.Default.LogMode(logger.Info),
+					Logger:                                   logger.Default.LogMode(logger.Warn),
 					DisableForeignKeyConstraintWhenMigrating: true,
+					PrepareStmt:                              false,
 				})
 				if err == nil {
+					if sqlDB, poolErr := CloudDB.DB(); poolErr == nil {
+						sqlDB.SetMaxIdleConns(10)
+						sqlDB.SetMaxOpenConns(30)
+						sqlDB.SetConnMaxLifetime(1 * time.Hour)
+						sqlDB.SetConnMaxIdleTime(10 * time.Minute)
+					}
 					break
 				}
 				log.Printf("[CLOUD DB] Connection attempt %d/3 failed: %v. Retrying in 2s...", i, err)
@@ -92,33 +99,38 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		}
 	}
 
-	// Auto-Migrate Cloud Database if active
+	// Auto-Migrate Cloud Database only if fresh database (skip on warm start for fast speed)
 	if CloudDB != nil && os.Getenv("SKIP_MIGRATE") != "1" {
-		_ = CloudDB.AutoMigrate(&models.Household{})
-		if migrateErr := CloudDB.AutoMigrate(
-			&models.Resident{},
-			&models.User{},
-			&models.Certificate{},
-			&models.Blotter{},
-			&models.Business{},
-			&models.Appointment{},
-			&models.Notification{},
-			&models.Payment{},
-			&models.AuditLog{},
-			&models.AILog{},
-			&models.QueueTicket{},
-			&models.License{},
-			&models.MedicineStock{},
-			&models.HealthRecord{},
-			&models.DispensedItem{},
-			&models.ErrorLog{},
-		); migrateErr != nil {
-			log.Printf("[CLOUD DB ERROR] Cloud Database migration error: %v", migrateErr)
-		} else {
-			log.Println("[CLOUD DB] Cloud Database migration completed successfully.")
-			if seedErr := SeedDatabase(CloudDB); seedErr != nil {
-				log.Printf("[CLOUD DB WARNING] Cloud Database seed warning: %v", seedErr)
+		if !CloudDB.Migrator().HasTable(&models.User{}) {
+			log.Println("[CLOUD DB] Initializing fresh schema tables...")
+			_ = CloudDB.AutoMigrate(&models.Household{})
+			if migrateErr := CloudDB.AutoMigrate(
+				&models.Resident{},
+				&models.User{},
+				&models.Certificate{},
+				&models.Blotter{},
+				&models.Business{},
+				&models.Appointment{},
+				&models.Notification{},
+				&models.Payment{},
+				&models.AuditLog{},
+				&models.AILog{},
+				&models.QueueTicket{},
+				&models.License{},
+				&models.MedicineStock{},
+				&models.HealthRecord{},
+				&models.DispensedItem{},
+				&models.ErrorLog{},
+			); migrateErr != nil {
+				log.Printf("[CLOUD DB ERROR] Cloud Database migration error: %v", migrateErr)
+			} else {
+				log.Println("[CLOUD DB] Cloud Database migration completed successfully.")
+				if seedErr := SeedDatabase(CloudDB); seedErr != nil {
+					log.Printf("[CLOUD DB WARNING] Cloud Database seed warning: %v", seedErr)
+				}
 			}
+		} else {
+			log.Println("[CLOUD DB] ✅ Schema tables already initialized. Skipping redundant Cloud AutoMigrate for instant performance.")
 		}
 	}
 

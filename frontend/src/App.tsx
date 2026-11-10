@@ -1,27 +1,37 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { DashboardLayout } from './layouts/DashboardLayout';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { Dashboard } from './pages/Dashboard';
-import { Residents } from './pages/Residents';
-import { Households } from './pages/Households';
-import { Certificates } from './pages/Certificates';
-import { Appointments } from './pages/Appointments';
-import { BlotterPage } from './pages/Blotter';
-import { Businesses } from './pages/Businesses';
-import { Settings } from './pages/Settings';
-import { VerifyDocument } from './pages/VerifyDocument';
-import { Landing } from './pages/Landing';
-import { KioskCertificates } from './pages/KioskCertificates';
-import { QueueSchedule } from './pages/QueueSchedule';
-import { QueueMonitor } from './pages/QueueMonitor';
-import { HealthRecords } from './pages/HealthRecords';
-import { ClinicQueueView } from './pages/ClinicQueueView';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
-import { StaffAccounts } from './pages/StaffAccounts';
-import { DevConsole } from './pages/DevConsole';
+
+// Lazy-loaded routes for instant initial bundle loading and maximum performance
+const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Register = lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
+const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Residents = lazy(() => import('./pages/Residents').then(m => ({ default: m.Residents })));
+const Households = lazy(() => import('./pages/Households').then(m => ({ default: m.Households })));
+const Certificates = lazy(() => import('./pages/Certificates').then(m => ({ default: m.Certificates })));
+const Appointments = lazy(() => import('./pages/Appointments').then(m => ({ default: m.Appointments })));
+const BlotterPage = lazy(() => import('./pages/Blotter').then(m => ({ default: m.BlotterPage })));
+const Businesses = lazy(() => import('./pages/Businesses').then(m => ({ default: m.Businesses })));
+const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const VerifyDocument = lazy(() => import('./pages/VerifyDocument').then(m => ({ default: m.VerifyDocument })));
+const Landing = lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
+const KioskCertificates = lazy(() => import('./pages/KioskCertificates').then(m => ({ default: m.KioskCertificates })));
+const QueueSchedule = lazy(() => import('./pages/QueueSchedule').then(m => ({ default: m.QueueSchedule })));
+const QueueMonitor = lazy(() => import('./pages/QueueMonitor').then(m => ({ default: m.QueueMonitor })));
+const HealthRecords = lazy(() => import('./pages/HealthRecords').then(m => ({ default: m.HealthRecords })));
+const ClinicQueueView = lazy(() => import('./pages/ClinicQueueView').then(m => ({ default: m.ClinicQueueView })));
+const StaffAccounts = lazy(() => import('./pages/StaffAccounts').then(m => ({ default: m.StaffAccounts })));
+const DevConsole = lazy(() => import('./pages/DevConsole').then(m => ({ default: m.DevConsole })));
+
+// Ultra lightweight route fallback loader
+const RouteFallback: React.FC = () => (
+  <div className="min-h-[50vh] flex flex-col items-center justify-center">
+    <div className="w-8 h-8 border-3 border-gov-blue-500 border-t-transparent rounded-full animate-spin"></div>
+    <span className="text-[11px] font-semibold text-slate-400 mt-3 tracking-wide">Loading module...</span>
+  </div>
+);
 
 
 // Route Guard to protect routes and handle RBAC checks
@@ -76,7 +86,8 @@ export const App: React.FC = () => {
 
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
         {/* Public Verification Page */}
         <Route path="/verify/document/:hash" element={<VerifyDocument />} />
         <Route path="/verify/resident/:hash" element={<VerifyDocument />} />
@@ -234,6 +245,7 @@ export const App: React.FC = () => {
         {/* Fallback Redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
 
       {/* Global Progressive Web App Install Banner */}
       <PWAInstallBanner />

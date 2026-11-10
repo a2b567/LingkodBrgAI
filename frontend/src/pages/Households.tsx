@@ -113,7 +113,10 @@ export const Households: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchHouseholds();
+    const timer = setTimeout(() => {
+      fetchHouseholds();
+    }, 300);
+    return () => clearTimeout(timer);
   }, [search, poverty]);
 
   useEffect(() => {

@@ -2,11 +2,21 @@ package handlers
 
 import (
 	"net/http"
+	"sync"
 	"time"
 
 	"backend/internal/config"
 	"backend/internal/models"
 	"github.com/gin-gonic/gin"
+)
+
+var (
+	statsCacheMutex  sync.RWMutex
+	cachedStats      *DashboardStats
+	statsCachedAt    time.Time
+	publicCacheMutex sync.RWMutex
+	cachedPublic     gin.H
+	publicCachedAt   time.Time
 )
 
 type AnalyticsHandler struct{}
@@ -41,6 +51,15 @@ type DashboardStats struct {
 }
 
 func (h *AnalyticsHandler) GetStats(c *gin.Context) {
+	statsCacheMutex.RLock()
+	if cachedStats != nil && time.Since(statsCachedAt) < 60*time.Second {
+		copyStats := *cachedStats
+		statsCacheMutex.RUnlock()
+		c.JSON(http.StatusOK, copyStats)
+		return
+	}
+	statsCacheMutex.RUnlock()
+
 	db := config.DB
 	var stats DashboardStats
 
@@ -120,10 +139,24 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 		}
 	}
 
+	statsCacheMutex.Lock()
+	cachedStats = &stats
+	statsCachedAt = time.Now()
+	statsCacheMutex.Unlock()
+
 	c.JSON(http.StatusOK, stats)
 }
 
 func (h *AnalyticsHandler) GetPublicStats(c *gin.Context) {
+	publicCacheMutex.RLock()
+	if cachedPublic != nil && time.Since(publicCachedAt) < 60*time.Second {
+		copyPub := cachedPublic
+		publicCacheMutex.RUnlock()
+		c.JSON(http.StatusOK, copyPub)
+		return
+	}
+	publicCacheMutex.RUnlock()
+
 	db := config.DB
 	var totalResidents int64
 	var totalClearances int64
@@ -135,13 +168,20 @@ func (h *AnalyticsHandler) GetPublicStats(c *gin.Context) {
 	db.Model(&models.Blotter{}).Where("status IN ?", []string{"Pending", "Active"}).Count(&activeIncidents)
 	db.Model(&models.Business{}).Where("status = ?", "Active").Count(&totalBusinesses)
 
-	c.JSON(http.StatusOK, gin.H{
+	res := gin.H{
 		"total_residents":  totalResidents,
 		"total_clearances": totalClearances,
 		"active_incidents": activeIncidents,
 		"total_businesses": totalBusinesses,
 		"congestion_risk":  "LOW / OPTIMAL",
-	})
+	}
+
+	publicCacheMutex.Lock()
+	cachedPublic = res
+	publicCachedAt = time.Now()
+	publicCacheMutex.Unlock()
+
+	c.JSON(http.StatusOK, res)
 }
 
 func (h *AnalyticsHandler) GetDBStatus(c *gin.Context) {
