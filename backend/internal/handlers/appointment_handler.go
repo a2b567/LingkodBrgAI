@@ -130,22 +130,33 @@ func (h *AppointmentHandler) UpdateStatus(c *gin.Context) {
 func (h *AppointmentHandler) PredictCongestion(c *gin.Context) {
 	db := config.DB
 	
-	// Check next 7 days congestion rates
+	// Check next 7 days congestion rates in 1 single optimized range query
 	type CongestionReport struct {
 		Date           string `json:"date"`
 		BookingsCount  int64  `json:"bookings_count"`
 		CongestionRisk string `json:"congestion_risk"` // Low, Medium, High
 	}
 
-	var report []CongestionReport
 	now := time.Now()
+	startDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+	endDate := startDate.AddDate(0, 0, 7)
 
+	var appointments []models.Appointment
+	db.Select("appointment_date").
+		Where("appointment_date >= ? AND appointment_date < ?", startDate, endDate).
+		Find(&appointments)
+
+	countsByDay := make(map[string]int64)
+	for _, app := range appointments {
+		d := app.AppointmentDate.Format("2006-01-02")
+		countsByDay[d]++
+	}
+
+	var report []CongestionReport
 	for i := 0; i < 7; i++ {
-		targetDate := now.AddDate(0, 0, i)
+		targetDate := startDate.AddDate(0, 0, i)
 		dateStr := targetDate.Format("2006-01-02")
-		
-		var count int64
-		db.Model(&models.Appointment{}).Where("DATE(appointment_date) = DATE(?)", targetDate).Count(&count)
+		count := countsByDay[dateStr]
 
 		risk := "Low"
 		if count > 20 {

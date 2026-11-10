@@ -228,6 +228,13 @@ export const Dashboard: React.FC = () => {
   };
 
   const generateInitialInsight = async (currentStats: DashboardStats) => {
+    const cachedInsight = sessionStorage.getItem('dashboard_ai_insight');
+    if (cachedInsight) {
+      setMessages([]);
+      streamMessage(cachedInsight, 'ai');
+      return;
+    }
+
     setIsGeneratingInsight(true);
     setMessages([]);
     try {
@@ -238,7 +245,12 @@ export const Dashboard: React.FC = () => {
         `- Active Business permits: ${currentStats.active_businesses}`;
       const res = await api.ai.chat(prompt);
       setIsGeneratingInsight(false);
-      streamMessage(res.response, 'ai');
+      if (res && res.response) {
+        sessionStorage.setItem('dashboard_ai_insight', res.response);
+        streamMessage(res.response, 'ai');
+      } else {
+        streamMessage("Demographic distributions indicate stable residency trends. Outstanding blotter disputes require scheduled mediations.", 'ai');
+      }
     } catch (err) {
       setIsGeneratingInsight(false);
       streamMessage("Demographic distributions indicate stable residency trends. Outstanding blotter disputes require scheduled mediations.", 'ai');

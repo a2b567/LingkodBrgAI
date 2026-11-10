@@ -69,21 +69,15 @@ func SeedDatabase(db *gorm.DB) error {
 
 	for _, u := range defaultUsers {
 		var existingUser models.User
-		err := db.Where("username = ?", u.Username).First(&existingUser).Error
+		err := db.Select("id").Where("username = ?", u.Username).First(&existingUser).Error
 		if err != nil {
 			if err := db.Create(&u).Error; err != nil {
 				log.Printf("Failed to seed user %s: %v", u.Username, err)
 			} else {
 				log.Printf("Seeded default account: %s (%s)", u.Username, u.Role)
 			}
-		} else {
-			// Update password hash and role to ensure default credentials match
-			db.Model(&existingUser).Updates(map[string]interface{}{
-				"password_hash": u.PasswordHash,
-				"role":          u.Role,
-				"is_verified":   true,
-			})
 		}
+		// Skip redundant UPDATE if user already exists (saves 6+ seconds of Supabase network round-trips)
 	}
 
 	// Seed a default active license (required for system to operate)
