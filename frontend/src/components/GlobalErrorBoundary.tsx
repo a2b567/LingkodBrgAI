@@ -49,6 +49,7 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
   }
 
   private handleReload = () => {
+    sessionStorage.removeItem('chunk_reload');
     window.location.reload();
   };
 
@@ -56,6 +57,10 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
     if (!this.state.hasError) {
       return this.props.children;
     }
+
+    const isChunkError = this.state.error?.message?.includes('dynamically imported') ||
+                         this.state.error?.message?.includes('Failed to fetch') ||
+                         this.state.error?.message?.includes('chunk');
 
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
@@ -67,12 +72,13 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
 
           {/* Heading */}
           <div className="space-y-2">
-            <h1 className="text-xl font-black text-white">Something went wrong</h1>
+            <h1 className="text-xl font-black text-white">
+              {isChunkError ? 'May Bagong Update ang System' : 'Something went wrong'}
+            </h1>
             <p className="text-sm text-slate-400">
-              An unexpected error occurred in the application.
-              {this.state.reported
-                ? ' The error has been automatically reported to the development team.'
-                : ' Please reload the page.'}
+              {isChunkError 
+                ? 'May bagong bersyon ng LingkodBrgy na nai-deploy. Paki-click ang button sa ibaba upang i-refresh ang iyong browser at makuha ang pinakabagong bersyon.'
+                : 'An unexpected error occurred in the application.' + (this.state.reported ? ' The error has been automatically reported to the development team.' : ' Please reload the page.')}
             </p>
           </div>
 

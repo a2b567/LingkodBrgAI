@@ -9,23 +9,44 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Landing } from './pages/Landing';
 
-// Lazy-loaded secondary modules (asynchronously fetched on demand)
-const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
-const Residents = lazy(() => import('./pages/Residents').then(m => ({ default: m.Residents })));
-const Households = lazy(() => import('./pages/Households').then(m => ({ default: m.Households })));
-const Certificates = lazy(() => import('./pages/Certificates').then(m => ({ default: m.Certificates })));
-const Appointments = lazy(() => import('./pages/Appointments').then(m => ({ default: m.Appointments })));
-const BlotterPage = lazy(() => import('./pages/Blotter').then(m => ({ default: m.BlotterPage })));
-const Businesses = lazy(() => import('./pages/Businesses').then(m => ({ default: m.Businesses })));
-const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
-const VerifyDocument = lazy(() => import('./pages/VerifyDocument').then(m => ({ default: m.VerifyDocument })));
-const KioskCertificates = lazy(() => import('./pages/KioskCertificates').then(m => ({ default: m.KioskCertificates })));
-const QueueSchedule = lazy(() => import('./pages/QueueSchedule').then(m => ({ default: m.QueueSchedule })));
-const QueueMonitor = lazy(() => import('./pages/QueueMonitor').then(m => ({ default: m.QueueMonitor })));
-const HealthRecords = lazy(() => import('./pages/HealthRecords').then(m => ({ default: m.HealthRecords })));
-const ClinicQueueView = lazy(() => import('./pages/ClinicQueueView').then(m => ({ default: m.ClinicQueueView })));
-const StaffAccounts = lazy(() => import('./pages/StaffAccounts').then(m => ({ default: m.StaffAccounts })));
-const DevConsole = lazy(() => import('./pages/DevConsole').then(m => ({ default: m.DevConsole })));
+// Auto-retrying lazy loader that gracefully handles deployment chunk hash invalidations
+function lazyRetry<T extends React.ComponentType<any>>(
+  factory: () => Promise<{ default: T }>
+): React.LazyExoticComponent<T> {
+  return lazy(async () => {
+    const hasReloaded = sessionStorage.getItem('chunk_reload');
+    try {
+      const component = await factory();
+      sessionStorage.removeItem('chunk_reload');
+      return component;
+    } catch (error: any) {
+      if (!hasReloaded) {
+        sessionStorage.setItem('chunk_reload', 'true');
+        window.location.reload();
+        return new Promise<{ default: T }>(() => {});
+      }
+      throw error;
+    }
+  });
+}
+
+// Lazy-loaded secondary modules (asynchronously fetched on demand with auto-reload protection)
+const Dashboard = lazyRetry(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const Residents = lazyRetry(() => import('./pages/Residents').then(m => ({ default: m.Residents })));
+const Households = lazyRetry(() => import('./pages/Households').then(m => ({ default: m.Households })));
+const Certificates = lazyRetry(() => import('./pages/Certificates').then(m => ({ default: m.Certificates })));
+const Appointments = lazyRetry(() => import('./pages/Appointments').then(m => ({ default: m.Appointments })));
+const BlotterPage = lazyRetry(() => import('./pages/Blotter').then(m => ({ default: m.BlotterPage })));
+const Businesses = lazyRetry(() => import('./pages/Businesses').then(m => ({ default: m.Businesses })));
+const Settings = lazyRetry(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const VerifyDocument = lazyRetry(() => import('./pages/VerifyDocument').then(m => ({ default: m.VerifyDocument })));
+const KioskCertificates = lazyRetry(() => import('./pages/KioskCertificates').then(m => ({ default: m.KioskCertificates })));
+const QueueSchedule = lazyRetry(() => import('./pages/QueueSchedule').then(m => ({ default: m.QueueSchedule })));
+const QueueMonitor = lazyRetry(() => import('./pages/QueueMonitor').then(m => ({ default: m.QueueMonitor })));
+const HealthRecords = lazyRetry(() => import('./pages/HealthRecords').then(m => ({ default: m.HealthRecords })));
+const ClinicQueueView = lazyRetry(() => import('./pages/ClinicQueueView').then(m => ({ default: m.ClinicQueueView })));
+const StaffAccounts = lazyRetry(() => import('./pages/StaffAccounts').then(m => ({ default: m.StaffAccounts })));
+const DevConsole = lazyRetry(() => import('./pages/DevConsole').then(m => ({ default: m.DevConsole })));
 
 // Ultra lightweight route fallback loader
 const RouteFallback: React.FC = () => (

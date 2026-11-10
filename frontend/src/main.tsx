@@ -9,6 +9,15 @@ import { api } from './services/api'
 // Initialize Progressive Web App capabilities
 registerServiceWorker();
 
+// Automatically handle Vite code-splitting chunk mismatches on new deployments
+window.addEventListener('vite:preloadError', () => {
+  const hasReloaded = sessionStorage.getItem('chunk_reload');
+  if (!hasReloaded) {
+    sessionStorage.setItem('chunk_reload', 'true');
+    window.location.reload();
+  }
+});
+
 // Global JS error reporter — catches errors that fall outside React's render tree
 // (e.g. async callbacks, third-party scripts, unhandled Promise rejections)
 window.onerror = (message, source, lineno, colno, error) => {
