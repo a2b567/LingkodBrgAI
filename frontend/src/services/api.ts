@@ -819,6 +819,36 @@ export const api = {
         () => ({ message: 'Error logged (offline)' })
       ),
   },
+
+  settings: {
+    getHotlines: () =>
+      withFallback(
+        () => client.get<{ data: any[] }>('/settings/hotlines').then(r => r.data.data || r.data),
+        () => {
+          try {
+            const saved = localStorage.getItem('lingkod_emergency_hotlines');
+            if (saved) return JSON.parse(saved);
+          } catch (e) {}
+          return [
+            { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
+            { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
+            { id: '3', title: 'Barangay Health Center / RHU', number: '(049) 501-2750', desc: 'Doctor, Nurse & Ambulance', color: 'bg-emerald-600' },
+            { id: '4', title: 'PNP Local Police Station', number: '(049) 501-1122', desc: 'Patrol & Law Enforcement', color: 'bg-indigo-600' },
+            { id: '5', title: 'BFP Bureau of Fire Protection', number: '(049) 501-3473', desc: 'Fire Rescue & Disaster Unit', color: 'bg-amber-600' },
+          ];
+        }
+      ),
+
+    updateHotlines: (hotlines: any[]) => {
+      try {
+        localStorage.setItem('lingkod_emergency_hotlines', JSON.stringify(hotlines));
+      } catch (e) {}
+      return withFallback(
+        () => client.put('/settings/hotlines', { hotlines }).then(r => r.data),
+        () => ({ message: 'Hotlines updated successfully', data: hotlines })
+      );
+    },
+  },
 };
 
 export default client;

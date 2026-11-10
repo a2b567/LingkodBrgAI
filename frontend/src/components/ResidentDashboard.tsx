@@ -4,7 +4,8 @@ import {
   Stethoscope, FileText, Calendar, Clock,
   PhoneCall, ShieldCheck, QrCode,
   CheckCircle2, ChevronRight, Megaphone,
-  Phone, Shield, Check, Copy, Layers, ExternalLink
+  Phone, Shield, Check, Copy, Layers, ExternalLink,
+  Edit3, Save, Plus, Trash2
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
@@ -113,13 +114,73 @@ export const ResidentDashboard: React.FC = () => {
     ? `${window.location.origin}/verify/document/${residentQrId}`
     : `/verify/document/${residentQrId}`;
 
-  const hotlines = [
-    { title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
-    { title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
-    { title: 'Barangay Health Center / RHU', number: '(049) 501-2750', desc: 'Doctor, Nurse & Ambulance', color: 'bg-emerald-600' },
-    { title: 'PNP Local Police Station', number: '(049) 501-1122', desc: 'Patrol & Law Enforcement', color: 'bg-indigo-600' },
-    { title: 'BFP Bureau of Fire Protection', number: '(049) 501-3473', desc: 'Fire Rescue & Disaster Unit', color: 'bg-amber-600' },
+  const defaultHotlinesList = [
+    { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
+    { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
+    { id: '3', title: 'Barangay Health Center / RHU', number: '(049) 501-2750', desc: 'Doctor, Nurse & Ambulance', color: 'bg-emerald-600' },
+    { id: '4', title: 'PNP Local Police Station', number: '(049) 501-1122', desc: 'Patrol & Law Enforcement', color: 'bg-indigo-600' },
+    { id: '5', title: 'BFP Bureau of Fire Protection', number: '(049) 501-3473', desc: 'Fire Rescue & Disaster Unit', color: 'bg-amber-600' },
   ];
+
+  const [hotlines, setHotlines] = useState<Array<{ id?: string; title: string; number: string; desc: string; color?: string }>>(() => {
+    try {
+      const s = localStorage.getItem('lingkod_emergency_hotlines');
+      if (s) return JSON.parse(s);
+    } catch {}
+    return defaultHotlinesList;
+  });
+  const [isEditingHotlines, setIsEditingHotlines] = useState(false);
+  const [editableHotlines, setEditableHotlines] = useState(hotlines);
+  const [isSavingHotlines, setIsSavingHotlines] = useState(false);
+  const [hotlinesSuccessMsg, setHotlinesSuccessMsg] = useState('');
+
+  // Sync hotlines from server or shared cache
+  useEffect(() => {
+    api.settings.getHotlines().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setHotlines(data);
+        setEditableHotlines(data);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const isCaptainOrStaff = user?.role === 'Captain' || 
+                           user?.role === 'Barangay Captain' || 
+                           user?.role === 'Admin' || 
+                           user?.role === 'Super Admin' ||
+                           user?.role === 'Secretary' ||
+                           user?.role === 'Staff' ||
+                           user?.role === 'Developer';
+
+  const handleSaveHotlines = async () => {
+    setIsSavingHotlines(true);
+    try {
+      await api.settings.updateHotlines(editableHotlines);
+      setHotlines(editableHotlines);
+      setIsEditingHotlines(false);
+      setHotlinesSuccessMsg('Matagumpay na na-update ang mga emergency hotline numbers!');
+      setTimeout(() => setHotlinesSuccessMsg(''), 4000);
+    } catch (e) {
+      console.error('Failed updating hotlines', e);
+    } finally {
+      setIsSavingHotlines(false);
+    }
+  };
+
+  const handleAddHotline = () => {
+    const newItem = {
+      id: Date.now().toString(),
+      title: 'Bagong Hotline',
+      number: '(049) 000-0000',
+      desc: 'Serbisyo ng Barangay',
+      color: 'bg-blue-600'
+    };
+    setEditableHotlines([...editableHotlines, newItem]);
+  };
+
+  const handleDeleteHotline = (idx: number) => {
+    setEditableHotlines(editableHotlines.filter((_, i) => i !== idx));
+  };
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(residentQrId);
@@ -629,43 +690,174 @@ export const ResidentDashboard: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => setShowHotlineModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl"
+                onClick={() => {
+                  setShowHotlineModal(false);
+                  setIsEditingHotlines(false);
+                }}
+                className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-              {hotlines.map((h, i) => (
-                <div
-                  key={i}
-                  className="p-3.5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between gap-3"
+            {/* Captain / Admin Quick Edit Bar */}
+            {isCaptainOrStaff && (
+              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 rounded-xl px-3 py-2">
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                  👑 Barangay Captain / Admin Mode
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isEditingHotlines) {
+                      setEditableHotlines([...hotlines]);
+                    }
+                    setIsEditingHotlines(!isEditingHotlines);
+                  }}
+                  className="text-[11px] font-bold text-amber-700 dark:text-amber-300 hover:underline flex items-center gap-1 cursor-pointer bg-amber-100/70 dark:bg-amber-900/50 px-2.5 py-1 rounded-lg"
                 >
-                  <div className="space-y-0.5">
-                    <h5 className="text-xs font-black text-slate-900 dark:text-white">{h.title}</h5>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{h.desc}</p>
-                    <span className="font-mono text-xs font-black text-rose-600 dark:text-rose-400 block pt-0.5">
-                      {h.number}
-                    </span>
-                  </div>
-                  <a
-                    href={`tel:${h.number.replace(/[^\d+]/g, '')}`}
-                    className="p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl shadow-md shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
-                    title={`Call ${h.title}`}
-                  >
-                    <Phone size={18} />
-                  </a>
-                </div>
-              ))}
-            </div>
+                  <Edit3 size={12} />
+                  {isEditingHotlines ? 'Tapusin ang Pag-edit' : 'I-edit ang mga Real Contact No.'}
+                </button>
+              </div>
+            )}
 
-            <button
-              onClick={() => setShowHotlineModal(false)}
-              className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition-colors cursor-pointer"
-            >
-              Close Hotlines
-            </button>
+            {hotlinesSuccessMsg && (
+              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-300 text-xs font-bold text-center">
+                ✓ {hotlinesSuccessMsg}
+              </div>
+            )}
+
+            {isEditingHotlines ? (
+              /* ── EDIT MODE FOR CAPTAIN ── */
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Palitan ang mga contact number sa ibaba ng totoong opisyal na numero ng inyong barangay at ahensya:
+                </p>
+                {editableHotlines.map((item, idx) => (
+                  <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-950/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                        Hotline #{idx + 1}
+                      </span>
+                      {editableHotlines.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHotline(idx)}
+                          className="text-rose-500 hover:text-rose-600 text-xs p-1 cursor-pointer"
+                          title="Tanggalin"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Pangalan / Ahensya</label>
+                      <input
+                        type="text"
+                        value={item.title}
+                        onChange={(e) => {
+                          const updated = [...editableHotlines];
+                          updated[idx] = { ...updated[idx], title: e.target.value };
+                          setEditableHotlines(updated);
+                        }}
+                        className="w-full text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                        placeholder="Hal. Barangay San Isidro Hall"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-rose-500 block mb-0.5">Totoong Numero (Real Contact No.)</label>
+                      <input
+                        type="text"
+                        value={item.number}
+                        onChange={(e) => {
+                          const updated = [...editableHotlines];
+                          updated[idx] = { ...updated[idx], number: e.target.value };
+                          setEditableHotlines(updated);
+                        }}
+                        className="w-full text-xs font-mono font-bold px-3 py-1.5 rounded-lg border border-rose-300 dark:border-rose-900/60 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400"
+                        placeholder="Hal. 0917-123-4567 o (049) 501-2749"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 block mb-0.5">Deskripsyon / Serbisyo</label>
+                      <input
+                        type="text"
+                        value={item.desc}
+                        onChange={(e) => {
+                          const updated = [...editableHotlines];
+                          updated[idx] = { ...updated[idx], desc: e.target.value };
+                          setEditableHotlines(updated);
+                        }}
+                        className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
+                        placeholder="Hal. Tawagan para sa rescue at seguridad"
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={handleAddHotline}
+                  className="w-full py-2 border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-gov-blue-500 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Plus size={14} /> Magdagdag ng Ibang Hotline
+                </button>
+
+                <div className="pt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingHotlines(false)}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Kanselahin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveHotlines}
+                    disabled={isSavingHotlines}
+                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-600/30 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <Save size={14} />
+                    {isSavingHotlines ? 'Sinesave...' : 'I-save ang mga Numero'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ── NORMAL DIAL VIEW ── */
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {hotlines.map((h, i) => (
+                  <div
+                    key={i}
+                    className="p-3.5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200/70 dark:border-slate-800/70 flex items-center justify-between gap-3"
+                  >
+                    <div className="space-y-0.5">
+                      <h5 className="text-xs font-black text-slate-900 dark:text-white">{h.title}</h5>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{h.desc}</p>
+                      <span className="font-mono text-xs font-black text-rose-600 dark:text-rose-400 block pt-0.5">
+                        {h.number}
+                      </span>
+                    </div>
+                    <a
+                      href={`tel:${h.number.replace(/[^\d+]/g, '')}`}
+                      className="p-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl shadow-md shadow-rose-500/20 active:scale-95 transition-all flex items-center justify-center shrink-0 cursor-pointer"
+                      title={`Call ${h.title}`}
+                    >
+                      <Phone size={18} />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!isEditingHotlines && (
+              <button
+                onClick={() => setShowHotlineModal(false)}
+                className="w-full py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Close Hotlines
+              </button>
+            )}
           </div>
         </div>
       )}

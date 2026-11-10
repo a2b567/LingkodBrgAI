@@ -49,6 +49,7 @@ func SetupRouter() *gin.Engine {
 	licenseHandler := &handlers.LicenseHandler{}
 	healthHandler := &handlers.HealthHandler{}
 	devHandler := &handlers.DevHandler{}
+	settingsHandler := &handlers.SettingsHandler{}
 
 	// Public Routes
 	api := r.Group("/api")
@@ -58,6 +59,7 @@ func SetupRouter() *gin.Engine {
 		})
 		api.GET("/system/db-status", analyticsHandler.GetDBStatus)
 		api.GET("/public/stats", analyticsHandler.GetPublicStats)
+		api.GET("/settings/hotlines", settingsHandler.GetHotlines)
 
 		// License Validation & Activation (Publicly accessible for system activation checks)
 		licenses := api.Group("/licenses")
@@ -174,6 +176,9 @@ func SetupRouter() *gin.Engine {
 
 			// Announcements creation
 			staffOnly.POST("/announcements", notifHandler.CreateAnnouncement)
+
+			// Official System Settings & Hotlines (Captain & Staff editable)
+			staffOnly.PUT("/settings/hotlines", settingsHandler.UpdateHotlines)
 
 			// Dashboards
 			staffOnly.GET("/analytics/dashboard", analyticsHandler.GetStats)

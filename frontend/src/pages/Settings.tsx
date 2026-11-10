@@ -3,7 +3,7 @@ import {
   Lock, Moon, Sun, QrCode, Check, Megaphone, Plus, Trash2, Globe,
   ImagePlus, Trash, Save, RotateCcw, AlertTriangle, KeyRound,
   User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso,
-  Bell, Volume2, VolumeX, Sparkles, Home, Users, Phone, MapPin, Briefcase
+  Bell, Volume2, VolumeX, Sparkles, Home, Users, Phone, PhoneCall, MapPin, Briefcase
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
@@ -92,6 +92,60 @@ export const Settings: React.FC = () => {
   const [landingEmail, setLandingEmail] = useState(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');
   const [businessHours, setBusinessHours] = useState(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
   const [landingSuccessMsg, setLandingSuccessMsg] = useState('');
+
+  // Official Emergency SOS Hotlines (Captain Editable)
+  const defaultPortalHotlines = [
+    { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue' },
+    { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security' },
+    { id: '3', title: 'Barangay Health Center / RHU', number: '(049) 501-2750', desc: 'Doctor, Nurse & Ambulance' },
+    { id: '4', title: 'PNP Local Police Station', number: '(049) 501-1122', desc: 'Patrol & Law Enforcement' },
+    { id: '5', title: 'BFP Bureau of Fire Protection', number: '(049) 501-3473', desc: 'Fire Rescue & Disaster Unit' },
+  ];
+  const [portalHotlines, setPortalHotlines] = useState<Array<{ id: string; title: string; number: string; desc: string }>>(() => {
+    try {
+      const s = localStorage.getItem('lingkod_emergency_hotlines');
+      if (s) return JSON.parse(s);
+    } catch {}
+    return defaultPortalHotlines;
+  });
+  const [isSavingPortalHotlines, setIsSavingPortalHotlines] = useState(false);
+  const [portalHotlinesSuccessMsg, setPortalHotlinesSuccessMsg] = useState('');
+
+  useEffect(() => {
+    api.settings.getHotlines().then((data) => {
+      if (Array.isArray(data) && data.length > 0) {
+        setPortalHotlines(data);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const handleSavePortalHotlines = async () => {
+    setIsSavingPortalHotlines(true);
+    try {
+      await api.settings.updateHotlines(portalHotlines);
+      setPortalHotlinesSuccessMsg('Matagumpay na na-update ang mga Emergency SOS Hotlines para sa buong barangay!');
+      setTimeout(() => setPortalHotlinesSuccessMsg(''), 4000);
+    } catch {
+      setPortalHotlinesSuccessMsg('Na-save sa lokal na storage.');
+      setTimeout(() => setPortalHotlinesSuccessMsg(''), 4000);
+    } finally {
+      setIsSavingPortalHotlines(false);
+    }
+  };
+
+  const handleAddPortalHotline = () => {
+    const newItem = {
+      id: Date.now().toString(),
+      title: 'Bagong Hotline',
+      number: '(049) 000-0000',
+      desc: 'Opisyal na Serbisyo'
+    };
+    setPortalHotlines([...portalHotlines, newItem]);
+  };
+
+  const handleDeletePortalHotline = (idx: number) => {
+    setPortalHotlines(portalHotlines.filter((_, i) => i !== idx));
+  };
 
   // Hero Background
   const [heroBgPreview, setHeroBgPreview] = useState<string | null>(localStorage.getItem('brgy_hero_bg') || null);
@@ -1153,6 +1207,106 @@ export const Settings: React.FC = () => {
                   </div>
                   <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                     <Button onClick={handleLandingSave} leftIcon={<Save size={14} />}>Save Contact Details</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Emergency SOS Hotlines Manager (Captain & Admin) */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                      <PhoneCall size={18} />
+                    </div>
+                    <div>
+                      <CardTitle>Opisyal na Emergency SOS Hotlines</CardTitle>
+                      <CardDescription>
+                        Baguhin ang mga totoong contact number na lalabas sa Emergency SOS Modal ng lahat ng residente at sa public portal.
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={handleAddPortalHotline} leftIcon={<Plus size={13} />}>
+                    Magdagdag
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {portalHotlinesSuccessMsg && (
+                    <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
+                      <CheckCircle2 size={16} className="shrink-0" />{portalHotlinesSuccessMsg}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {portalHotlines.map((item, idx) => (
+                      <div key={idx} className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                              Ahensya / Pangalan
+                            </label>
+                            <input
+                              type="text"
+                              value={item.title}
+                              onChange={(e) => {
+                                const updated = [...portalHotlines];
+                                updated[idx] = { ...updated[idx], title: e.target.value };
+                                setPortalHotlines(updated);
+                              }}
+                              className="w-full text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                              placeholder="Hal. Barangay Hall"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-rose-600 dark:text-rose-400 block mb-1">
+                              Totoong Numero (Real Contact No.)
+                            </label>
+                            <input
+                              type="text"
+                              value={item.number}
+                              onChange={(e) => {
+                                const updated = [...portalHotlines];
+                                updated[idx] = { ...updated[idx], number: e.target.value };
+                                setPortalHotlines(updated);
+                              }}
+                              className="w-full text-xs font-mono font-bold px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400"
+                              placeholder="Hal. 0917-123-4567 o (049) 501-2749"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1">
+                              Deskripsyon / Serbisyo
+                            </label>
+                            <input
+                              type="text"
+                              value={item.desc}
+                              onChange={(e) => {
+                                const updated = [...portalHotlines];
+                                updated[idx] = { ...updated[idx], desc: e.target.value };
+                                setPortalHotlines(updated);
+                              }}
+                              className="w-full text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300"
+                              placeholder="Hal. Patrol at seguridad"
+                            />
+                          </div>
+                        </div>
+                        {portalHotlines.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePortalHotline(idx)}
+                            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg transition-colors cursor-pointer shrink-0 self-end sm:self-center"
+                            title="Tanggalin"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end">
+                    <Button onClick={handleSavePortalHotlines} disabled={isSavingPortalHotlines} leftIcon={<Save size={14} />}>
+                      {isSavingPortalHotlines ? 'Sinesave...' : 'I-save ang Emergency Hotlines'}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
