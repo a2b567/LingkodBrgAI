@@ -4,9 +4,12 @@ import { useAuthStore } from './store/authStore';
 import { DashboardLayout } from './layouts/DashboardLayout';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 
-// Lazy-loaded routes for instant initial bundle loading and maximum performance
-const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
-const Register = lazy(() => import('./pages/Register').then(m => ({ default: m.Register })));
+// Core entry routes (synchronously imported for instant reliability)
+import { Login } from './pages/Login';
+import { Register } from './pages/Register';
+import { Landing } from './pages/Landing';
+
+// Lazy-loaded secondary modules (asynchronously fetched on demand)
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Residents = lazy(() => import('./pages/Residents').then(m => ({ default: m.Residents })));
 const Households = lazy(() => import('./pages/Households').then(m => ({ default: m.Households })));
@@ -16,7 +19,6 @@ const BlotterPage = lazy(() => import('./pages/Blotter').then(m => ({ default: m
 const Businesses = lazy(() => import('./pages/Businesses').then(m => ({ default: m.Businesses })));
 const Settings = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
 const VerifyDocument = lazy(() => import('./pages/VerifyDocument').then(m => ({ default: m.VerifyDocument })));
-const Landing = lazy(() => import('./pages/Landing').then(m => ({ default: m.Landing })));
 const KioskCertificates = lazy(() => import('./pages/KioskCertificates').then(m => ({ default: m.KioskCertificates })));
 const QueueSchedule = lazy(() => import('./pages/QueueSchedule').then(m => ({ default: m.QueueSchedule })));
 const QueueMonitor = lazy(() => import('./pages/QueueMonitor').then(m => ({ default: m.QueueMonitor })));
