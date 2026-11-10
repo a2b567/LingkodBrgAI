@@ -3,6 +3,7 @@ package handlers
 import (
 	"crypto/rand"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"strings"
@@ -474,8 +475,9 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 			}
 
 			if err := tx.Save(&resident).Error; err != nil {
+				log.Printf("[UPDATE PROFILE ERROR] Failed to save resident profile: %v", err)
 				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save profile changes"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save profile changes: " + err.Error()})
 				return
 			}
 		}

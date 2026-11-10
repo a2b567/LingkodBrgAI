@@ -131,7 +131,11 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 				}
 			}
 		} else {
-			log.Println("[CLOUD DB] ✅ Schema tables already initialized. Skipping redundant Cloud AutoMigrate for instant performance.")
+			// Ensure incremental columns and new tables are safely migrated without dropping data
+			if incErr := CloudDB.AutoMigrate(&models.Resident{}, &models.Household{}, &models.SystemSetting{}); incErr != nil {
+				log.Printf("[CLOUD DB WARNING] Incremental migration notice: %v", incErr)
+			}
+			log.Println("[CLOUD DB] ✅ Schema tables checked. Incremental columns verified.")
 		}
 	}
 
