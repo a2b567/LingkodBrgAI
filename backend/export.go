@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"backend/internal/config"
+	"backend/internal/models"
 	"backend/internal/routes"
 	"backend/internal/services"
 )
