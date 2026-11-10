@@ -173,13 +173,6 @@ export const ResidentDashboard: React.FC = () => {
         {/* Quick Top Controls */}
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowIdModal(true)}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl transition-all active:scale-95 shadow-xs cursor-pointer"
-            title="Digital Citizen ID"
-          >
-            <QrCode size={18} className="text-blue-600 dark:text-blue-400" />
-          </button>
-          <button
             onClick={() => setShowHotlineModal(true)}
             className="flex items-center gap-1 px-3 py-2 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-rose-500/30 transition-all cursor-pointer animate-pulse"
             title="Emergency SOS Hotlines"
