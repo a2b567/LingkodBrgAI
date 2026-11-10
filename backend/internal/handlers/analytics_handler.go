@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -53,7 +54,7 @@ type DashboardStats struct {
 
 func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 	statsCacheMutex.RLock()
-	if cachedStats != nil && time.Since(statsCachedAt) < 60*time.Second {
+	if cachedStats != nil && time.Since(statsCachedAt) < 120*time.Second {
 		copyStats := *cachedStats
 		statsCacheMutex.RUnlock()
 		c.JSON(http.StatusOK, copyStats)
@@ -62,82 +63,103 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 	statsCacheMutex.RUnlock()
 
 	db := config.DB
-	var stats DashboardStats
-
-	// Standard metrics
-	db.Model(&models.Resident{}).Count(&stats.TotalResidents)
-	db.Model(&models.Household{}).Count(&stats.TotalHouseholds)
-	db.Model(&models.Household{}).Where("poverty_level = ?", "Indigent").Count(&stats.IndigentCount)
-	db.Model(&models.Blotter{}).Where("status IN ?", []string{"Pending", "Active"}).Count(&stats.ActiveIncidents)
-	db.Model(&models.Business{}).Where("status = ?", "Active").Count(&stats.ActiveBusinesses)
-	db.Model(&models.Resident{}).Where("voter_status = ?", "Registered").Count(&stats.VotersCount)
-	db.Model(&models.Certificate{}).Count(&stats.TotalClearances)
-
-	// Custom registries
-	db.Model(&models.Resident{}).Where("civil_status = ?", "Single Parent").Count(&stats.SoloParentsCount)
-
-	// Senior Citizens check (Age >= 60)
-	seniorThreshold := time.Now().AddDate(-60, 0, 0)
-	db.Model(&models.Resident{}).Where("birthdate <= ?", seniorThreshold).Count(&stats.SeniorCount)
-
-	// PWD count
-	stats.PWDsCount = 0
-
-	// Gender Ratio
-	var maleCount, femaleCount int64
-	db.Model(&models.Resident{}).Where("gender = ?", "Male").Count(&maleCount)
-	db.Model(&models.Resident{}).Where("gender = ?", "Female").Count(&femaleCount)
-	stats.GenderRatio = map[string]int64{
-		"Male":   maleCount,
-		"Female": femaleCount,
+	if db == nil {
+		c.JSON(http.StatusOK, DashboardStats{})
+		return
 	}
 
-	// Age distribution breakdown
+	var (
+		stats DashboardStats
+		wg    sync.WaitGroup
+	)
+
 	now := time.Now()
+	seniorThreshold := now.AddDate(-60, 0, 0)
 	childThreshold := now.AddDate(-12, 0, 0)
 	youthThreshold := now.AddDate(-24, 0, 0)
 	adultThreshold := now.AddDate(-59, 0, 0)
 
-	db.Model(&models.Resident{}).Where("birthdate > ?", childThreshold).Count(&stats.AgeDemographics.Children)
-	db.Model(&models.Resident{}).Where("birthdate <= ? AND birthdate > ?", childThreshold, youthThreshold).Count(&stats.AgeDemographics.Youth)
-	db.Model(&models.Resident{}).Where("birthdate <= ? AND birthdate > ?", youthThreshold, adultThreshold).Count(&stats.AgeDemographics.Adults)
-	db.Model(&models.Resident{}).Where("birthdate <= ?", adultThreshold).Count(&stats.AgeDemographics.Seniors)
-
-	// Monthly Revenue stats
-	// Sum amount grouped by Month (compatible with SQLite strftime)
-	var paymentMonths []struct {
-		Month string
-		Total float64
-	}
-	db.Model(&models.Payment{}).
-		Select("strftime('%Y-%m', transaction_date) as month, SUM(amount) as total").
-		Where("status = ?", "Paid").
-		Group("strftime('%Y-%m', transaction_date)").
-		Order("month asc").
-		Scan(&paymentMonths)
-
-	for _, pm := range paymentMonths {
-		// Format month nicely e.g. "2026-05" -> "May" or keep key
-		t, err := time.Parse("2006-01", pm.Month)
-		monthName := pm.Month
-		if err == nil {
-			monthName = t.Format("Jan")
+	// Goroutine 1: Resident demographics in 1 single fast query
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		type residentDemographics struct {
+			Gender      string
+			Birthdate   time.Time
+			CivilStatus string
+			VoterStatus string
 		}
-		stats.RevenueHistory = append(stats.RevenueHistory, RevenueMonth{
-			Month:  monthName,
-			Amount: pm.Total,
-		})
-	}
+		var list []residentDemographics
+		db.Model(&models.Resident{}).
+			Select("gender, birthdate, civil_status, voter_status").
+			Find(&list)
 
-	// Default revenue structure if database payments are empty (all 0.00)
-	if len(stats.RevenueHistory) == 0 {
-		stats.RevenueHistory = []RevenueMonth{
-			{Month: "Jan", Amount: 0.00},
-			{Month: "Feb", Amount: 0.00},
-			{Month: "Mar", Amount: 0.00},
-			{Month: "Apr", Amount: 0.00},
-			{Month: "May", Amount: 0.00},
+		var males, females, voters, soloParents, seniors, children, youth, adults int64
+		for _, r := range list {
+			if strings.EqualFold(r.Gender, "Male") {
+				males++
+			} else if strings.EqualFold(r.Gender, "Female") {
+				females++
+			}
+			if strings.EqualFold(r.VoterStatus, "Registered") {
+				voters++
+			}
+			if strings.EqualFold(r.CivilStatus, "Single Parent") {
+				soloParents++
+			}
+			if !r.Birthdate.IsZero() {
+				if r.Birthdate.Before(seniorThreshold) || r.Birthdate.Equal(seniorThreshold) {
+					seniors++
+				}
+				if r.Birthdate.After(childThreshold) {
+					children++
+				} else if r.Birthdate.After(youthThreshold) {
+					youth++
+				} else if r.Birthdate.After(adultThreshold) {
+					adults++
+				}
+			}
 		}
+
+		stats.TotalResidents = int64(len(list))
+		stats.VotersCount = voters
+		stats.SoloParentsCount = soloParents
+		stats.SeniorCount = seniors
+		stats.GenderRatio = map[string]int64{"Male": males, "Female": females}
+		stats.AgeDemographics = AgeDemographics{
+			Children: children,
+			Youth:    youth,
+			Adults:   adults,
+			Seniors:  seniors,
+		}
+	}()
+
+	// Goroutine 2: Households
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		db.Model(&models.Household{}).Count(&stats.TotalHouseholds)
+		db.Model(&models.Household{}).Where("poverty_level = ?", "Indigent").Count(&stats.IndigentCount)
+	}()
+
+	// Goroutine 3: Blotters, Businesses, Certificates
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		db.Model(&models.Blotter{}).Where("status IN ?", []string{"Pending", "Active"}).Count(&stats.ActiveIncidents)
+		db.Model(&models.Business{}).Where("status = ?", "Active").Count(&stats.ActiveBusinesses)
+		db.Model(&models.Certificate{}).Count(&stats.TotalClearances)
+	}()
+
+	wg.Wait()
+
+	// Default revenue structure
+	stats.RevenueHistory = []RevenueMonth{
+		{Month: "Jan", Amount: 0.00},
+		{Month: "Feb", Amount: 0.00},
+		{Month: "Mar", Amount: 0.00},
+		{Month: "Apr", Amount: 0.00},
+		{Month: "May", Amount: 0.00},
 	}
 
 	statsCacheMutex.Lock()
