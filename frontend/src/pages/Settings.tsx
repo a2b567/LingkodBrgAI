@@ -3,7 +3,8 @@ import {
   Lock, Moon, Sun, QrCode, Check, Megaphone, Plus, Trash2, Globe,
   ImagePlus, Trash, Save, RotateCcw, AlertTriangle, KeyRound,
   User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso,
-  Bell, Volume2, VolumeX, Sparkles, Home, Users, Phone, PhoneCall, MapPin, Briefcase
+  Bell, Volume2, VolumeX, Sparkles, Home, Users, Phone, PhoneCall, MapPin, Briefcase,
+  Eye, EyeOff
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
@@ -51,6 +52,30 @@ export const Settings: React.FC = () => {
   );
   const [availableHouseholds, setAvailableHouseholds] = useState<Household[]>([]);
   const [householdSelectionMode, setHouseholdSelectionMode] = useState<'existing' | 'manual'>('existing');
+
+  // Profile & Household Collapsible / Hide Visibility States
+  const [isProfileHidden, setIsProfileHidden] = useState(() => {
+    return localStorage.getItem('hide_resident_profile') === 'true';
+  });
+  const [isHouseholdHidden, setIsHouseholdHidden] = useState(() => {
+    return localStorage.getItem('hide_household_section') === 'true';
+  });
+
+  const toggleProfileVisibility = () => {
+    setIsProfileHidden(prev => {
+      const next = !prev;
+      localStorage.setItem('hide_resident_profile', String(next));
+      return next;
+    });
+  };
+
+  const toggleHouseholdVisibility = () => {
+    setIsHouseholdHidden(prev => {
+      const next = !prev;
+      localStorage.setItem('hide_household_section', String(next));
+      return next;
+    });
+  };
 
   // Password
   const [currentPassword, setCurrentPassword] = useState('');
@@ -552,24 +577,85 @@ export const Settings: React.FC = () => {
             <div className="space-y-6">
               <Card>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/60 border border-gov-blue-200 dark:border-gov-blue-800/60 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gov-blue-50 dark:bg-gov-blue-950/60 border border-gov-blue-200 dark:border-gov-blue-800/60 flex items-center justify-center shrink-0">
                         <User size={18} className="text-gov-blue-600 dark:text-gov-blue-400" />
                       </div>
                       <div>
-                        <CardTitle>My Resident Profile & Household</CardTitle>
-                        <CardDescription>I-edit ang iyong personal na rekord ng pagkamamamayan at pamamahala ng pamilya o household.</CardDescription>
+                        <div className="flex items-center gap-2">
+                          <CardTitle>{isStaff ? 'My Official Account Profile' : 'My Resident Profile & Household'}</CardTitle>
+                          {isProfileHidden && (
+                            <Badge variant="warning" className="text-[10px] py-0 px-2 flex items-center gap-1 font-semibold">
+                              <EyeOff size={10} />
+                              Naka-hide
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription>
+                          {isStaff
+                            ? 'I-edit ang iyong opisyal na login credentials at impormasyon ng account.'
+                            : 'I-edit ang iyong personal na rekord ng pagkamamamayan at pamamahala ng pamilya o household.'}
+                        </CardDescription>
                       </div>
                     </div>
-                    {householdNumber && (
-                      <Badge variant="success" className="hidden sm:inline-flex gap-1.5 items-center">
-                        <Home size={12} />
-                        {householdNumber}
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!isStaff && householdNumber && !isProfileHidden && (
+                        <Badge variant="success" className="hidden sm:inline-flex gap-1.5 items-center">
+                          <Home size={12} />
+                          {householdNumber}
+                        </Badge>
+                      )}
+                      <button
+                        type="button"
+                        onClick={toggleProfileVisibility}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                          isProfileHidden
+                            ? 'bg-gov-blue-600 text-white hover:bg-gov-blue-700 shadow-sm'
+                            : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        }`}
+                        title={isProfileHidden ? "Ipakita ang Profile" : "Itago / I-hide ang Profile"}
+                      >
+                        {isProfileHidden ? (
+                          <>
+                            <Eye size={14} className="text-gov-gold-400" />
+                            <span>Ipakita / Show Profile</span>
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff size={14} />
+                            <span>Itago / Hide Profile</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </CardHeader>
+                {isProfileHidden ? (
+                  <CardContent className="py-8">
+                    <div className="flex flex-col items-center justify-center text-center p-6 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 space-y-3">
+                      <div className="w-12 h-12 rounded-2xl bg-gov-blue-50 dark:bg-gov-blue-950/40 border border-gov-blue-200 dark:border-gov-blue-800 flex items-center justify-center text-gov-blue-600 dark:text-gov-blue-400 shadow-sm">
+                        <EyeOff size={22} />
+                      </div>
+                      <div className="max-w-md">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Naka-hide ang Profile at Household Information</h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                          Nakatago ang personal at pampamilyang impormasyon para sa iyong privacy at seguridad. I-click ang button sa ibaba upang buksan o i-edit ang iyong talaan.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={toggleProfileVisibility}
+                        className="mt-2 flex items-center gap-2"
+                      >
+                        <Eye size={14} />
+                        Ipakita ang Profile & Household
+                      </Button>
+                    </div>
+                  </CardContent>
+                ) : (
                 <CardContent className="space-y-6">
                   {profileSuccessMsg && (
                     <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-2xl flex items-center gap-2.5 animate-fade-in shadow-sm">
@@ -719,210 +805,251 @@ export const Settings: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* 3. Household & Family Profile */}
-                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                          <Home size={14} className="text-gov-blue-600 dark:text-gov-blue-400" />
-                          Impormasyon ng Household & Pamilya
-                        </h4>
-                        <span className="text-[10px] text-slate-500 font-medium">Opisyal na Tala ng Bahay</span>
-                      </div>
-
-                      <div className="p-4 rounded-2xl border border-gov-blue-200/60 dark:border-gov-blue-900/40 bg-gov-blue-50/40 dark:bg-gov-blue-950/20 mb-4 space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-gov-blue-900 dark:text-gov-blue-300">
-                          <Users size={16} className="text-gov-blue-600" />
-                          <span>Pamamahala ng Household & Relasyon sa Pamilya</span>
-                        </div>
-                        <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                          Pumili mula sa mga rehistradong pamilya o magrehistro ng bagong bahay. Tukuyin kung ano ang iyong papel sa pamilya upang awtomatikong maiugnay ang iyong talaan sa inyong tahanan.
-                        </p>
-                      </div>
-
-                      {/* Setup Selection: Join Existing Household vs Register New */}
-                      <div className="mb-4 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setHouseholdSelectionMode('existing')}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            householdSelectionMode === 'existing'
-                              ? 'bg-gov-blue-600 text-white shadow-sm'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                          }`}
-                        >
-                          <Home size={13} />
-                          Pumili mula sa Rehistradong Household ({availableHouseholds.length})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setHouseholdSelectionMode('manual')}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            householdSelectionMode === 'manual'
-                              ? 'bg-gov-blue-600 text-white shadow-sm'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
-                          }`}
-                        >
-                          <Plus size={13} />
-                          Magtala ng Bagong Household ID
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Household Selector or Manual Input */}
-                        {householdSelectionMode === 'existing' && availableHouseholds.length > 0 ? (
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                              Piliin ang Inyong Sambahayan / Household
-                            </label>
-                            <select
-                              value={householdNumber}
-                              onChange={(e) => handleSelectHousehold(e.target.value)}
-                              className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                    {/* 3. Household & Family Profile (Only for Residents) */}
+                    {!isStaff && (
+                      <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                            <Home size={14} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                            Impormasyon ng Household & Pamilya
+                          </h4>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={toggleHouseholdVisibility}
+                              className="text-[11px] font-semibold text-gov-blue-600 dark:text-gov-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
                             >
-                              <option value="">-- Piliin ang Inyong Pamilya / Household --</option>
-                              {availableHouseholds.map(hh => (
-                                <option key={hh.id} value={hh.household_number}>
-                                  {hh.household_number} — {hh.purok || 'Purok 1'} {hh.head ? `(Pinuno: ${hh.head.first_name} ${hh.head.last_name})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            <span className="text-[10px] text-slate-400 mt-1 block">Awtomatikong kukunin ang purok at tirahan ng napiling pamilya.</span>
+                              {isHouseholdHidden ? (
+                                <>
+                                  <Eye size={12} />
+                                  <span>Ipakita / Show Household</span>
+                                </>
+                              ) : (
+                                <>
+                                  <EyeOff size={12} />
+                                  <span>Itago / Hide Household</span>
+                                </>
+                              )}
+                            </button>
+                            <span className="text-[10px] text-slate-500 font-medium hidden sm:inline">• Opisyal na Tala ng Bahay</span>
+                          </div>
+                        </div>
+
+                        {isHouseholdHidden ? (
+                          <div className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <Home size={16} className="text-slate-400" />
+                              <span className="text-xs text-slate-500 font-medium">Naka-hide ang mga detalye ng Household</span>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={toggleHouseholdVisibility}
+                              className="text-xs h-8"
+                            >
+                              Ipakita
+                            </Button>
                           </div>
                         ) : (
-                          <Input
-                            label="Household Number (Bahay ID)"
-                            value={householdNumber}
-                            onChange={(e) => setHouseholdNumber(e.target.value)}
-                            placeholder="Hal. HH-2026-0012"
-                            leftIcon={<Home size={15} />}
-                            helperText="Hal. HH-2026-0001 (o ilagay ang opisyal na numero ng inyong bahay)."
-                          />
-                        )}
-
-                        {/* Relasyon sa Pamilya (Family Role) */}
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                            Relasyon / Papel sa Pamilya (Family Role) *
-                          </label>
-                          <select
-                            value={relationshipToHead}
-                            onChange={(e) => handleRelationshipChange(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
-                          >
-                            <option value="Punong Pamilya (Head of Household)">👑 Punong Pamilya (Head of Household)</option>
-                            <option value="Asawa (Spouse / Partner)">💍 Asawa (Spouse / Partner)</option>
-                            <option value="Anak (Child / Son / Daughter)">👶 Anak (Child / Son / Daughter)</option>
-                            <option value="Magulang (Father / Mother)">👵 Magulang (Father / Mother)</option>
-                            <option value="Kapatid (Brother / Sister)">🤝 Kapatid (Brother / Sister)</option>
-                            <option value="Apo (Grandchild)">🧒 Apo (Grandchild)</option>
-                            <option value="Lolo / Lola (Grandparent)">🧓 Lolo / Lola (Grandparent)</option>
-                            <option value="Biyanan / Manugang (In-Law)">🏡 Biyanan / Manugang (In-Law)</option>
-                            <option value="Kamag-anak (Other Relative)">👥 Kamag-anak (Other Relative)</option>
-                            <option value="Kasambahay / Boarder (Non-relative)">🚪 Kasambahay / Boarder (Non-relative)</option>
-                          </select>
-                          <span className="text-[10px] text-slate-400 mt-1 block">Awtomatikong itinatakda kung ikaw ay Pinuno o Miyembro ng pamilya.</span>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                            Purok / Sona
-                          </label>
-                          <select
-                            value={purok}
-                            onChange={(e) => setPurok(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
-                          >
-                            <option value="Purok 1">Purok 1</option>
-                            <option value="Purok 2">Purok 2</option>
-                            <option value="Purok 3">Purok 3</option>
-                            <option value="Purok 4">Purok 4</option>
-                            <option value="Purok 5">Purok 5</option>
-                            <option value="Purok 6">Purok 6</option>
-                            <option value="Purok 7">Purok 7</option>
-                          </select>
-                          <span className="text-[10px] text-slate-400 mt-1 block">Purok kung saan nakatirik ang bahay</span>
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                            Klasipikasyon ng Pamilya (Poverty Level)
-                          </label>
-                          <select
-                            value={povertyLevel}
-                            onChange={(e) => setPovertyLevel(e.target.value)}
-                            className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
-                          >
-                            <option value="Non-Poor">Non-Poor (Regular Income)</option>
-                            <option value="Low Income">Low Income (Mababang Kita)</option>
-                            <option value="Poor">Poor (Kailangan ng Tulong)</option>
-                            <option value="Indigent">Indigent (Opisyal na Indigent)</option>
-                          </select>
-                          <span className="text-[10px] text-slate-400 mt-1 block">Para sa mga ayuda at serbisyong panlipunan</span>
-                        </div>
-                      </div>
-
-                      {/* Head of household indicator toggle */}
-                      <div className="mt-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          id="is_hh_head"
-                          checked={isHouseholdHead}
-                          onChange={(e) => {
-                            setIsHouseholdHead(e.target.checked);
-                            if (e.target.checked) {
-                              setRelationshipToHead('Punong Pamilya (Head of Household)');
-                            }
-                          }}
-                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-gov-blue-600 focus:ring-gov-blue-500"
-                        />
-                        <label htmlFor="is_hh_head" className="cursor-pointer text-xs">
-                          <span className="font-bold text-slate-900 dark:text-white block">
-                            Ako ang Punong Pamilya / Head of Household
-                          </span>
-                          <span className="text-slate-500 dark:text-slate-400 block mt-0.5">
-                            {isHouseholdHead 
-                              ? '✅ Nakatala ka bilang Opisyal na Pinuno / Kinatawan ng inyong pamilya.'
-                              : 'Miyembro o kasama sa tahanan (hindi pinuno ng pamilya).'}
-                          </span>
-                        </label>
-                      </div>
-
-                      {/* Display family members if linked */}
-                      {user?.resident?.household?.members && user.resident.household.members.length > 0 && (
-                        <div className="mt-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                              <Users size={14} className="text-gov-blue-600" />
-                              Mga Kasamang Miyembro sa Bahay ({user.resident.household.members.length})
-                            </span>
-                            <span className="text-[10px] text-slate-400">Household: {user.resident.household.household_number}</span>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {user.resident.household.members.map(m => (
-                              <div key={m.id} className="p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
-                                <div className="min-w-0">
-                                  <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                                    {m.first_name} {m.middle_name ? `${m.middle_name[0]}. ` : ''}{m.last_name}
-                                  </p>
-                                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                                    {m.gender} • {m.civil_status || 'Single'}
-                                  </p>
-                                </div>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                  m.is_household_head 
-                                    ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300/60'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                                }`}>
-                                  {m.relationship_to_head || (m.is_household_head ? 'Punong Pamilya' : 'Miyembro')}
-                                </span>
+                          <>
+                            <div className="p-4 rounded-2xl border border-gov-blue-200/60 dark:border-gov-blue-900/40 bg-gov-blue-50/40 dark:bg-gov-blue-950/20 mb-4 space-y-2">
+                              <div className="flex items-center gap-2 text-xs font-bold text-gov-blue-900 dark:text-gov-blue-300">
+                                <Users size={16} className="text-gov-blue-600" />
+                                <span>Pamamahala ng Household & Relasyon sa Pamilya</span>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                              <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                Pumili mula sa mga rehistradong pamilya o magrehistro ng bagong bahay. Tukuyin kung ano ang iyong papel sa pamilya upang awtomatikong maiugnay ang iyong talaan sa inyong tahanan.
+                              </p>
+                            </div>
+
+                            {/* Setup Selection: Join Existing Household vs Register New */}
+                            <div className="mb-4 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setHouseholdSelectionMode('existing')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                  householdSelectionMode === 'existing'
+                                    ? 'bg-gov-blue-600 text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                                }`}
+                              >
+                                <Home size={13} />
+                                Pumili mula sa Rehistradong Household ({availableHouseholds.length})
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setHouseholdSelectionMode('manual')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                                  householdSelectionMode === 'manual'
+                                    ? 'bg-gov-blue-600 text-white shadow-sm'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                                }`}
+                              >
+                                <Plus size={13} />
+                                Magtala ng Bagong Household ID
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {/* Household Selector or Manual Input */}
+                              {householdSelectionMode === 'existing' && availableHouseholds.length > 0 ? (
+                                <div>
+                                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Piliin ang Inyong Sambahayan / Household
+                                  </label>
+                                  <select
+                                    value={householdNumber}
+                                    onChange={(e) => handleSelectHousehold(e.target.value)}
+                                    className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                                  >
+                                    <option value="">-- Piliin ang Inyong Pamilya / Household --</option>
+                                    {availableHouseholds.map(hh => (
+                                      <option key={hh.id} value={hh.household_number}>
+                                        {hh.household_number} — {hh.purok || 'Purok 1'} {hh.head ? `(Pinuno: ${hh.head.first_name} ${hh.head.last_name})` : ''}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <span className="text-[10px] text-slate-400 mt-1 block">Awtomatikong kukunin ang purok at tirahan ng napiling pamilya.</span>
+                                </div>
+                              ) : (
+                                <Input
+                                  label="Household Number (Bahay ID)"
+                                  value={householdNumber}
+                                  onChange={(e) => setHouseholdNumber(e.target.value)}
+                                  placeholder="Hal. HH-2026-0012"
+                                  leftIcon={<Home size={15} />}
+                                  helperText="Hal. HH-2026-0001 (o ilagay ang opisyal na numero ng inyong bahay)."
+                                />
+                              )}
+
+                              {/* Relasyon sa Pamilya (Family Role) */}
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                  Relasyon / Papel sa Pamilya (Family Role) *
+                                </label>
+                                <select
+                                  value={relationshipToHead}
+                                  onChange={(e) => handleRelationshipChange(e.target.value)}
+                                  className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                                >
+                                  <option value="Punong Pamilya (Head of Household)">👑 Punong Pamilya (Head of Household)</option>
+                                  <option value="Asawa (Spouse / Partner)">💍 Asawa (Spouse / Partner)</option>
+                                  <option value="Anak (Child / Son / Daughter)">👶 Anak (Child / Son / Daughter)</option>
+                                  <option value="Magulang (Father / Mother)">👵 Magulang (Father / Mother)</option>
+                                  <option value="Kapatid (Brother / Sister)">🤝 Kapatid (Brother / Sister)</option>
+                                  <option value="Apo (Grandchild)">🧒 Apo (Grandchild)</option>
+                                  <option value="Lolo / Lola (Grandparent)">🧓 Lolo / Lola (Grandparent)</option>
+                                  <option value="Biyanan / Manugang (In-Law)">🏡 Biyanan / Manugang (In-Law)</option>
+                                  <option value="Kamag-anak (Other Relative)">👥 Kamag-anak (Other Relative)</option>
+                                  <option value="Kasambahay / Boarder (Non-relative)">🚪 Kasambahay / Boarder (Non-relative)</option>
+                                </select>
+                                <span className="text-[10px] text-slate-400 mt-1 block">Awtomatikong itinatakda kung ikaw ay Pinuno o Miyembro ng pamilya.</span>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                  Purok / Sona
+                                </label>
+                                <select
+                                  value={purok}
+                                  onChange={(e) => setPurok(e.target.value)}
+                                  className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                                >
+                                  <option value="Purok 1">Purok 1</option>
+                                  <option value="Purok 2">Purok 2</option>
+                                  <option value="Purok 3">Purok 3</option>
+                                  <option value="Purok 4">Purok 4</option>
+                                  <option value="Purok 5">Purok 5</option>
+                                  <option value="Purok 6">Purok 6</option>
+                                  <option value="Purok 7">Purok 7</option>
+                                </select>
+                                <span className="text-[10px] text-slate-400 mt-1 block">Purok kung saan nakatirik ang bahay</span>
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                                  Klasipikasyon ng Pamilya (Poverty Level)
+                                </label>
+                                <select
+                                  value={povertyLevel}
+                                  onChange={(e) => setPovertyLevel(e.target.value)}
+                                  className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-medium focus:ring-2 focus:ring-gov-blue-500/20 focus:border-gov-blue-500"
+                                >
+                                  <option value="Non-Poor">Non-Poor (Regular Income)</option>
+                                  <option value="Low Income">Low Income (Mababang Kita)</option>
+                                  <option value="Poor">Poor (Kailangan ng Tulong)</option>
+                                  <option value="Indigent">Indigent (Opisyal na Indigent)</option>
+                                </select>
+                                <span className="text-[10px] text-slate-400 mt-1 block">Para sa mga ayuda at serbisyong panlipunan</span>
+                              </div>
+                            </div>
+
+                            {/* Head of household indicator toggle */}
+                            <div className="mt-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-start gap-3">
+                              <input
+                                type="checkbox"
+                                id="is_hh_head"
+                                checked={isHouseholdHead}
+                                onChange={(e) => {
+                                  setIsHouseholdHead(e.target.checked);
+                                  if (e.target.checked) {
+                                    setRelationshipToHead('Punong Pamilya (Head of Household)');
+                                  }
+                                }}
+                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-gov-blue-600 focus:ring-gov-blue-500"
+                              />
+                              <label htmlFor="is_hh_head" className="cursor-pointer text-xs">
+                                <span className="font-bold text-slate-900 dark:text-white block">
+                                  Ako ang Punong Pamilya / Head of Household
+                                </span>
+                                <span className="text-slate-500 dark:text-slate-400 block mt-0.5">
+                                  {isHouseholdHead 
+                                    ? '✅ Nakatala ka bilang Opisyal na Pinuno / Kinatawan ng inyong pamilya.'
+                                    : 'Miyembro o kasama sa tahanan (hindi pinuno ng pamilya).'}
+                                </span>
+                              </label>
+                            </div>
+
+                            {/* Display family members if linked */}
+                            {user?.resident?.household?.members && user.resident.household.members.length > 0 && (
+                              <div className="mt-4 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                                    <Users size={14} className="text-gov-blue-600" />
+                                    Mga Kasamang Miyembro sa Bahay ({user.resident.household.members.length})
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">Household: {user.resident.household.household_number}</span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                  {user.resident.household.members.map(m => (
+                                    <div key={m.id} className="p-2.5 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between">
+                                      <div className="min-w-0">
+                                        <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                          {m.first_name} {m.middle_name ? `${m.middle_name[0]}. ` : ''}{m.last_name}
+                                        </p>
+                                        <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                                          {m.gender} • {m.civil_status || 'Single'}
+                                        </p>
+                                      </div>
+                                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                        m.is_household_head 
+                                          ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300/60'
+                                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+                                      }`}>
+                                        {m.relationship_to_head || (m.is_household_head ? 'Punong Pamilya' : 'Miyembro')}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )}
 
                     <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
                       <Button type="submit" isLoading={isUpdatingProfile} leftIcon={<Save size={14} />}>
@@ -931,6 +1058,7 @@ export const Settings: React.FC = () => {
                     </div>
                   </form>
                 </CardContent>
+                )}
               </Card>
             </div>
           )}
