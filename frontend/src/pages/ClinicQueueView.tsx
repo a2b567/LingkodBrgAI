@@ -479,8 +479,8 @@ export const ClinicQueueView: React.FC = () => {
         </div>
       )}
 
-      {/* Stats Cards (3 Columns) */}
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+      {/* Stats Cards (2 Columns for Resident, 3 Columns for Staff) */}
+      <div className={`grid gap-2.5 sm:gap-4 ${isResident ? 'grid-cols-2' : 'grid-cols-3'}`}>
         
         {/* Waiting */}
         <div className="bg-white dark:bg-slate-900 border border-amber-400/30 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left shadow-sm">
@@ -504,16 +504,18 @@ export const ClinicQueueView: React.FC = () => {
           </div>
         </div>
 
-        {/* Served Today */}
-        <div className="bg-white dark:bg-slate-900 border border-emerald-400/30 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left shadow-sm">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/50 shrink-0">
-            <CheckCircle2 size={18} />
+        {/* Served Today (Visible only to Nurse & Staff accounts; hidden for Resident) */}
+        {!isResident && (
+          <div className="bg-white dark:bg-slate-900 border border-emerald-400/30 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 text-center sm:text-left shadow-sm animate-in fade-in">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/50 shrink-0">
+              <CheckCircle2 size={18} />
+            </div>
+            <div>
+              <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Served</p>
+              <p className="text-xl sm:text-2xl font-black text-emerald-500">{servedQueue.length}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[9px] sm:text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Served</p>
-            <p className="text-xl sm:text-2xl font-black text-emerald-500">{servedQueue.length}</p>
-          </div>
-        </div>
+        )}
 
       </div>
 
@@ -569,8 +571,8 @@ export const ClinicQueueView: React.FC = () => {
         )}
       </div>
 
-      {/* Queue Lists (Waiting Queue & Served) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Queue Lists (Waiting Queue for all; Served Today for Staff & Nurse only) */}
+      <div className={`grid gap-4 ${isResident ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
         
         {/* Waiting Queue */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm p-4 sm:p-5">
@@ -645,44 +647,46 @@ export const ClinicQueueView: React.FC = () => {
           )}
         </div>
 
-        {/* Served Today */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3.5">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-500" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
-                Natapos Ngayong Araw (Served)
-              </h3>
+        {/* Served Today - Hidden from Resident view for DPA Privacy and cleanliness */}
+        {!isResident && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm p-4 sm:p-5 animate-in fade-in">
+            <div className="flex items-center justify-between mb-3.5">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-500" />
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white">
+                  Natapos Ngayong Araw (Served)
+                </h3>
+              </div>
+              <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black border border-emerald-500/20">
+                {servedQueue.length} done
+              </span>
             </div>
-            <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-0.5 rounded-full text-[10px] font-black border border-emerald-500/20">
-              {servedQueue.length} done
-            </span>
-          </div>
 
-          {servedQueue.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-center space-y-1.5 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-              <CheckCircle2 size={28} className="text-slate-300 dark:text-slate-700" />
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Wala pang natapos na pasyente</p>
-            </div>
-          ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-              {servedQueue.slice(0, 10).map(item => (
-                <div key={item.id} className="flex items-center gap-3 p-3 rounded-2xl border bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-200/60 dark:border-emerald-900/40 opacity-80">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-xs shrink-0">
-                    ✓
+            {servedQueue.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center space-y-1.5 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                <CheckCircle2 size={28} className="text-slate-300 dark:text-slate-700" />
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Wala pang natapos na pasyente</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                {servedQueue.slice(0, 10).map(item => (
+                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-2xl border bg-emerald-50/40 dark:bg-emerald-950/10 border-emerald-200/60 dark:border-emerald-900/40 opacity-80">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black text-xs shrink-0">
+                      ✓
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {formatPatientName(item)}
+                      </p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{item.service}</p>
+                    </div>
+                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">#{item.queueNumber}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                      {formatPatientName(item)}
-                    </p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{item.service}</p>
-                  </div>
-                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400">#{item.queueNumber}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
 
