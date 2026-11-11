@@ -23,7 +23,6 @@ const STAFF_ROLES = [
   'Health Worker',
   'Staff',
   'Super Admin',
-  'Developer',
 ];
 
 
@@ -325,7 +324,9 @@ export const StaffAccounts: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.staffAccounts.list();
-      setStaffList(res.data || []);
+      const raw = res.data || [];
+      const clean = raw.filter((s: StaffUser) => s.role !== 'Developer' && s.username !== 'devuser');
+      setStaffList(clean);
     } catch (err) {
       console.error('Failed to load staff accounts', err);
     } finally {

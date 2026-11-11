@@ -52,13 +52,6 @@ func SeedDatabase(db *gorm.DB) error {
 			IsVerified:   true,
 		},
 		{
-			Username:     "devuser",
-			Email:        "dev@barangay.gov",
-			PasswordHash: hashPassword("Dev@2026!"),
-			Role:         "Developer",
-			IsVerified:   true,
-		},
-		{
 			Username:     "lawrence",
 			Email:        "lawrencebelenaranas123@gmail.com",
 			PasswordHash: hashPassword("Lawrence@2026!"),

@@ -668,7 +668,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 func (h *AuthHandler) ListStaffAccounts(c *gin.Context) {
 	db := config.DB
 	var users []models.User
-	if err := db.Where("role != ?", "Resident").Order("created_at desc").Find(&users).Error; err != nil {
+	if err := db.Where("role NOT IN (?, ?)", "Resident", "Developer").Where("username != ?", "devuser").Order("created_at desc").Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch staff accounts"})
 		return
 	}
