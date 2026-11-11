@@ -5,12 +5,13 @@ import {
   PhoneCall, ShieldCheck, QrCode,
   CheckCircle2, ChevronRight, Megaphone,
   Phone, Shield, Check, Copy, Layers, ExternalLink,
-  Edit3, Save, Plus, Trash2
+  Edit3, Save, Plus, Trash2, Sparkles
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
 import { api } from '../services/api';
 import type { Certificate, Appointment, Notification } from '../types';
+import { ResidentTutorialModal } from './ResidentTutorialModal';
 
 interface ClinicQueueItem {
   id: string;
@@ -34,6 +35,15 @@ export const ResidentDashboard: React.FC = () => {
   const [showIdModal, setShowIdModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'certs' | 'appointments'>('all');
   const [copiedId, setCopiedId] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    try {
+      const completed = localStorage.getItem('lingkod_resident_tutorial_completed');
+      return completed !== 'true';
+    } catch {
+      return true;
+    }
+  });
+  const [tutorialInitialMode, setTutorialInitialMode] = useState<'prompt' | 'steps'>('prompt');
 
   // Sync Clinic Queue from localStorage
   const syncClinicQueue = () => {
@@ -233,6 +243,19 @@ export const ResidentDashboard: React.FC = () => {
 
         {/* Quick Top Controls */}
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setTutorialInitialMode('steps');
+              setShowTutorial(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/80 text-xs font-bold rounded-2xl shadow-xs transition-all active:scale-95 cursor-pointer"
+            title="Mabilis na gabay at tutorial sa paggamit ng resident portal"
+          >
+            <Sparkles size={14} className="text-blue-600 dark:text-blue-400" />
+            <span className="text-[11px] font-black">Gabay</span>
+          </button>
+
           <button
             onClick={() => setShowHotlineModal(true)}
             className="flex items-center gap-1 px-3 py-2 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-xs font-black rounded-2xl shadow-md shadow-rose-500/30 transition-all cursor-pointer animate-pulse"
@@ -861,6 +884,13 @@ export const ResidentDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* ── Resident Onboarding Tutorial Walkthrough ── */}
+      <ResidentTutorialModal
+        isOpen={showTutorial}
+        onClose={() => setShowTutorial(false)}
+        initialMode={tutorialInitialMode}
+      />
 
     </div>
   );
