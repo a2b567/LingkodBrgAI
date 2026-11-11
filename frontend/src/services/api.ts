@@ -159,6 +159,68 @@ export const api = {
         }
       ),
 
+    googleAuth: (data: { email: string; name?: string; is_register?: boolean }) =>
+      withFallback(
+        () => client.post<{ token: string; user: User }>('/auth/google', data).then(r => r.data),
+        () => {
+          const email = data.email.trim().toLowerCase();
+          const registeredUsers = JSON.parse(localStorage.getItem('lingkodbrgai_registered_users') || '[]');
+
+          const knownAccounts = [
+            { email: 'lawrencebelenaranas123@gmail.com', username: 'lawrence', role: 'Resident' },
+            { email: 'admin@barangay.gov', username: 'admin', role: 'Super Admin' },
+            { email: 'captain@barangay.gov', username: 'captain', role: 'Barangay Captain' },
+            { email: 'secretary@barangay.gov', username: 'secretary', role: 'Secretary' },
+            { email: 'health@barangay.gov', username: 'healthworker', role: 'Health Worker' },
+            { email: 'treasurer@barangay.gov', username: 'treasurer', role: 'Treasurer' },
+            { email: 'dev@barangay.gov', username: 'devuser', role: 'Developer' },
+          ];
+
+          const foundInRegistered = registeredUsers.find((u: any) =>
+            u.email?.toLowerCase() === email || u.username?.toLowerCase() === email.split('@')[0]
+          );
+          const foundKnown = knownAccounts.find(k => k.email === email);
+
+          if (!data.is_register) {
+            // LOGIN: Reject if NOT registered
+            if (!foundInRegistered && !foundKnown) {
+              const err: any = new Error('Hindi rehistrado ang account na ito sa system. Makaka-login lamang ang mga mamamayang rehistrado na sa LingkodBrgy.');
+              err.response = {
+                status: 404,
+                data: {
+                  error: 'Hindi rehistrado ang account na ito sa system. Makaka-login lamang ang mga mamamayang rehistrado na sa LingkodBrgy. Mangyaring mag-register muna.',
+                  not_registered: true,
+                }
+              };
+              throw err;
+            }
+
+            const user = foundInRegistered ? foundInRegistered.user : getMockUser(foundKnown?.username || email.split('@')[0]);
+            user.email = email;
+            const token = `mock_google_jwt_${Date.now()}`;
+            localStorage.setItem('lingkodbrgai_mock_user', JSON.stringify(user));
+            return { token, user };
+          } else {
+            // REGISTER: Reject if ALREADY registered
+            if (foundInRegistered || foundKnown) {
+              const err: any = new Error('Ang email na ito ay rehistrado na sa system. Mangyaring mag-log in na lamang.');
+              err.response = {
+                status: 409,
+                data: {
+                  error: 'Ang email na ito ay rehistrado na sa system. Mangyaring mag-log in na lamang.',
+                  already_registered: true,
+                }
+              };
+              throw err;
+            }
+            const user = getMockUser(email.split('@')[0]);
+            user.email = email;
+            const token = `mock_google_jwt_${Date.now()}`;
+            return { token, user };
+          }
+        }
+      ),
+
     register: (data: any) =>
       withFallback(
         () => client.post('/auth/register', data).then(r => r.data),

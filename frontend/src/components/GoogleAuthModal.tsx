@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Shield, X, Loader2, Mail, User } from 'lucide-react';
+import { Shield, X, Loader2, Mail, User, AlertCircle, UserPlus, LogIn } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
 
 interface GoogleAuthModalProps {
   isOpen: boolean;
@@ -40,6 +41,9 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isNotRegistered, setIsNotRegistered] = useState(false);
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
 
   if (!isOpen) return null;
 
@@ -48,29 +52,36 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
     if (!email.trim()) return;
 
     setIsLoading(true);
+    setErrorMessage('');
+    setIsNotRegistered(false);
+    setIsAlreadyRegistered(false);
 
-    // Simulate authentic Google OAuth Token Exchange
-    setTimeout(() => {
-      const nameParts = (name.trim() || email.split('@')[0]).split(' ');
-      const firstName = nameParts[0] || 'Google';
-      const lastName = nameParts.slice(1).join(' ') || 'User';
+    try {
+      const res = await api.auth.googleAuth({
+        email: email.trim(),
+        name: name.trim(),
+        is_register: isRegister,
+      });
 
-      const googleUser = {
-        id: 'g_' + Math.floor(Math.random() * 899999 + 100000),
-        username: email.split('@')[0] || name.toLowerCase().replace(/\s+/g, '.'),
-        email: email.trim().toLowerCase(),
-        role: 'Resident',
-        is_verified: true,
-        first_name: firstName,
-        last_name: lastName,
-      };
-
-      const token = 'google_oauth_jwt_' + Date.now();
-      loginStore(token, googleUser as any);
+      loginStore(res.token, res.user);
       setIsLoading(false);
       onClose();
-      navigate('/dashboard');
-    }, 850);
+      if (res.user.role === 'Resident') {
+        navigate('/appointments');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      const msg = err.response?.data?.error || err.message || 'May error sa pag-verify ng account.';
+      setErrorMessage(msg);
+      if (err.response?.data?.not_registered || msg.includes('Hindi rehistrado') || msg.includes('hindi rehistrado')) {
+        setIsNotRegistered(true);
+      }
+      if (err.response?.data?.already_registered || msg.includes('rehistrado na')) {
+        setIsAlreadyRegistered(true);
+      }
+    }
   };
 
   return (
@@ -105,13 +116,75 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6 space-y-4">
+
+          {/* Validation Notice Banner */}
+          {!isRegister && !errorMessage && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-2xl flex items-center gap-2.5 text-xs text-blue-800 dark:text-blue-300">
+              <Shield size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <span>
+                <strong>Paalala:</strong> Makaka-login lamang ang may <strong>rehistradong account o resident record</strong> na sa barangay system.
+              </span>
+            </div>
+          )}
+
+          {/* Error / Not Registered Banner */}
+          {errorMessage && (
+            <div className="p-3.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 rounded-2xl space-y-2.5 text-left animate-in fade-in">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" size={18} />
+                <div>
+                  <p className="text-xs font-black text-rose-900 dark:text-rose-200">
+                    {isNotRegistered ? 'Hindi Rehistrado sa System' : isAlreadyRegistered ? 'Rehistrado Na ang Account' : 'Verification Error'}
+                  </p>
+                  <p className="text-[11px] text-rose-700 dark:text-rose-300 leading-relaxed mt-0.5">
+                    {errorMessage}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action button to Register if not registered */}
+              {isNotRegistered && !isRegister && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      navigate('/register');
+                    }}
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl transition-all shadow-md shadow-rose-600/25 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <UserPlus size={14} />
+                    <span>Mag-rehistro Bilang Bagong Residente</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Action button to Login if already registered */}
+              {isAlreadyRegistered && isRegister && (
+                <div className="pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      navigate('/login');
+                    }}
+                    className="w-full py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white text-xs font-black rounded-xl transition-all shadow-md shadow-gov-blue-600/25 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <LogIn size={14} />
+                    <span>Pumunta sa Login (Sign In)</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {isLoading ? (
             <div className="py-8 text-center space-y-3">
               <Loader2 size={32} className="mx-auto text-gov-blue-600 animate-spin" />
               <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Connecting with Google Account...
+                Sinusuri ang Google Account sa Database...
               </p>
-              <p className="text-[11px] text-slate-400">Authenticating secure session token</p>
+              <p className="text-[11px] text-slate-400">Bine-verify kung rehistrado sa LingkodBrgy</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -127,7 +200,10 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                     type="text"
                     placeholder="Enter your full name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (errorMessage) setErrorMessage('');
+                    }}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30"
                   />
                 </div>
@@ -146,7 +222,10 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
                     required
                     placeholder="yourname@gmail.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errorMessage) setErrorMessage('');
+                    }}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gov-blue-500/30"
                   />
                 </div>
@@ -185,3 +264,4 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
   );
 };
 export default GoogleAuthModal;
+

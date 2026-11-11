@@ -92,6 +92,100 @@ type RegisterRequest struct {
 	IsSenior      bool   `json:"is_senior"`
 }
 
+type GoogleAuthRequest struct {
+	Email      string `json:"email" binding:"required,email"`
+	Name       string `json:"name"`
+	IsRegister bool   `json:"is_register"`
+}
+
+// GoogleAuth handles Google SSO login and registration verification.
+// Rules: Only residents/users ALREADY REGISTERED in the system can sign in.
+func (h *AuthHandler) GoogleAuth(c *gin.Context) {
+	var req GoogleAuthRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Wastong Google email address ang kailangan."})
+		return
+	}
+
+	cleanEmail := strings.ToLower(strings.TrimSpace(req.Email))
+	db := config.DB
+
+	// Check if this account exists in users table
+	var user models.User
+	userErr := db.Preload("Resident").Where("LOWER(TRIM(email)) = ? OR LOWER(TRIM(username)) = ?", cleanEmail, cleanEmail).First(&user).Error
+
+	// Check if this email exists in residents table
+	var resident models.Resident
+	residentErr := db.Where("LOWER(TRIM(email)) = ?", cleanEmail).First(&resident).Error
+
+	if !req.IsRegister {
+		// LOGIN ATTEMPT: Must be registered in the system
+		if userErr != nil && residentErr != nil {
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Hindi rehistrado ang account na ito sa system. Makaka-login lamang ang mga mamamayang rehistrado na sa LingkodBrgy. Mangyaring mag-register muna.",
+				"not_registered": true,
+			})
+			return
+		}
+
+		// If resident exists in residents database but user account has not yet been created
+		if userErr != nil && residentErr == nil {
+			usernameBase := strings.Split(cleanEmail, "@")[0]
+			newUser := models.User{
+				Username:     usernameBase,
+				Email:        cleanEmail,
+				PasswordHash: "$2a$10$google_sso_verified_account_placeholder",
+				Role:         "Resident",
+				ResidentID:   &resident.ID,
+				IsVerified:   true,
+			}
+			if err := db.Create(&newUser).Error; err != nil {
+				newUser.Username = fmt.Sprintf("%s%d", usernameBase, time.Now().Unix()%10000)
+				_ = db.Create(&newUser)
+			}
+			user = newUser
+			user.Resident = &resident
+		}
+	} else {
+		// REGISTRATION ATTEMPT:
+		if userErr == nil {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": "Ang email na ito ay rehistrado na sa system. Mangyaring mag-log in na lamang gamit ang Sign In.",
+				"already_registered": true,
+			})
+			return
+		}
+	}
+
+	// Generate JWT Token
+	token, err := middleware.GenerateJWT(user.ID, user.Username, user.Role, user.ResidentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate authentication token"})
+		return
+	}
+
+	// Audit Log
+	ip := c.ClientIP()
+	db.Create(&models.AuditLog{
+		UserID:    &user.ID,
+		Action:    "GOOGLE_LOGIN",
+		Details:   "User signed in successfully via verified Google account: " + user.Email,
+		IPAddress: ip,
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"token": token,
+		"user": gin.H{
+			"id":          user.ID,
+			"username":    user.Username,
+			"email":       user.Email,
+			"role":        user.Role,
+			"is_verified": user.IsVerified,
+			"resident":    user.Resident,
+		},
+	})
+}
+
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

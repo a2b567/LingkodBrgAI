@@ -82,6 +82,7 @@ func SetupRouter() *gin.Engine {
 		auth.Use(middleware.KioskPublicRateLimiter())
 		{
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/google", authHandler.GoogleAuth)
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/verify-otp", authHandler.VerifyOTP)
 			auth.POST("/forgot-password", authHandler.ForgotPassword)
