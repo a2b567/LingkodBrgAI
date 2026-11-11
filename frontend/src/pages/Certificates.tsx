@@ -271,6 +271,20 @@ export const Certificates: React.FC = () => {
   const [fee, setFee] = useState(150);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const defaultCertFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+  const [certFees, setCertFees] = useState<Record<string, number>>(() => {
+    try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
+  });
+
+  useEffect(() => {
+    api.settings.getFees().then(data => {
+      if (data && typeof data === 'object') {
+        setCertFees(prev => ({ ...prev, ...data }));
+        try { localStorage.setItem('cert_fees', JSON.stringify(data)); } catch {}
+      }
+    }).catch(() => {});
+  }, []);
+
   // Signature canvas
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -309,13 +323,10 @@ export const Certificates: React.FC = () => {
     return () => clearInterval(interval);
   }, [statusFilter]);
 
-  // Adjust fee based on type — reads from Settings-stored localStorage
+  // Adjust fee based on type — reads from database-synced certFees
   useEffect(() => {
-    const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
-    let fees = defaultFees;
-    try { const s = localStorage.getItem('cert_fees'); if (s) fees = { ...defaultFees, ...JSON.parse(s) }; } catch {}
-    setFee(fees[certType] ?? 100);
-  }, [certType]);
+    setFee(certFees[certType] ?? 100);
+  }, [certType, certFees]);
 
   const handleOpenEditModal = (cert: Certificate) => {
     setEditingCert(cert);
@@ -506,12 +517,6 @@ export const Certificates: React.FC = () => {
   const issuedCount = userCerts.filter(c => c.status === 'Issued').length;
   const rejectedCount = userCerts.filter(c => c.status === 'Rejected').length;
   const totalRevenue = userCerts.filter(c => c.status === 'Issued').reduce((sum, c) => sum + (c.fee || 0), 0);
-
-  // Certificate fees — read from Settings localStorage, fallback to defaults
-  const defaultCertFees: Record<string,number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
-  const certFees: Record<string,number> = (() => {
-    try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
-  })();
 
   // Document Summary by type
   const docTypes = [

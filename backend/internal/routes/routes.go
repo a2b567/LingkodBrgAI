@@ -60,6 +60,7 @@ func SetupRouter() *gin.Engine {
 		api.GET("/system/db-status", analyticsHandler.GetDBStatus)
 		api.GET("/public/stats", analyticsHandler.GetPublicStats)
 		api.GET("/settings/hotlines", settingsHandler.GetHotlines)
+		api.GET("/settings/fees", settingsHandler.GetFees)
 
 		// License Validation & Activation (Publicly accessible for system activation checks)
 		licenses := api.Group("/licenses")
@@ -179,6 +180,7 @@ func SetupRouter() *gin.Engine {
 
 			// Official System Settings & Hotlines (Captain & Staff editable)
 			staffOnly.PUT("/settings/hotlines", settingsHandler.UpdateHotlines)
+			staffOnly.PUT("/settings/fees", settingsHandler.UpdateFees)
 
 			// Dashboards
 			staffOnly.GET("/analytics/dashboard", analyticsHandler.GetStats)

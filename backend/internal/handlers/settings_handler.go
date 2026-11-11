@@ -103,3 +103,105 @@ func (h *SettingsHandler) UpdateHotlines(c *gin.Context) {
 	})
 }
 
+var DefaultCertFees = map[string]float64{
+	"Clearance":    150.00,
+	"Indigency":    0.00,
+	"Residency":    100.00,
+	"Business":     300.00,
+	"Cedula":       50.00,
+	"Barangay ID":  100.00,
+}
+
+// GetFeeScheduleFromDB retrieves the active fee schedule from DB or fallback
+func GetFeeScheduleFromDB() map[string]float64 {
+	fees := make(map[string]float64)
+	for k, v := range DefaultCertFees {
+		fees[k] = v
+	}
+
+	db := config.DB
+	if db == nil {
+		return fees
+	}
+
+	var setting models.SystemSetting
+	if err := db.First(&setting, "key = ?", "cert_fees").Error; err == nil && setting.Value != "" {
+		var custom map[string]float64
+		if err := json.Unmarshal([]byte(setting.Value), &custom); err == nil {
+			for k, v := range custom {
+				fees[k] = v
+			}
+		}
+	}
+	return fees
+}
+
+// GetFees returns the official certificate & permit fee schedule
+func (h *SettingsHandler) GetFees(c *gin.Context) {
+	fees := GetFeeScheduleFromDB()
+	c.JSON(http.StatusOK, gin.H{
+		"data": fees,
+	})
+}
+
+// UpdateFees updates the official certificate fee schedule across the barangay
+func (h *SettingsHandler) UpdateFees(c *gin.Context) {
+	db := config.DB
+	if db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database unavailable"})
+		return
+	}
+
+	var req struct {
+		Fees map[string]float64 `json:"fees" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid fee schedule format"})
+		return
+	}
+
+	merged := GetFeeScheduleFromDB()
+	for k, v := range req.Fees {
+		if v < 0 {
+			v = 0
+		}
+		merged[k] = v
+	}
+
+	// Indigency must remain 0 by welfare mandate
+	merged["Indigency"] = 0.00
+
+	dataBytes, err := json.Marshal(merged)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serialize fee schedule"})
+		return
+	}
+
+	setting := models.SystemSetting{
+		Key:       "cert_fees",
+		Value:     string(dataBytes),
+		UpdatedAt: time.Now(),
+	}
+
+	var existing models.SystemSetting
+	if err := db.First(&existing, "key = ?", "cert_fees").Error; err != nil {
+		if createErr := db.Create(&setting).Error; createErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save fee schedule"})
+			return
+		}
+	} else {
+		existing.Value = setting.Value
+		existing.UpdatedAt = setting.UpdatedAt
+		if saveErr := db.Save(&existing).Error; saveErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update fee schedule"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Matagumpay na na-update ang Certificate & Permit Fee Schedule sa buong barangay!",
+		"data":    merged,
+	})
+}
+

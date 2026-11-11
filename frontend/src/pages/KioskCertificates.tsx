@@ -187,12 +187,24 @@ export const KioskCertificates: React.FC = () => {
     };
   }, [step]);
 
+  const defaultCertFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+  const [certFees, setCertFees] = useState<Record<string, number>>(() => {
+    try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
+  });
+
+  // Sync fee schedule from central database
   useEffect(() => {
-    const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
-    let fees = defaultFees;
-    try { const s = localStorage.getItem('cert_fees'); if (s) fees = { ...defaultFees, ...JSON.parse(s) }; } catch {}
-    setFee(fees[certType] ?? 100);
-  }, [certType]);
+    api.settings.getFees().then(data => {
+      if (data && typeof data === 'object') {
+        setCertFees(prev => ({ ...prev, ...data }));
+        try { localStorage.setItem('cert_fees', JSON.stringify(data)); } catch {}
+      }
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setFee(certFees[certType] ?? 100);
+  }, [certType, certFees]);
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -403,7 +415,7 @@ export const KioskCertificates: React.FC = () => {
       type: 'Clearance', 
       name: 'Barangay Clearance', 
       desc: lang === 'tl' ? 'Para sa trabaho, negosyo, at lisensya' : 'For employment, business, & background checks', 
-      cost: '₱150',
+      cost: certFees['Clearance'] !== undefined ? (certFees['Clearance'] > 0 ? `₱${certFees['Clearance']}` : 'Free') : '₱150',
       icon: <Award size={32} className="text-blue-400" />,
       accent: 'from-blue-500/20 via-indigo-500/10 to-transparent',
       borderColor: 'hover:border-blue-400'
@@ -421,7 +433,7 @@ export const KioskCertificates: React.FC = () => {
       type: 'Residency', 
       name: 'Residency Certificate', 
       desc: lang === 'tl' ? 'Katibayan ng tirahan para sa bangko at pag-ibig' : 'Proof of address for banks & valid IDs', 
-      cost: '₱100',
+      cost: certFees['Residency'] !== undefined ? (certFees['Residency'] > 0 ? `₱${certFees['Residency']}` : 'Free') : '₱100',
       icon: <Home size={32} className="text-sky-400" />,
       accent: 'from-sky-500/20 via-blue-500/10 to-transparent',
       borderColor: 'hover:border-sky-400'
@@ -430,7 +442,7 @@ export const KioskCertificates: React.FC = () => {
       type: 'Business', 
       name: 'Business Clearance', 
       desc: lang === 'tl' ? 'Para sa mga negosyo at komersyal na permit' : 'For commercial permits & business operation', 
-      cost: '₱300',
+      cost: certFees['Business'] !== undefined ? (certFees['Business'] > 0 ? `₱${certFees['Business']}` : 'Free') : '₱300',
       icon: <Building2 size={32} className="text-amber-400" />,
       accent: 'from-amber-500/20 via-orange-500/10 to-transparent',
       borderColor: 'hover:border-amber-400'
@@ -439,7 +451,7 @@ export const KioskCertificates: React.FC = () => {
       type: 'Cedula', 
       name: 'Cedula (CTC)', 
       desc: lang === 'tl' ? 'Opisyal na sertipiko ng buwis sa komunidad' : 'Official community tax certificate', 
-      cost: '₱50',
+      cost: certFees['Cedula'] !== undefined ? (certFees['Cedula'] > 0 ? `₱${certFees['Cedula']}` : 'Free') : '₱50',
       icon: <CreditCard size={32} className="text-purple-400" />,
       accent: 'from-purple-500/20 via-indigo-500/10 to-transparent',
       borderColor: 'hover:border-purple-400'
@@ -448,7 +460,7 @@ export const KioskCertificates: React.FC = () => {
       type: 'Barangay ID', 
       name: 'Barangay ID', 
       desc: lang === 'tl' ? 'Opisyal na kard ng pagkakakilanlan ng residente' : 'Official resident identity verification card', 
-      cost: '₱100',
+      cost: certFees['Barangay ID'] !== undefined ? (certFees['Barangay ID'] > 0 ? `₱${certFees['Barangay ID']}` : 'Free') : '₱100',
       icon: <UserCheck size={32} className="text-rose-400" />,
       accent: 'from-rose-500/20 via-pink-500/10 to-transparent',
       borderColor: 'hover:border-rose-400'

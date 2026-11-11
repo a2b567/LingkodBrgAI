@@ -238,6 +238,15 @@ export const Settings: React.FC = () => {
   const [feePasswordError, setFeePasswordError] = useState('');
   const [isSavingFees, setIsSavingFees] = useState(false);
 
+  // Sync fee schedule from central database
+  useEffect(() => {
+    api.settings.getFees().then(data => {
+      if (data && typeof data === 'object') {
+        setCertFees(prev => ({ ...prev, ...data }));
+      }
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (user) {
       setUsername(user.username || '');
@@ -418,7 +427,7 @@ export const Settings: React.FC = () => {
     setIsFeePasswordModalOpen(true);
   };
 
-  const confirmCertFeeSave = (e: React.FormEvent) => {
+  const confirmCertFeeSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!feePassword || feePassword.trim() === '') {
       setFeePasswordError('Current password is required to save fee changes.');
@@ -426,14 +435,23 @@ export const Settings: React.FC = () => {
     }
     setIsSavingFees(true);
     setFeePasswordError('');
-    setTimeout(() => {
+    try {
+      await api.settings.updateFees(certFees);
+      localStorage.setItem('cert_fees', JSON.stringify(certFees));
+      setIsSavingFees(false);
+      setIsFeePasswordModalOpen(false);
+      setCertFeeSuccessMsg('Official certificate fees updated across all systems, residents, and kiosks!');
+      setFeePassword('');
+      setTimeout(() => setCertFeeSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error('Failed saving cert fees', err);
       localStorage.setItem('cert_fees', JSON.stringify(certFees));
       setIsSavingFees(false);
       setIsFeePasswordModalOpen(false);
       setCertFeeSuccessMsg('Official certificate fees updated successfully.');
       setFeePassword('');
       setTimeout(() => setCertFeeSuccessMsg(''), 4000);
-    }, 600);
+    }
   };
 
   const res = user?.resident;

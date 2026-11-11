@@ -119,20 +119,16 @@ func (h *CertificateHandler) Request(c *gin.Context) {
 		RequestDate:    time.Now(),
 	}
 
-	// Default pricing if missing
-	if cert.Fee == 0 {
-		switch cert.Type {
-		case "Clearance":
-			cert.Fee = 150.00
-		case "Indigency":
-			cert.Fee = 0.00
-			cert.PaymentStatus = "Paid" // Indigency is free
-		case "Residency":
+	// Default pricing from DB settings if missing
+	if cert.Type == "Indigency" {
+		cert.Fee = 0.00
+		cert.PaymentStatus = "Paid" // Indigency is free
+	} else if cert.Fee == 0 {
+		activeFees := GetFeeScheduleFromDB()
+		if f, exists := activeFees[cert.Type]; exists {
+			cert.Fee = f
+		} else {
 			cert.Fee = 100.00
-		case "Business":
-			cert.Fee = 300.00
-		case "Cedula":
-			cert.Fee = 50.00
 		}
 	}
 
@@ -335,19 +331,15 @@ func (h *CertificateHandler) PublicRequest(c *gin.Context) {
 		RequestDate:    time.Now(),
 	}
 
-	if cert.Fee == 0 {
-		switch cert.Type {
-		case "Clearance":
-			cert.Fee = 150.00
-		case "Indigency":
-			cert.Fee = 0.00
-			cert.PaymentStatus = "Paid"
-		case "Residency":
+	if cert.Type == "Indigency" {
+		cert.Fee = 0.00
+		cert.PaymentStatus = "Paid"
+	} else if cert.Fee == 0 {
+		activeFees := GetFeeScheduleFromDB()
+		if f, exists := activeFees[cert.Type]; exists {
+			cert.Fee = f
+		} else {
 			cert.Fee = 100.00
-		case "Business":
-			cert.Fee = 300.00
-		case "Cedula":
-			cert.Fee = 50.00
 		}
 	}
 

@@ -848,6 +848,29 @@ export const api = {
         () => ({ message: 'Hotlines updated successfully', data: hotlines })
       );
     },
+
+    getFees: () =>
+      withFallback(
+        () => client.get<{ data: Record<string, number> }>('/settings/fees').then(r => r.data.data || r.data),
+        () => {
+          const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+          try {
+            const saved = localStorage.getItem('cert_fees');
+            if (saved) return { ...defaultFees, ...JSON.parse(saved) };
+          } catch (e) {}
+          return defaultFees;
+        }
+      ),
+
+    updateFees: (fees: Record<string, number>) => {
+      try {
+        localStorage.setItem('cert_fees', JSON.stringify(fees));
+      } catch (e) {}
+      return withFallback(
+        () => client.put('/settings/fees', { fees }).then(r => r.data),
+        () => ({ message: 'Fee schedule updated successfully', data: fees })
+      );
+    },
   },
 };
 
