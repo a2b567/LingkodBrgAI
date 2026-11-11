@@ -554,7 +554,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content Container */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto pb-24 md:pb-8 overflow-y-auto overflow-x-hidden min-w-0">
           {children}
         </main>
       </div>

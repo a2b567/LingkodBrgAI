@@ -815,19 +815,19 @@ export const HealthRecords: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 w-full min-w-0">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
-        <div className="flex items-center gap-3.5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800/80">
+        <div className="flex items-center gap-3.5 min-w-0">
           <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-400 dark:border-rose-800 flex items-center justify-center shrink-0 shadow-subtle">
             <Activity size={22} />
           </div>
-          <div>
-            <div className="flex items-center gap-2.5">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Health & Medical Center
               </h1>
-              <span className="hidden sm:inline-flex text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
+              <span className="inline-flex text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
                 RA 10173 Protected
               </span>
             </div>
@@ -837,82 +837,10 @@ export const HealthRecords: React.FC = () => {
           </div>
         </div>
 
-        {/* View Switcher Tabs & Actions */}
-        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap shrink-0">
-          {/* Segmented View Switcher */}
-          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl gap-1">
-            <button
-              onClick={() => setView('records')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                view === 'records'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <FileText size={14} />
-              <span>Medical Records</span>
-              <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
-                view === 'records' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
-              }`}>
-                {records.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setView('queue')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                view === 'queue'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Clock size={14} />
-              <span>Clinic Queue</span>
-              {activeQueue.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                  {activeQueue.length}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setView('stock')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                view === 'stock'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <Package size={14} />
-              <span>Pharmacy Stock</span>
-              {lowStockCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                  {lowStockCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              onClick={() => setView('dispense-logs')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                view === 'dispense-logs'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
-            >
-              <History size={14} />
-              <span>Saan Napunta ang Gamot</span>
-              {dispenseLogs.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                  {dispenseLogs.length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Action Buttons */}
+        {/* Action Buttons for Current View */}
+        <div className="flex items-center gap-2 flex-wrap">
           {view === 'records' && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <>
               <button
                 type="button"
                 onClick={handleDownloadRecordSample}
@@ -957,11 +885,11 @@ export const HealthRecords: React.FC = () => {
                 <UserPlus size={15} />
                 <span>New Patient Record</span>
               </button>
-            </div>
+            </>
           )}
 
           {view === 'stock' && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <>
               <button
                 type="button"
                 onClick={handleDownloadStockSample}
@@ -1016,11 +944,11 @@ export const HealthRecords: React.FC = () => {
                 <PackagePlus size={15} />
                 <span>Add Medicine</span>
               </button>
-            </div>
+            </>
           )}
 
           {view === 'dispense-logs' && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <>
               <button
                 type="button"
                 onClick={handleExportDispenseLogCSV}
@@ -1039,8 +967,81 @@ export const HealthRecords: React.FC = () => {
                 <Pill size={14} />
                 <span>Dispense Medicine</span>
               </button>
-            </div>
+            </>
           )}
+        </div>
+      </div>
+
+      {/* Segmented Navigation Tab Bar */}
+      <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1 max-w-full">
+        <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl gap-1 shrink-0">
+          <button
+            onClick={() => setView('records')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              view === 'records'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <FileText size={15} />
+            <span>Medical Records</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              view === 'records' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+            }`}>
+              {records.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setView('queue')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              view === 'queue'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Clock size={15} />
+            <span>Clinic Queue</span>
+            {activeQueue.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                {activeQueue.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setView('stock')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              view === 'stock'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <Package size={15} />
+            <span>Pharmacy Stock</span>
+            {lowStockCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
+                {lowStockCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setView('dispense-logs')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              view === 'dispense-logs'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-subtle font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            <History size={15} />
+            <span>Saan Napunta ang Gamot</span>
+            {dispenseLogs.length > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                {dispenseLogs.length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
 
