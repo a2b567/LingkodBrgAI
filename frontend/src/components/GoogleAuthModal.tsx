@@ -66,8 +66,8 @@ export const GoogleAuthModal: React.FC<GoogleAuthModalProps> = ({
       loginStore(res.token, res.user);
       setIsLoading(false);
       onClose();
-      if (res.user.role === 'Resident') {
-        navigate('/appointments');
+      if (res.user.role === 'Developer') {
+        navigate('/dev-console');
       } else {
         navigate('/dashboard');
       }

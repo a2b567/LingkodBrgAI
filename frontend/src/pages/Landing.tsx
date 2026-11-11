@@ -117,8 +117,8 @@ export const Landing: React.FC = () => {
   // Automatic redirect if already logged in
   useEffect(() => {
     if (token && user) {
-      if (user.role === 'Resident') {
-        navigate('/appointments');
+      if (user.role === 'Developer') {
+        navigate('/dev-console');
       } else {
         navigate('/dashboard');
       }
@@ -128,8 +128,8 @@ export const Landing: React.FC = () => {
   // Redirection for Portal CTA
   const handlePortalRedirect = () => {
     if (token && user) {
-      if (user.role === 'Resident') {
-        navigate('/appointments');
+      if (user.role === 'Developer') {
+        navigate('/dev-console');
       } else {
         navigate('/dashboard');
       }

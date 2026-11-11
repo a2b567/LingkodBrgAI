@@ -95,9 +95,7 @@ export const Login: React.FC = () => {
       }
 
       loginStore(data.token, data.user);
-      if (data.user.role === 'Resident') {
-        navigate('/appointments');
-      } else if (data.user.role === 'Developer') {
+      if (data.user.role === 'Developer') {
         navigate('/dev-console');
       } else {
         navigate('/dashboard');
