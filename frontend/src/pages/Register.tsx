@@ -331,7 +331,7 @@ export const Register: React.FC = () => {
                       type="text" 
                       name="username" 
                       required 
-                      placeholder="e.g. lawrence_aranas" 
+                      placeholder="e.g. juan_delacruz" 
                       value={formData.username} 
                       onChange={handleChange} 
                       className={inputCls} 
