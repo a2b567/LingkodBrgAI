@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, X, Send, Sparkles, User, Copy, Check, Trash, Volume2, VolumeX, Mic, MicOff } from 'lucide-react';
-import { api } from '../services/api';
+import { api, sanitizeBrgyText } from '../services/api';
 import { useAuthStore } from '../store/authStore';
 
 const parseMarkdown = (text: string) => {
@@ -176,15 +176,16 @@ export const AIFloatingPanel: React.FC = () => {
       const res = await api.ai.chat(query);
       setIsTyping(false);
 
+      const cleanResponse = sanitizeBrgyText(res.response);
       const aiMsg: ChatMessage = {
         sender: 'ai',
-        text: res.response,
+        text: cleanResponse,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setHistory(prev => [...prev, aiMsg]);
 
       // Speak AI response out loud if Voice Output is enabled
-      speakText(res.response);
+      speakText(cleanResponse);
     } catch (error) {
       setIsTyping(false);
       const errMsg = 'Sorry, I encountered an issue querying the database. Please try again.';

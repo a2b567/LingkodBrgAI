@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
-import { api } from '../services/api';
+import { api, sanitizeBrgyText } from '../services/api';
 import type { DashboardStats } from '../types';
 import { ResidentDashboard } from '../components/ResidentDashboard';
 
@@ -192,6 +192,8 @@ export const Dashboard: React.FC = () => {
       clearInterval(streamIntervalRef.current);
     }
 
+    const cleanText = sanitizeBrgyText(text);
+
     // Create new AI message placeholder
     const aiMsgPlaceholder = {
       sender,
@@ -199,7 +201,7 @@ export const Dashboard: React.FC = () => {
     };
     setMessages(prev => [...prev, aiMsgPlaceholder]);
 
-    const words = text.split(' ');
+    const words = cleanText.split(' ');
     let currentText = '';
     let i = 0;
 
@@ -228,17 +230,21 @@ export const Dashboard: React.FC = () => {
   };
 
   const generateInitialInsight = async (currentStats: DashboardStats) => {
-    const cachedInsight = sessionStorage.getItem('dashboard_ai_insight');
-    if (cachedInsight) {
+    // Invalidate old caches that may contain obsolete placeholder barangay names
+    sessionStorage.removeItem('dashboard_ai_insight');
+    sessionStorage.removeItem('dashboard_ai_insight_v2');
+
+    const cachedInsight = sessionStorage.getItem('dashboard_ai_insight_v3');
+    if (cachedInsight && !cachedInsight.toLowerCase().includes('lawrence')) {
       setMessages([]);
-      streamMessage(cachedInsight, 'ai');
+      streamMessage(sanitizeBrgyText(cachedInsight), 'ai');
       return;
     }
 
     setIsGeneratingInsight(true);
     setMessages([]);
     try {
-      const prompt = `Based on the following statistics, write a 2-sentence actionable recommendation or summary insight for the Barangay Captain:\n` +
+      const prompt = `Context: You are LingkodBrgAI, the official AI Operations Assistant of Barangay San Isidro, Bay, Laguna, Philippines. Based on the following statistics, write a 2-sentence actionable recommendation or summary insight for the Barangay Captain. Always refer strictly to Barangay San Isidro:\n` +
         `- Total Residents: ${currentStats.total_residents}\n` +
         `- Active Incident Blotters: ${currentStats.active_incidents}\n` +
         `- Households below sustenance/Indigent: ${currentStats.indigent_households}\n` +
@@ -246,14 +252,15 @@ export const Dashboard: React.FC = () => {
       const res = await api.ai.chat(prompt);
       setIsGeneratingInsight(false);
       if (res && res.response) {
-        sessionStorage.setItem('dashboard_ai_insight', res.response);
-        streamMessage(res.response, 'ai');
+        const cleanResponse = sanitizeBrgyText(res.response);
+        sessionStorage.setItem('dashboard_ai_insight_v3', cleanResponse);
+        streamMessage(cleanResponse, 'ai');
       } else {
-        streamMessage("Demographic distributions indicate stable residency trends. Outstanding blotter disputes require scheduled mediations.", 'ai');
+        streamMessage("Demographic distributions indicate stable residency trends in Barangay San Isidro. Outstanding blotter disputes require scheduled mediations.", 'ai');
       }
     } catch (err) {
       setIsGeneratingInsight(false);
-      streamMessage("Demographic distributions indicate stable residency trends. Outstanding blotter disputes require scheduled mediations.", 'ai');
+      streamMessage("Demographic distributions indicate stable residency trends in Barangay San Isidro. Outstanding blotter disputes require scheduled mediations.", 'ai');
     }
   };
 

@@ -31,6 +31,17 @@ const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 // Use direct Groq API endpoint
 const GROQ_BASE_URL = 'https://api.groq.com';
 
+export const sanitizeBrgyText = (text: string): string => {
+  if (!text) return text;
+  return text
+    .replace(/Barangay\s+Lawrence/gi, 'Barangay San Isidro')
+    .replace(/Brgy\.?\s*Lawrence/gi, 'Brgy. San Isidro')
+    .replace(/Lawrence\s+Barangay/gi, 'San Isidro Barangay')
+    .replace(/Municipality\s+of\s+Lawrence/gi, 'Municipality of Bay')
+    .replace(/Lawrence\s+Covered\s+Court/gi, 'San Isidro Covered Court')
+    .replace(/Barangay\s+Lawrence\s+Smart\s+Operations\s+Officer/gi, 'Barangay San Isidro Smart Operations Officer');
+};
+
 export const callGroqAI = async (prompt: string, systemContext?: string): Promise<string> => {
   if (!GROQ_API_KEY) {
     throw new Error("No Groq API key available");
@@ -807,7 +818,7 @@ export const api = {
       // Try Go backend first
       try {
         const backendRes = await client.post<{ response: string }>('/ai/chat', { prompt });
-        return backendRes.data;
+        return { response: sanitizeBrgyText(backendRes.data.response) };
       } catch (_) {
         // Backend unavailable, try Groq API
       }
@@ -816,7 +827,7 @@ export const api = {
       try {
         const groqResponse = await callGroqAI(prompt);
         if (groqResponse) {
-          return { response: groqResponse };
+          return { response: sanitizeBrgyText(groqResponse) };
         }
       } catch (err) {
         console.warn('Groq AI unavailable, using offline fallback:', err);
@@ -838,7 +849,7 @@ export const api = {
         response = `**E-Certificate Processing:**\n- Requests are processed and verified within 24 hours.\n- Digital clearances are generated with an authentic **cryptographic QR code**.\n- Standard Clearance Fee: **PHP 150.00** (Free for Indigent residents).`;
       }
 
-      return { response };
+      return { response: sanitizeBrgyText(response) };
     },
   },
 

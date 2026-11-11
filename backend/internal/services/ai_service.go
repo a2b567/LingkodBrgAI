@@ -187,12 +187,27 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 
 		if err == nil && len(chatResp.Choices) > 0 {
 			log.Printf("Groq AI successfully responded using model: %s", model)
-			return chatResp.Choices[0].Message.Content, chatResp.Usage.TotalTokens, nil
+			return sanitizeBrgyText(chatResp.Choices[0].Message.Content), chatResp.Usage.TotalTokens, nil
 		}
 	}
 
 	log.Printf("All Groq models failed. Falling back to local offline AI.")
 	return s.fallbackLocalAI(prompt, userRole, contextData)
+}
+
+func sanitizeBrgyText(text string) string {
+	r := strings.NewReplacer(
+		"Barangay Lawrence", "Barangay San Isidro",
+		"barangay lawrence", "barangay san isidro",
+		"BARANGAY LAWRENCE", "BARANGAY SAN ISIDRO",
+		"Brgy. Lawrence", "Brgy. San Isidro",
+		"brgy. lawrence", "brgy. san isidro",
+		"Lawrence Barangay", "San Isidro Barangay",
+		"lawrence barangay", "san isidro barangay",
+		"Municipality of Lawrence", "Municipality of Bay",
+		"Lawrence Covered Court", "San Isidro Covered Court",
+	)
+	return r.Replace(text)
 }
 
 func (s *AIService) fallbackLocalAI(prompt, role, contextData string) (string, int, error) {
@@ -250,5 +265,5 @@ func (s *AIService) fallbackLocalAI(prompt, role, contextData string) (string, i
 		sb.WriteString("\".\nTo request database listings, try queries including: 'unpaid fees', 'senior citizens', 'indigent households', 'blotter cases', or 'appointment congestion'.")
 	}
 
-	return sb.String(), len(prompt) / 4, nil
+	return sanitizeBrgyText(sb.String()), len(prompt) / 4, nil
 }
