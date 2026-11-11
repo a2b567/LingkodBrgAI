@@ -102,3 +102,4 @@ func (h *SettingsHandler) UpdateHotlines(c *gin.Context) {
 		"data":    req.Hotlines,
 	})
 }
+

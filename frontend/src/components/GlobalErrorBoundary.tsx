@@ -32,6 +32,21 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     this.setState({ errorInfo });
     this.reportToBackend(error, errorInfo);
+
+    // Auto-recover once from Vite cache invalidation / chunk mismatch after server restarts
+    const isCacheOrChunkMismatch =
+      error.message?.includes('dynamically imported') ||
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('chunk') ||
+      error.message?.includes("reading 'useState'") ||
+      error.message?.includes("reading 'useRef'") ||
+      error.message?.includes("reading 'useEffect'");
+
+    const hasAutoRecovered = sessionStorage.getItem('vite_cache_recovered');
+    if (isCacheOrChunkMismatch && !hasAutoRecovered) {
+      sessionStorage.setItem('vite_cache_recovered', 'true');
+      window.location.reload();
+    }
   }
 
   private async reportToBackend(error: Error, errorInfo: React.ErrorInfo) {
@@ -50,6 +65,7 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
 
   private handleReload = () => {
     sessionStorage.removeItem('chunk_reload');
+    sessionStorage.removeItem('vite_cache_recovered');
     window.location.reload();
   };
 
@@ -60,7 +76,9 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
 
     const isChunkError = this.state.error?.message?.includes('dynamically imported') ||
                          this.state.error?.message?.includes('Failed to fetch') ||
-                         this.state.error?.message?.includes('chunk');
+                         this.state.error?.message?.includes('chunk') ||
+                         this.state.error?.message?.includes("reading 'useState'") ||
+                         this.state.error?.message?.includes("reading 'useRef'");
 
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
@@ -73,11 +91,11 @@ export class GlobalErrorBoundary extends React.Component<Props, State> {
           {/* Heading */}
           <div className="space-y-2">
             <h1 className="text-xl font-black text-white">
-              {isChunkError ? 'May Bagong Update ang System' : 'Something went wrong'}
+              {isChunkError ? 'Kailangan ng Browser Refresh' : 'Something went wrong'}
             </h1>
             <p className="text-sm text-slate-400">
               {isChunkError 
-                ? 'May bagong bersyon ng LingkodBrgy na nai-deploy. Paki-click ang button sa ibaba upang i-refresh ang iyong browser at makuha ang pinakabagong bersyon.'
+                ? 'Na-restart ang local dev server o may bagong update ang code. Paki-pindot ang Reload Application sa ibaba upang i-sync ang pinakabagong bersyon.'
                 : 'An unexpected error occurred in the application.' + (this.state.reported ? ' The error has been automatically reported to the development team.' : ' Please reload the page.')}
             </p>
           </div>

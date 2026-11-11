@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'lucide-react', 'zustand', 'axios'],
+  },
   server: {
     proxy: {
       '/groq-api': {

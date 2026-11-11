@@ -425,20 +425,20 @@ export const Residents: React.FC = () => {
   const handleOpenEdit = (res: Resident) => {
     setEditingId(res.id);
     setForm({
-      first_name: res.first_name,
+      first_name: res.first_name || '',
       middle_name: res.middle_name || '',
-      last_name: res.last_name,
+      last_name: res.last_name || '',
       suffix: res.suffix || '',
-      birthdate: res.birthdate.split('T')[0],
-      gender: res.gender,
-      civil_status: res.civil_status,
+      birthdate: res.birthdate ? res.birthdate.split('T')[0] : '',
+      gender: res.gender || 'Male',
+      civil_status: res.civil_status || 'Single',
       occupation: res.occupation || '',
       contact_number: res.contact_number || '',
       email: res.email || '',
-      address: res.address,
-      citizenship: res.citizenship,
-      residency_status: res.residency_status,
-      voter_status: res.voter_status,
+      address: res.address || '',
+      citizenship: res.citizenship || 'Filipino',
+      residency_status: res.residency_status || 'Permanent',
+      voter_status: res.voter_status || 'Not Registered',
       is_pregnant: !!res.is_pregnant,
       is_senior: !!res.is_senior,
       is_pwd: !!res.is_pwd,
@@ -661,12 +661,12 @@ export const Residents: React.FC = () => {
                             {r.profile_photo ? (
                               <img src={`http://localhost:8080${r.profile_photo}`} alt="" className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400">{r.first_name[0]}{r.last_name[0]}</span>
+                              <span className="text-[10px] font-black text-slate-500 dark:text-slate-400">{(r.first_name?.[0] || 'R')}{(r.last_name?.[0] || 'D')}</span>
                             )}
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="font-bold">{r.last_name}, {r.first_name} {r.middle_name || ''}</p>
+                              <p className="font-bold">{r.last_name || 'Resident'}, {r.first_name || ''} {r.middle_name || ''}</p>
                               {r.is_pregnant && <span title="Pregnant" className="text-[10px]">🤰</span>}
                               {r.is_senior && <span title="Senior Citizen" className="text-[10px]">👴</span>}
                               {r.is_pwd && <span title="Person with Disability" className="text-[9px] bg-blue-600 text-white px-1 rounded font-bold">♿ PWD</span>}
