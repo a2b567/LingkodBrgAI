@@ -192,12 +192,34 @@ export const KioskCertificates: React.FC = () => {
     try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
   });
 
-  // Sync fee schedule from central database
+  // Kiosk Wallpaper Display states (Configured by Captain in Settings)
+  const [kioskWallpaper, setKioskWallpaper] = useState<string>(() => localStorage.getItem('kiosk_wallpaper') || '');
+  const [wallpaperOverlay, setWallpaperOverlay] = useState<number>(() => Number(localStorage.getItem('kiosk_wallpaper_overlay') || '60'));
+  const [wallpaperBlur, setWallpaperBlur] = useState<number>(() => Number(localStorage.getItem('kiosk_wallpaper_blur') || '2'));
+
+  // Sync fee schedule & official kiosk wallpaper from central database
   useEffect(() => {
     api.settings.getFees().then(data => {
       if (data && typeof data === 'object') {
         setCertFees(prev => ({ ...prev, ...data }));
         try { localStorage.setItem('cert_fees', JSON.stringify(data)); } catch {}
+      }
+    }).catch(() => {});
+
+    api.settings.getKioskWallpaper().then((cfg: any) => {
+      if (cfg) {
+        if (typeof cfg.image_url === 'string') {
+          setKioskWallpaper(cfg.image_url);
+          try { localStorage.setItem('kiosk_wallpaper', cfg.image_url); } catch {}
+        }
+        if (typeof cfg.overlay === 'number') {
+          setWallpaperOverlay(cfg.overlay);
+          try { localStorage.setItem('kiosk_wallpaper_overlay', String(cfg.overlay)); } catch {}
+        }
+        if (typeof cfg.blur === 'number') {
+          setWallpaperBlur(cfg.blur);
+          try { localStorage.setItem('kiosk_wallpaper_blur', String(cfg.blur)); } catch {}
+        }
       }
     }).catch(() => {});
   }, []);
@@ -490,15 +512,37 @@ export const KioskCertificates: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between select-none relative overflow-hidden font-sans">
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-25"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(59, 130, 246, 0.25) 1px, transparent 0)',
-          backgroundSize: '32px 32px'
-        }}
-      />
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+      {/* Background Wallpaper Layer (Configured by Captain in Settings) */}
+      {kioskWallpaper ? (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          <img
+            src={kioskWallpaper}
+            alt="Barangay Kiosk Background"
+            className="w-full h-full object-cover transition-all duration-700"
+            style={{
+              filter: `blur(${wallpaperBlur}px)`,
+              transform: wallpaperBlur > 0 ? 'scale(1.05)' : 'none',
+            }}
+          />
+          {/* Dark Overlay for High Contrast & Touchscreen Readability */}
+          <div 
+            className="absolute inset-0 bg-slate-950 transition-opacity duration-300"
+            style={{ opacity: Math.max(0.3, wallpaperOverlay / 100) }}
+          />
+        </div>
+      ) : (
+        <>
+          <div 
+            className="absolute inset-0 pointer-events-none opacity-25 z-0"
+            style={{
+              backgroundImage: 'radial-gradient(rgba(59, 130, 246, 0.25) 1px, transparent 0)',
+              backgroundSize: '32px 32px'
+            }}
+          />
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none animate-pulse z-0" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none animate-pulse z-0" />
+        </>
+      )}
 
       <header className="px-6 sm:px-10 py-5 flex items-center justify-between border-b border-slate-800/80 relative z-20 bg-slate-950/80 backdrop-blur-xl shadow-2xl">
         <div className="flex items-center gap-4">

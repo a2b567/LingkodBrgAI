@@ -307,3 +307,101 @@ func (h *SettingsHandler) UpdateClinicSchedule(c *gin.Context) {
 	})
 }
 
+type KioskWallpaperSetting struct {
+	ImageURL  string `json:"image_url"`
+	Overlay   int    `json:"overlay"` // Darkness percentage 0-100 (default 60)
+	Blur      int    `json:"blur"`    // Blur px 0-20 (default 2)
+	ThemeName string `json:"theme_name"`
+	UpdatedBy string `json:"updated_by"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+var defaultKioskWallpaper = KioskWallpaperSetting{
+	ImageURL:  "",
+	Overlay:   60,
+	Blur:      2,
+	ThemeName: "Default Modern Gradient",
+}
+
+// GetKioskWallpaper returns the official kiosk wallpaper configuration
+func (h *SettingsHandler) GetKioskWallpaper(c *gin.Context) {
+	db := config.DB
+	if db == nil {
+		c.JSON(http.StatusOK, gin.H{"data": defaultKioskWallpaper})
+		return
+	}
+
+	var setting models.SystemSetting
+	if err := db.First(&setting, "key = ?", "kiosk_wallpaper").Error; err != nil {
+		c.JSON(http.StatusOK, gin.H{"data": defaultKioskWallpaper})
+		return
+	}
+
+	var configData KioskWallpaperSetting
+	if err := json.Unmarshal([]byte(setting.Value), &configData); err != nil {
+		c.JSON(http.StatusOK, gin.H{"data": defaultKioskWallpaper})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": configData})
+}
+
+// UpdateKioskWallpaper allows the Barangay Captain or Admin to set the kiosk wallpaper
+func (h *SettingsHandler) UpdateKioskWallpaper(c *gin.Context) {
+	db := config.DB
+	if db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database unavailable"})
+		return
+	}
+
+	var req KioskWallpaperSetting
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid kiosk wallpaper configuration format"})
+		return
+	}
+
+	usernameVal, exists := c.Get("username")
+	if exists {
+		req.UpdatedBy = usernameVal.(string)
+	} else {
+		req.UpdatedBy = "Barangay Captain / Admin"
+	}
+	req.UpdatedAt = time.Now().Format(time.RFC3339)
+
+	if req.Overlay <= 0 {
+		req.Overlay = 60
+	}
+
+	dataBytes, err := json.Marshal(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serialize kiosk wallpaper setting"})
+		return
+	}
+
+	setting := models.SystemSetting{
+		Key:       "kiosk_wallpaper",
+		Value:     string(dataBytes),
+		UpdatedAt: time.Now(),
+	}
+
+	var existing models.SystemSetting
+	if err := db.First(&existing, "key = ?", "kiosk_wallpaper").Error; err != nil {
+		if createErr := db.Create(&setting).Error; createErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save kiosk wallpaper setting"})
+			return
+		}
+	} else {
+		existing.Value = setting.Value
+		existing.UpdatedAt = setting.UpdatedAt
+		if saveErr := db.Save(&existing).Error; saveErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update kiosk wallpaper setting"})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Matagumpay na na-update ang Kiosk Wallpaper at Display!",
+		"data":    req,
+	})
+}
+

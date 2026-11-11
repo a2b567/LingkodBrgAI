@@ -4,7 +4,7 @@ import {
   ImagePlus, Trash, Save, RotateCcw, AlertTriangle, KeyRound,
   User, Mail, CheckCircle2, ChevronRight, Shield, Settings2, PhilippinePeso,
   Bell, Volume2, VolumeX, Sparkles, Home, Users, Phone, PhoneCall, MapPin, Briefcase,
-  Eye, EyeOff
+  Eye, EyeOff, Monitor, Upload, Sliders, ExternalLink
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthStore } from '../store/authStore';
@@ -14,7 +14,7 @@ import type { Household } from '../types';
 import { PageHeader, Card, CardHeader, CardTitle, CardDescription, CardContent, Button, Input, Badge, Modal } from '../components/ui';
 import { playNotificationSound, isNotificationSoundEnabled, setNotificationSoundEnabled } from '../utils/notificationSound';
 
-type ActiveTab = 'profile' | 'notifications' | 'security' | 'portal' | 'fees' | 'danger';
+type ActiveTab = 'profile' | 'notifications' | 'security' | 'portal' | 'kiosk' | 'fees' | 'danger';
 
 export const Settings: React.FC = () => {
   const { user, token, login } = useAuthStore();
@@ -180,6 +180,144 @@ export const Settings: React.FC = () => {
     localStorage.removeItem('brgy_hero_bg');
     setHeroBgPreview(null);
     if (heroBgInputRef.current) heroBgInputRef.current.value = '';
+  };
+
+  // Kiosk Wallpaper Display states (Captain & Admin)
+  const [kioskWallpaperUrl, setKioskWallpaperUrl] = useState<string>(() => localStorage.getItem('kiosk_wallpaper') || '');
+  const [kioskOverlay, setKioskOverlay] = useState<number>(() => Number(localStorage.getItem('kiosk_wallpaper_overlay') || '60'));
+  const [kioskBlur, setKioskBlur] = useState<number>(() => Number(localStorage.getItem('kiosk_wallpaper_blur') || '2'));
+  const [kioskThemeName, setKioskThemeName] = useState<string>(() => localStorage.getItem('kiosk_wallpaper_theme') || 'Default Clean Civic Gradient');
+  const [isSavingKioskWallpaper, setIsSavingKioskWallpaper] = useState(false);
+  const [kioskWallpaperSuccessMsg, setKioskWallpaperSuccessMsg] = useState('');
+  const [kioskWallpaperErrorMsg, setKioskWallpaperErrorMsg] = useState('');
+  const kioskFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync kiosk wallpaper on mount
+  useEffect(() => {
+    api.settings.getKioskWallpaper().then((cfg: any) => {
+      if (cfg) {
+        if (typeof cfg.image_url === 'string') {
+          setKioskWallpaperUrl(cfg.image_url);
+          try { localStorage.setItem('kiosk_wallpaper', cfg.image_url); } catch {}
+        }
+        if (typeof cfg.overlay === 'number') {
+          setKioskOverlay(cfg.overlay);
+          try { localStorage.setItem('kiosk_wallpaper_overlay', String(cfg.overlay)); } catch {}
+        }
+        if (typeof cfg.blur === 'number') {
+          setKioskBlur(cfg.blur);
+          try { localStorage.setItem('kiosk_wallpaper_blur', String(cfg.blur)); } catch {}
+        }
+        if (typeof cfg.theme_name === 'string') {
+          setKioskThemeName(cfg.theme_name);
+          try { localStorage.setItem('kiosk_wallpaper_theme', cfg.theme_name); } catch {}
+        }
+      }
+    }).catch(() => {});
+  }, []);
+
+  const curatedKioskWallpapers = [
+    {
+      name: 'Default Clean Civic Gradient',
+      url: '',
+      preview: 'linear-gradient(135deg, #020617, #0f172a, #1e1b4b)',
+      desc: 'Standard minimal dark theme with subtle particle glow',
+    },
+    {
+      name: 'Barangay San Isidro Hall & Plaza',
+      url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=1600&q=80',
+      preview: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=400&q=80',
+      desc: 'Modern civic architectural hall with warm welcoming lighting',
+    },
+    {
+      name: 'Laguna Nature & Mountain Panorama',
+      url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1600&q=80',
+      preview: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80',
+      desc: 'Lush mountain landscape and tranquil lake waters of Laguna',
+    },
+    {
+      name: 'Philippine National Flag & Horizon',
+      url: 'https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&w=1600&q=80',
+      preview: 'https://images.unsplash.com/photo-1532375810709-75b1da00537c?auto=format&fit=crop&w=400&q=80',
+      desc: 'Patriotic civic colors of the Republic of the Philippines',
+    },
+    {
+      name: 'High-Tech Digital Governance Mesh',
+      url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1600&q=80',
+      preview: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=400&q=80',
+      desc: 'Cybernetic smart city circuitry and high-speed data grid',
+    },
+  ];
+
+  const handleKioskFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setKioskWallpaperErrorMsg('Pumili lamang ng wastong image file (JPG, PNG, WebP).');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setKioskWallpaperErrorMsg('Masyadong malaki ang file (Maximum 5MB). Mangyaring pumili ng mas maliit na imahe.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setKioskWallpaperUrl(base64);
+        setKioskThemeName(`Uploaded Image: ${file.name}`);
+        setKioskWallpaperErrorMsg('');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveKioskWallpaper = async () => {
+    setIsSavingKioskWallpaper(true);
+    setKioskWallpaperSuccessMsg('');
+    setKioskWallpaperErrorMsg('');
+
+    try {
+      await api.settings.updateKioskWallpaper({
+        image_url: kioskWallpaperUrl,
+        overlay: kioskOverlay,
+        blur: kioskBlur,
+        theme_name: kioskThemeName,
+      });
+
+      setIsSavingKioskWallpaper(false);
+      setKioskWallpaperSuccessMsg('Matagumpay na na-update ang Kiosk Wallpaper! Awtomatikong magre-reflect ito sa lahat ng Kiosk terminal.');
+      setTimeout(() => setKioskWallpaperSuccessMsg(''), 5000);
+    } catch (err: any) {
+      setIsSavingKioskWallpaper(false);
+      setKioskWallpaperErrorMsg(err?.message || 'May error sa pag-save ng kiosk wallpaper.');
+      setTimeout(() => setKioskWallpaperErrorMsg(''), 5000);
+    }
+  };
+
+  const handleResetKioskWallpaper = async () => {
+    setKioskWallpaperUrl('');
+    setKioskOverlay(60);
+    setKioskBlur(2);
+    setKioskThemeName('Default Clean Civic Gradient');
+    if (kioskFileInputRef.current) kioskFileInputRef.current.value = '';
+
+    try {
+      await api.settings.updateKioskWallpaper({
+        image_url: '',
+        overlay: 60,
+        blur: 2,
+        theme_name: 'Default Clean Civic Gradient',
+      });
+      setKioskWallpaperSuccessMsg('Na-reset sa default dark theme ang Kiosk Wallpaper.');
+      setTimeout(() => setKioskWallpaperSuccessMsg(''), 4000);
+    } catch {
+      setKioskWallpaperSuccessMsg('Na-reset sa lokal na cache.');
+      setTimeout(() => setKioskWallpaperSuccessMsg(''), 4000);
+    }
   };
 
   const defaultAnnouncements = [
@@ -461,6 +599,7 @@ export const Settings: React.FC = () => {
     { id: 'notifications', label: 'Notifications & Sound', icon: <Bell size={15} /> },
     { id: 'security', label: 'Security', icon: <Shield size={15} /> },
     { id: 'portal', label: 'Portal & Public Page', icon: <Globe size={15} />, staffOnly: true },
+    { id: 'kiosk', label: 'Kiosk Wallpaper', icon: <Monitor size={15} />, staffOnly: true },
     { id: 'fees', label: 'Certificate Fees', icon: <PhilippinePeso size={15} />, staffOnly: true },
     { id: 'danger', label: 'Maintenance', icon: <Settings2 size={15} />, staffOnly: true },
   ];
@@ -1560,6 +1699,325 @@ export const Settings: React.FC = () => {
                       ))}
                     </div>
                   )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ─────────── TAB: KIOSK WALLPAPER & DISPLAY (Captain & Admin) ─────────── */}
+          {activeTab === 'kiosk' && isStaff && (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Monitor size={18} />
+                      </div>
+                      <div>
+                        <CardTitle>Self-Service Kiosk Background Wallpaper & Display</CardTitle>
+                        <CardDescription>
+                          I-customize ang opisyal na background wallpaper at tema ng touch-screen document kiosk ng Barangay San Isidro.
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <a
+                      href="/kiosk/certificates"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-black uppercase tracking-wider border border-blue-200 dark:border-blue-800/50 transition-all shadow-sm w-fit"
+                    >
+                      <ExternalLink size={13} />
+                      Buksan ang Kiosk Portal
+                    </a>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  {kioskWallpaperSuccessMsg && (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-300 text-xs font-semibold rounded-2xl flex items-center gap-2 animate-in fade-in">
+                      <CheckCircle2 size={16} className="shrink-0" />
+                      {kioskWallpaperSuccessMsg}
+                    </div>
+                  )}
+
+                  {kioskWallpaperErrorMsg && (
+                    <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 text-xs font-semibold rounded-2xl flex items-center gap-2 animate-in fade-in">
+                      <AlertTriangle size={16} className="shrink-0" />
+                      {kioskWallpaperErrorMsg}
+                    </div>
+                  )}
+
+                  {/* 1. Live Interactive Preview */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                        <Eye size={14} className="text-blue-500" />
+                        Live Kiosk Display Preview
+                      </label>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        Tema: <strong className="text-blue-500">{kioskThemeName}</strong>
+                      </span>
+                    </div>
+
+                    <div className="relative w-full aspect-video sm:h-72 bg-slate-950 rounded-2xl overflow-hidden border-2 border-slate-700/80 shadow-2xl flex flex-col justify-between p-4 sm:p-5 select-none">
+                      {/* Wallpaper Layer */}
+                      {kioskWallpaperUrl ? (
+                        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                          <img
+                            src={kioskWallpaperUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                            style={{
+                              filter: `blur(${kioskBlur}px)`,
+                              transform: kioskBlur > 0 ? 'scale(1.05)' : 'none',
+                            }}
+                          />
+                          <div
+                            className="absolute inset-0 bg-slate-950"
+                            style={{ opacity: Math.max(0.3, kioskOverlay / 100) }}
+                          />
+                        </div>
+                      ) : (
+                        <div
+                          className="absolute inset-0 pointer-events-none opacity-40 z-0"
+                          style={{
+                            backgroundImage: 'radial-gradient(rgba(59, 130, 246, 0.4) 1px, transparent 0)',
+                            backgroundSize: '24px 24px',
+                            backgroundColor: '#020617',
+                          }}
+                        />
+                      )}
+
+                      {/* Header in Preview */}
+                      <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+                            <Shield size={12} />
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-black uppercase text-white tracking-wider block leading-none">
+                              SELF-SERVICE KIOSK
+                            </span>
+                            <span className="text-[7.5px] font-bold text-slate-300 uppercase tracking-widest block leading-tight">
+                              BARANGAY SAN ISIDRO
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          LIVE TERMINAL
+                        </span>
+                      </div>
+
+                      {/* Center Action in Preview */}
+                      <div className="relative z-10 flex flex-col items-center justify-center text-center my-auto">
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex flex-col items-center justify-center text-white shadow-lg border-2 border-blue-300/40 mb-2 animate-pulse">
+                          <Sparkles size={20} className="text-amber-300" />
+                        </div>
+                        <h4 className="text-base sm:text-lg font-black text-white tracking-tight drop-shadow-md">
+                          Tap Anywhere to Start
+                        </h4>
+                        <p className="text-[9px] text-slate-300 font-semibold max-w-xs drop-shadow">
+                          Welcome to Barangay San Isidro Document Self-Service Kiosk.
+                        </p>
+                      </div>
+
+                      {/* Footer Badges in Preview */}
+                      <div className="relative z-10 flex items-center justify-between text-[8px] font-bold text-slate-300 pt-2 border-t border-white/10">
+                        <span>🔒 SECURE QUEUE</span>
+                        <span>✍️ DIGITAL E-SIGN</span>
+                        <span>⚡ INSTANT TICKET</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Choose from Curated Wallpapers */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider block mb-2.5">
+                      Pumili sa mga Opisyal na Curated Themes:
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                      {curatedKioskWallpapers.map((preset) => {
+                        const isSelected = kioskWallpaperUrl === preset.url;
+                        return (
+                          <div
+                            key={preset.name}
+                            onClick={() => {
+                              setKioskWallpaperUrl(preset.url);
+                              setKioskThemeName(preset.name);
+                              setKioskWallpaperErrorMsg('');
+                            }}
+                            className={`group cursor-pointer rounded-2xl border-2 p-2 transition-all flex flex-col justify-between ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/40 shadow-md ring-2 ring-blue-500/30'
+                                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-400 dark:hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="w-full h-20 rounded-xl overflow-hidden mb-2 relative">
+                              {preset.url ? (
+                                <img
+                                  src={preset.preview}
+                                  alt={preset.name}
+                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                />
+                              ) : (
+                                <div
+                                  className="w-full h-full flex items-center justify-center text-slate-400 text-xs font-bold"
+                                  style={{ background: preset.preview }}
+                                >
+                                  Dark Gradient
+                                </div>
+                              )}
+                              {isSelected && (
+                                <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md">
+                                  <Check size={12} />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-[11px] font-black text-slate-900 dark:text-white leading-tight">
+                                {preset.name}
+                              </p>
+                              <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                                {preset.desc}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 3. Upload Custom Wallpaper or Enter Image URL */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                        <Upload size={14} className="text-blue-500" />
+                        Mag-upload ng File (Local Photo)
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Mag-upload ng litrato ng inyong Barangay Hall, plasa, o opisyal na logo (JPG, PNG, o WebP hanggang 5MB).
+                      </p>
+                      <input
+                        type="file"
+                        ref={kioskFileInputRef}
+                        accept="image/*"
+                        onChange={handleKioskFileUpload}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => kioskFileInputRef.current?.click()}
+                        leftIcon={<ImagePlus size={14} />}
+                        className="w-full"
+                      >
+                        Pumili ng Litrato mula sa Computer
+                      </Button>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-3">
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                        <Globe size={14} className="text-blue-500" />
+                        Custom Image URL
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        O mag-paste ng direktang HTTPS link ng litrato (hal. Google Drive public image, Unsplash, o cloud storage).
+                      </p>
+                      <input
+                        type="url"
+                        value={kioskWallpaperUrl.startsWith('data:') ? '' : kioskWallpaperUrl}
+                        onChange={(e) => {
+                          setKioskWallpaperUrl(e.target.value);
+                          setKioskThemeName(e.target.value ? 'Custom URL Wallpaper' : 'Default Clean Civic Gradient');
+                        }}
+                        placeholder="https://example.com/barangay-hall.jpg"
+                        className="w-full px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 4. Fine-Tuning Controls (Overlay & Blur Sliders) */}
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/80 dark:border-slate-800 space-y-4">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                      <Sliders size={14} className="text-blue-500" />
+                      Display & Accessibility Fine-Tuning
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      {/* Darkness Overlay Slider */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Dark Tint Overlay (Karilagan ng Text)
+                          </label>
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                            {kioskOverlay}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="30"
+                          max="90"
+                          value={kioskOverlay}
+                          onChange={(e) => setKioskOverlay(Number(e.target.value))}
+                          className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                          Mas mataas na porsyento = mas madilim ang background para sa pinakamalilinaw na text sa kiosk.
+                        </p>
+                      </div>
+
+                      {/* Blur Filter Slider */}
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            Background Soft Blur
+                          </label>
+                          <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                            {kioskBlur}px
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="10"
+                          value={kioskBlur}
+                          onChange={(e) => setKioskBlur(Number(e.target.value))}
+                          className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                        />
+                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                          0px = buong linaw ng litrato; 2-4px = banayad na cinematic depth effect.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Footer */}
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleResetKioskWallpaper}
+                      leftIcon={<RotateCcw size={14} />}
+                    >
+                      I-reset sa Default Gradient
+                    </Button>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <Button
+                        type="button"
+                        onClick={handleSaveKioskWallpaper}
+                        disabled={isSavingKioskWallpaper}
+                        leftIcon={<Save size={14} />}
+                        className="w-full sm:w-auto"
+                      >
+                        {isSavingKioskWallpaper ? 'Sinesave...' : 'I-save ang Kiosk Wallpaper'}
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>

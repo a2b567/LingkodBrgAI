@@ -974,6 +974,38 @@ export const api = {
         () => ({ message: 'Clinic schedule updated successfully', data })
       );
     },
+
+    getKioskWallpaper: () =>
+      withFallback(
+        () => client.get<{ data: any }>('/settings/kiosk-wallpaper').then(r => r.data.data || r.data),
+        () => {
+          const defaultCfg = {
+            image_url: '',
+            overlay: 60,
+            blur: 2,
+            theme_name: 'Default Modern Gradient',
+          };
+          try {
+            const saved = localStorage.getItem('kiosk_wallpaper_config');
+            if (saved) return { ...defaultCfg, ...JSON.parse(saved) };
+          } catch (e) {}
+          return defaultCfg;
+        }
+      ),
+
+    updateKioskWallpaper: (data: { image_url: string; overlay: number; blur: number; theme_name?: string }) => {
+      try {
+        localStorage.setItem('kiosk_wallpaper_config', JSON.stringify(data));
+        localStorage.setItem('kiosk_wallpaper', data.image_url);
+        localStorage.setItem('kiosk_wallpaper_overlay', String(data.overlay));
+        localStorage.setItem('kiosk_wallpaper_blur', String(data.blur));
+        if (data.theme_name) localStorage.setItem('kiosk_wallpaper_theme', data.theme_name);
+      } catch (e) {}
+      return withFallback(
+        () => client.put<{ message: string; data: any }>('/settings/kiosk-wallpaper', data).then(r => r.data),
+        () => ({ message: 'Matagumpay na na-save ang Kiosk Wallpaper!', data })
+      );
+    },
   },
 };
 

@@ -68,6 +68,7 @@ func SetupRouter() *gin.Engine {
 		api.GET("/settings/hotlines", settingsHandler.GetHotlines)
 		api.GET("/settings/fees", settingsHandler.GetFees)
 		api.GET("/settings/clinic-schedule", settingsHandler.GetClinicSchedule)
+		api.GET("/settings/kiosk-wallpaper", settingsHandler.GetKioskWallpaper)
 
 		// License Validation & Activation (Publicly accessible for system activation checks)
 		licenses := api.Group("/licenses")
@@ -190,6 +191,7 @@ func SetupRouter() *gin.Engine {
 			staffOnly.PUT("/settings/hotlines", settingsHandler.UpdateHotlines)
 			staffOnly.PUT("/settings/fees", settingsHandler.UpdateFees)
 			staffOnly.PUT("/settings/clinic-schedule", settingsHandler.UpdateClinicSchedule)
+			staffOnly.PUT("/settings/kiosk-wallpaper", settingsHandler.UpdateKioskWallpaper)
 
 			// Dashboards
 			staffOnly.GET("/analytics/dashboard", analyticsHandler.GetStats)
