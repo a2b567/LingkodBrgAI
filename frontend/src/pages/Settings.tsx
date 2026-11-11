@@ -573,6 +573,40 @@ export const Settings: React.FC = () => {
               <span className="text-[8px] text-slate-400 mt-1">Scan to verify official record</span>
             </div>
           )}
+
+          {/* System Version & Architecture Card */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 space-y-2.5 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider">
+                System Info
+              </span>
+              <span className="text-[10px] font-black text-gov-blue-600 dark:text-gov-blue-400 bg-gov-blue-50 dark:bg-gov-blue-950/60 px-2 py-0.5 rounded-full border border-gov-blue-200 dark:border-gov-blue-800">
+                v2.0.4
+              </span>
+            </div>
+            <div>
+              <p className="text-xs font-black text-slate-900 dark:text-white">LingkodBrgyAI Smart BMIS</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Enterprise Cloud Release 2026.11</p>
+            </div>
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 space-y-1">
+              <p className="flex items-center justify-between">
+                <span>Architecture:</span>
+                <strong className="text-slate-800 dark:text-slate-200 font-bold">Full-Stack Cloud</strong>
+              </p>
+              <p className="flex items-center justify-between">
+                <span>Engine:</span>
+                <strong className="text-slate-800 dark:text-slate-200 font-bold">React 19 + Go 1.24</strong>
+              </p>
+              <p className="flex items-center justify-between">
+                <span>Database:</span>
+                <strong className="text-emerald-600 dark:text-emerald-400 font-bold">Supabase PostgreSQL</strong>
+              </p>
+              <p className="flex items-center justify-between">
+                <span>Privacy:</span>
+                <strong className="text-blue-600 dark:text-blue-400 font-bold">RA 10173 DPA</strong>
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* ── Right Column: Tab Content ── */}

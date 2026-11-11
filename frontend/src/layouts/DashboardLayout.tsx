@@ -242,9 +242,14 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             </div>
             {sidebarOpen && (
               <div className="flex flex-col justify-center truncate">
-                <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white leading-tight">
-                  LINGKODBRGY
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white leading-tight">
+                    LINGKODBRGY
+                  </span>
+                  <span className="text-[9px] font-black bg-gov-blue-50 dark:bg-gov-blue-950/60 text-gov-blue-600 dark:text-gov-blue-400 border border-gov-blue-200 dark:border-gov-blue-800/60 px-1.5 py-0.2 rounded-md tracking-tight">
+                    v2.0
+                  </span>
+                </div>
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   San Isidro Portal
                 </span>
@@ -322,6 +327,17 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             <LogOut size={18} className="text-rose-600 dark:text-rose-400 shrink-0" />
             {sidebarOpen && <span>Sign Out</span>}
           </button>
+
+          {sidebarOpen && (
+            <div className="pt-2 px-1 text-center border-t border-slate-100 dark:border-slate-800/80">
+              <p className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-bold">
+                LingkodBrgyAI <span className="text-gov-blue-600 dark:text-gov-blue-400">v2.0.4</span>
+              </p>
+              <p className="text-[8px] text-slate-400 dark:text-slate-600 uppercase tracking-widest font-bold">
+                Enterprise Build 2026.11
+              </p>
+            </div>
+          )}
         </div>
       </aside>
 

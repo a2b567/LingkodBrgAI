@@ -870,8 +870,9 @@ export const Register: React.FC = () => {
           </form>
         )}
 
-        <div className="text-center text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest pt-6 border-t border-slate-200/60 dark:border-slate-800/60 mt-8">
-          DEV: LAWREENE B ARANAS
+        <div className="text-center text-[9px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest pt-6 border-t border-slate-200/60 dark:border-slate-800/60 mt-8 space-y-0.5">
+          <p className="text-gov-blue-600 dark:text-gov-blue-400 font-black">LingkodBrgyAI System v2.0.4</p>
+          <p className="text-[8px] opacity-75 font-semibold">DEV: LAWREENE B ARANAS</p>
         </div>
       </div>
 

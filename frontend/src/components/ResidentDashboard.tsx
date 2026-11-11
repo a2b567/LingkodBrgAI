@@ -314,9 +314,14 @@ export const ResidentDashboard: React.FC = () => {
                 </span>
               </div>
             </div>
-            <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-black uppercase tracking-wider border border-amber-400/40">
-              e-ID Active
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-200 text-[8px] font-mono border border-blue-400/30">
+                v2.0.4
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[9px] font-black uppercase tracking-wider border border-amber-400/40">
+                e-ID Active
+              </span>
+            </div>
           </div>
 
           <div className="flex items-end justify-between pt-2">
@@ -648,6 +653,16 @@ export const ResidentDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* System Version & Portal Security Footer */}
+      <div className="pt-4 pb-2 text-center text-[10px] text-slate-400 dark:text-slate-500 space-y-1">
+        <p className="font-mono font-bold">
+          LingkodBrgyAI Resident Portal <span className="text-blue-600 dark:text-blue-400">v2.0.4</span>
+        </p>
+        <p className="text-[9px] uppercase tracking-widest font-semibold opacity-75">
+          DPA RA 10173 Protected • 256-bit Secure Session
+        </p>
+      </div>
 
       {/* ── Digital ID Modal (Bottom Sheet / Modal) ── */}
       {showIdModal && (
