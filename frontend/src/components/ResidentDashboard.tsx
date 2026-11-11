@@ -45,7 +45,21 @@ export const ResidentDashboard: React.FC = () => {
   });
   const [tutorialInitialMode, setTutorialInitialMode] = useState<'prompt' | 'steps'>('prompt');
 
-  // Sync Clinic Queue from localStorage
+  // Sync Clinic Queue & Clinic Schedule
+  const [clinicSchedule, setClinicSchedule] = useState<{
+    is_open: boolean;
+    schedule_days: string;
+    operating_hours: string;
+    nurse_on_duty: string;
+    advisory: string;
+  }>({
+    is_open: true,
+    schedule_days: 'Lunes hanggang Biyernes (Mon - Fri)',
+    operating_hours: '8:00 AM - 5:00 PM',
+    nurse_on_duty: 'Barangay Health Worker / Duty Nurse',
+    advisory: '',
+  });
+
   const syncClinicQueue = () => {
     try {
       const saved = localStorage.getItem('lingkod_clinic_queue');
@@ -58,6 +72,13 @@ export const ResidentDashboard: React.FC = () => {
     } catch {
       setClinicQueue([]);
     }
+
+    // Also check clinic schedule
+    api.settings.getClinicSchedule().then(s => {
+      if (s && typeof s === 'object') {
+        setClinicSchedule(prev => ({ ...prev, ...s }));
+      }
+    }).catch(() => {});
   };
 
   useEffect(() => {
@@ -320,32 +341,50 @@ export const ResidentDashboard: React.FC = () => {
       {/* ── Live Clinic Queue Status Pill ── */}
       <Link
         to="/clinic-queue"
-        className="block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-3.5 shadow-sm hover:border-rose-300 dark:hover:border-rose-900/60 transition-all active:scale-[0.99] group"
+        className={`block bg-white dark:bg-slate-900 rounded-2xl border p-3.5 shadow-sm transition-all active:scale-[0.99] group ${
+          clinicSchedule.is_open
+            ? 'border-slate-200/80 dark:border-slate-800 hover:border-rose-300 dark:hover:border-rose-900/60'
+            : 'border-rose-500/30 bg-rose-50/20 dark:bg-rose-950/10'
+        }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-500 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-900/40">
-              <Stethoscope size={20} className="animate-pulse" />
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+              clinicSchedule.is_open
+                ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-500 border-rose-200 dark:border-rose-900/40'
+                : 'bg-rose-100 dark:bg-rose-950 text-rose-600 border-rose-300 dark:border-rose-800'
+            }`}>
+              <Stethoscope size={20} className={clinicSchedule.is_open ? 'animate-pulse' : ''} />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider">
                   Health Center Clinic
                 </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                  clinicSchedule.is_open
+                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-500/30'
+                    : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border-rose-500/30'
+                }`}>
+                  {clinicSchedule.is_open ? '● BUKAS' : '● SARADO'}
+                </span>
               </div>
               <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-0.5">
-                {nowServingClinic ? (
-                  <>Serving: <strong className="text-rose-600 dark:text-rose-400 font-bold">#{nowServingClinic.queueNumber}</strong> ({nowServingClinic.service})</>
+                {clinicSchedule.is_open ? (
+                  nowServingClinic ? (
+                    <>Serving: <strong className="text-rose-600 dark:text-rose-400 font-bold">#{nowServingClinic.queueNumber}</strong> ({nowServingClinic.service})</>
+                  ) : (
+                    <>Clinic Open • <strong className="text-blue-600 dark:text-blue-400">{activeClinicQueue.length} waiting</strong> ({clinicSchedule.operating_hours})</>
+                  )
                 ) : (
-                  <>Clinic Open • Waiting: <strong className="text-blue-600 dark:text-blue-400">{activeClinicQueue.length} patients</strong></>
+                  <>Kasalukuyang Sarado • Bukas: <strong className="text-slate-700 dark:text-slate-300">{clinicSchedule.operating_hours}</strong> ({clinicSchedule.schedule_days})</>
                 )}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1 text-xs font-bold text-rose-600 dark:text-rose-400 group-hover:translate-x-1 transition-transform">
-            <span>View</span>
+            <span>Tingnan</span>
             <ChevronRight size={14} />
           </div>
         </div>

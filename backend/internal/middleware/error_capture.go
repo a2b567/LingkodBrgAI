@@ -28,14 +28,23 @@ func (r responseBodyWriter) Write(b []byte) (int, error) {
 // ErrorCaptureMiddleware intercepts all HTTP responses and logs 4xx/5xx errors
 // to the error_logs table so the Developer can inspect them in real-time.
 func ErrorCaptureMiddleware() gin.HandlerFunc {
-	// paths to skip logging (health checks, static assets, etc.)
+	// paths to skip logging (health checks, static assets, root probes, etc.)
 	skipPaths := map[string]bool{
-		"/api/ping":         true,
+		"/":                     true,
+		"/favicon.ico":          true,
+		"/robots.txt":           true,
+		"/api/ping":             true,
 		"/api/system/db-status": true,
-		"/api/ws":           true,
+		"/api/ws":               true,
 	}
 
 	return func(c *gin.Context) {
+		// Skip HEAD requests and preflight OPTIONS
+		if c.Request.Method == "HEAD" || c.Request.Method == "OPTIONS" {
+			c.Next()
+			return
+		}
+
 		path := c.FullPath()
 		if path == "" {
 			path = c.Request.URL.Path

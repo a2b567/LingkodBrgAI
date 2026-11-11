@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import {
   Clock, CheckCircle2, AlertTriangle, Stethoscope,
   Heart, Users, Zap, Star, Activity, Plus,
-  Ticket, Eye, EyeOff, Shield
+  Ticket, Eye, EyeOff, Shield, Calendar,
+  Lock, Unlock, Phone, Check, RefreshCw
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { usePrivacyStore } from '../store/privacyStore';
 import { maskName } from '../utils/privacy';
+import { api } from '../services/api';
 
-interface QueueItem {
+export interface QueueItem {
   id: string;
   residentName: string;
   service: string;
@@ -18,19 +20,50 @@ interface QueueItem {
   isPriority?: boolean;
 }
 
+export interface ClinicSchedule {
+  is_open: boolean;
+  schedule_days: string;
+  operating_hours: string;
+  nurse_on_duty: string;
+  advisory: string;
+  allow_queue_while_closed: boolean;
+  updated_at?: string;
+  updated_by?: string;
+}
+
 const CLINIC_QUEUE_KEY = 'lingkod_clinic_queue';
 const MY_TICKET_KEY = 'lingkod_my_clinic_ticket';
 
-
+const DEFAULT_SCHEDULE: ClinicSchedule = {
+  is_open: true,
+  schedule_days: 'Lunes hanggang Biyernes (Mon - Fri)',
+  operating_hours: '8:00 AM - 5:00 PM',
+  nurse_on_duty: 'Nurse Joy Santos, RN',
+  advisory: 'Bukas ang clinic para sa consultation, BP check, pagpapabakuna, at libreng gamot.',
+  allow_queue_while_closed: false,
+};
 
 export const ClinicQueueView: React.FC = () => {
   const { user } = useAuthStore();
   const { isPrivacyMode, isItemRevealed, toggleRevealItem } = usePrivacyStore();
   const isResident = user?.role === 'Resident';
 
+  // Health Worker (Nurse), Captain, Super Admin, and Staff are authorized to manage clinic schedule & status
+  const isNurseOrStaff = user?.role === 'Health Worker' || user?.role === 'Barangay Captain' || user?.role === 'Super Admin' || user?.role === 'Staff';
+
   const [queueList, setQueueList] = useState<QueueItem[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [liveDot, setLiveDot] = useState(true);
+
+  // Clinic Operating Schedule state
+  const [clinicSchedule, setClinicSchedule] = useState<ClinicSchedule>(DEFAULT_SCHEDULE);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+  const [scheduleSuccessMsg, setScheduleSuccessMsg] = useState('');
+  const [scheduleForm, setScheduleForm] = useState<ClinicSchedule>(DEFAULT_SCHEDULE);
+
+  // Closed Alert Modal for Residents
+  const [isClosedAlertOpen, setIsClosedAlertOpen] = useState(false);
   
   // Get Queue Ticket Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,6 +80,28 @@ export const ClinicQueueView: React.FC = () => {
     'Senior Citizen / PWD Consultation',
     'Dental & First Aid Care'
   ];
+
+  // Fetch Schedule from Database
+  const loadSchedule = async () => {
+    try {
+      const data = await api.settings.getClinicSchedule();
+      if (data && typeof data === 'object') {
+        const fullSched: ClinicSchedule = {
+          is_open: data.is_open ?? true,
+          schedule_days: data.schedule_days || DEFAULT_SCHEDULE.schedule_days,
+          operating_hours: data.operating_hours || DEFAULT_SCHEDULE.operating_hours,
+          nurse_on_duty: data.nurse_on_duty || (user?.role === 'Health Worker' ? `${user.username} (Health Worker)` : DEFAULT_SCHEDULE.nurse_on_duty),
+          advisory: data.advisory || DEFAULT_SCHEDULE.advisory,
+          allow_queue_while_closed: data.allow_queue_while_closed ?? false,
+          updated_at: data.updated_at,
+          updated_by: data.updated_by,
+        };
+        setClinicSchedule(fullSched);
+      }
+    } catch {
+      // Keep existing or default
+    }
+  };
 
   const loadQueue = () => {
     try {
@@ -74,11 +129,13 @@ export const ClinicQueueView: React.FC = () => {
   };
 
   useEffect(() => {
+    loadSchedule();
     loadQueue();
     const interval = setInterval(() => {
       loadQueue();
+      loadSchedule();
       setLiveDot(d => !d);
-    }, 2000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -102,11 +159,10 @@ export const ClinicQueueView: React.FC = () => {
     ? activeQueue.findIndex(q => q.id === myTicket.id)
     : -1;
 
-  // Format patient name respecting DPA Privacy (masks other residents' names for resident accounts or privacy mode)
+  // Format patient name respecting DPA Privacy
   const formatPatientName = (item: QueueItem | null): string => {
     if (!item) return '';
 
-    // If it is the user's own ticket, show their own name unmasked
     if (myTicket && item.id === myTicket.id) {
       return item.residentName;
     }
@@ -118,10 +174,8 @@ export const ClinicQueueView: React.FC = () => {
       return item.residentName;
     }
 
-    // Mask name for Resident accounts or when global Privacy Mask is ON
     const shouldMask = isResident || isPrivacyMode;
     if (shouldMask) {
-      // If authorized staff clicked the reveal button for this item
       if (!isResident && isItemRevealed(item.id)) {
         return item.residentName;
       }
@@ -131,11 +185,74 @@ export const ClinicQueueView: React.FC = () => {
     return item.residentName;
   };
 
+  // Quick Open / Close Toggle by Nurse / Staff
+  const handleQuickToggleOpen = async () => {
+    const nextState = !clinicSchedule.is_open;
+    const updated: ClinicSchedule = {
+      ...clinicSchedule,
+      is_open: nextState,
+      updated_by: user?.username || 'Nurse',
+      updated_at: new Date().toISOString(),
+    };
+    setClinicSchedule(updated);
+    try {
+      await api.settings.updateClinicSchedule(updated);
+    } catch (e) {
+      console.error('Failed to update clinic status', e);
+    }
+  };
+
+  // Open Schedule Edit Modal
+  const handleOpenScheduleModal = () => {
+    setScheduleForm({
+      ...clinicSchedule,
+      nurse_on_duty: clinicSchedule.nurse_on_duty || (user?.role === 'Health Worker' ? `Nurse ${user.username}` : DEFAULT_SCHEDULE.nurse_on_duty),
+    });
+    setScheduleSuccessMsg('');
+    setIsScheduleModalOpen(true);
+  };
+
+  // Save Schedule to Database
+  const handleSaveSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSchedule(true);
+    try {
+      const payload: ClinicSchedule = {
+        ...scheduleForm,
+        updated_by: user?.username || 'Nurse',
+        updated_at: new Date().toISOString(),
+      };
+      await api.settings.updateClinicSchedule(payload);
+      setClinicSchedule(payload);
+      setScheduleSuccessMsg('Matagumpay na na-update ang Clinic Schedule & Status!');
+      setTimeout(() => {
+        setIsScheduleModalOpen(false);
+        setScheduleSuccessMsg('');
+      }, 1200);
+    } catch (err) {
+      console.error('Failed to save schedule', err);
+      alert('May problemang naganap habang sine-save ang schedule.');
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  };
+
+  // Handle clicking "Kumuha ng Queue Ticket"
+  const handleRequestTicketClick = () => {
+    if (!clinicSchedule.is_open && !clinicSchedule.allow_queue_while_closed) {
+      setIsClosedAlertOpen(true);
+      return;
+    }
+    if (user?.resident) {
+      setPatientName(`${user.resident.first_name} ${user.resident.last_name}`);
+    }
+    setIsModalOpen(true);
+  };
+
   const handleGetTicket = (e: React.FormEvent) => {
     e.preventDefault();
     const name = patientName.trim() || (user?.resident ? `${user.resident.first_name} ${user.resident.last_name}` : user?.username || 'Resident Patient');
     
-    // Calculate next queue number
     const maxNum = queueList.reduce((max, q) => (q.queueNumber > max ? q.queueNumber : max), 100);
     const newQueueNumber = maxNum + 1;
 
@@ -155,7 +272,7 @@ export const ClinicQueueView: React.FC = () => {
     try {
       localStorage.setItem(CLINIC_QUEUE_KEY, JSON.stringify(updated));
       localStorage.setItem(MY_TICKET_KEY, JSON.stringify(newTicket));
-    } catch (err) {}
+    } catch {}
 
     setIsModalOpen(false);
     setPatientName('');
@@ -171,39 +288,160 @@ export const ClinicQueueView: React.FC = () => {
             <Heart size={26} className="animate-pulse" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 Barangay Clinic Live Queue
               </h1>
-              <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                <span className={`w-1.5 h-1.5 rounded-full transition-colors ${liveDot ? 'bg-emerald-500' : 'bg-emerald-300'}`} />
-                Live
+              
+              {/* Dynamic Clinic Status Badge */}
+              <span className={`flex items-center gap-1.5 text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full border shadow-xs transition-all ${
+                clinicSchedule.is_open
+                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500/30'
+                  : 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/50 border-rose-500/30'
+              }`}>
+                <span className={`w-2 h-2 rounded-full transition-colors ${
+                  clinicSchedule.is_open ? (liveDot ? 'bg-emerald-500' : 'bg-emerald-300') : 'bg-rose-500'
+                }`} />
+                {clinicSchedule.is_open ? 'BUKAS (OPEN)' : 'SARADO (CLOSED)'}
               </span>
-              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
+
+              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
                 <Shield size={10} className="text-blue-500" />
-                Privacy Protected
+                DPA RA 10173
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-              Barangay San Isidro Health & Wellness Center • DPA RA 10173 Protected
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 flex flex-wrap items-center gap-x-2">
+              <span>Barangay San Isidro Health & Wellness Center</span>
+              <span className="text-slate-300 dark:text-slate-700">•</span>
+              <span className="font-bold text-slate-700 dark:text-slate-300">
+                {clinicSchedule.operating_hours} ({clinicSchedule.schedule_days})
+              </span>
             </p>
           </div>
         </div>
 
         {/* Action button to get queue ticket */}
         <button
-          onClick={() => {
-            if (user?.resident) {
-              setPatientName(`${user.resident.first_name} ${user.resident.last_name}`);
-            }
-            setIsModalOpen(true);
-          }}
-          className="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 active:scale-95 text-white text-xs font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 transition-all"
+          onClick={handleRequestTicketClick}
+          className={`w-full sm:w-auto px-5 py-2.5 text-white text-xs font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer ${
+            clinicSchedule.is_open
+              ? 'bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 shadow-rose-600/25'
+              : 'bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-600 hover:to-slate-700 shadow-slate-900/20'
+          }`}
         >
           <Plus size={16} />
           <span>Kumuha ng Queue Ticket</span>
         </button>
       </div>
+
+      {/* ── NURSE & STAFF CLINIC OPERATIONS CONTROL PANEL ── */}
+      {isNurseOrStaff && (
+        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-4 sm:p-5 border border-blue-400/30 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-start sm:items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-rose-400 shrink-0">
+                <Stethoscope size={22} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-300/30">
+                    Nurse & Health Worker Duty Controls
+                  </span>
+                  <span className="text-xs text-slate-300">
+                    Naka-login bilang: <strong className="text-white">{user?.username} ({user?.role})</strong>
+                  </span>
+                </div>
+                <h3 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
+                  Pamahalaan ang Schedule at Bukas/Sarado ng Clinic
+                </h3>
+                <p className="text-xs text-slate-300 font-medium">
+                  Duty Nurse: <span className="font-bold text-white">{clinicSchedule.nurse_on_duty}</span> • Oras: <span className="font-bold text-white">{clinicSchedule.operating_hours}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              {/* Quick Toggle Open/Closed */}
+              <button
+                type="button"
+                onClick={handleQuickToggleOpen}
+                className={`flex-1 md:flex-initial px-4 py-2.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer ${
+                  clinicSchedule.is_open
+                    ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
+                    : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
+                }`}
+                title="Pindutin para buksan o isara ang clinic agad-agad"
+              >
+                {clinicSchedule.is_open ? (
+                  <>
+                    <Lock size={15} />
+                    <span>Isara ang Clinic (Close)</span>
+                  </>
+                ) : (
+                  <>
+                    <Unlock size={15} />
+                    <span>Buksan ang Clinic (Open)</span>
+                  </>
+                )}
+              </button>
+
+              {/* Edit Schedule Button */}
+              <button
+                type="button"
+                onClick={handleOpenScheduleModal}
+                className="flex-1 md:flex-initial px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+              >
+                <Calendar size={15} className="text-amber-300" />
+                <span>Baguhin ang Oras & Schedule</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CLINIC CLOSED PUBLIC ADVISORY BANNER (If Closed) ── */}
+      {!clinicSchedule.is_open && (
+        <div className="bg-gradient-to-r from-rose-900/90 via-rose-950 to-slate-900 border-2 border-rose-500/50 rounded-3xl p-5 sm:p-6 text-white shadow-xl animate-in fade-in duration-300">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 shrink-0">
+                <Lock size={24} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-rose-200">
+                    Kasalukuyang Sarado ang Barangay Clinic
+                  </h3>
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-500 text-white">
+                    Closed
+                  </span>
+                </div>
+                <p className="text-xs text-slate-200 mt-1 leading-relaxed">
+                  Ang ating Health Center ay magbubukas muli sa nakatakdang oras: <strong className="text-white underline">{clinicSchedule.operating_hours}</strong> tuwing <strong className="text-white">{clinicSchedule.schedule_days}</strong>.
+                </p>
+                {clinicSchedule.advisory && (
+                  <div className="mt-2.5 p-2.5 rounded-xl bg-white/10 border border-white/15 text-xs text-rose-100 flex items-center gap-2">
+                    <AlertTriangle size={15} className="text-amber-400 shrink-0" />
+                    <span><strong>Paunawa ng Nurse:</strong> {clinicSchedule.advisory}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto shrink-0">
+              <a
+                href="tel:911"
+                className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+              >
+                <Phone size={14} />
+                <span>Emergency: Tawag sa 911</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User's Active Ticket Banner (If registered) */}
       {myTicket && myQueuePosition !== -1 && (
@@ -452,15 +690,278 @@ export const ClinicQueueView: React.FC = () => {
       <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/40 rounded-2xl">
         <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-xs font-black text-amber-800 dark:text-amber-300">Paalala para sa mga Pasyente</p>
+          <p className="text-xs font-black text-amber-800 dark:text-amber-300">
+            Paalala ng Barangay Health Center ({clinicSchedule.nurse_on_duty})
+          </p>
           <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed mt-0.5">
-            Maaari kang kumuha ng Queue Ticket gamit ang button sa itaas o mag-walk in nang direkta sa Health Center. Mangyaring dalhin ang iyong Barangay ID o valid ID.
+            {clinicSchedule.advisory || 'Maaari kang kumuha ng Queue Ticket gamit ang button sa itaas o mag-walk in nang direkta sa Health Center. Mangyaring dalhin ang iyong Barangay ID o valid ID.'}
           </p>
           <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold mt-1">
-            Auto-refresh bawat 2 segundo · Huling na-update: {lastUpdated.toLocaleTimeString()}
+            Opisyal na Oras: {clinicSchedule.operating_hours} ({clinicSchedule.schedule_days}) · Huling na-update: {lastUpdated.toLocaleTimeString()}
           </p>
         </div>
       </div>
+
+      {/* ── NURSE SCHEDULE EDIT MODAL ── */}
+      {isScheduleModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-scale-up">
+            
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Oras at Schedule ng Clinic (Nurse Control)
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Baguhin ang availability para sa lahat ng residente</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsScheduleModalOpen(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+              >
+                ✕
+              </button>
+            </div>
+
+            {scheduleSuccessMsg && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-2">
+                <Check size={16} />
+                <span>{scheduleSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSchedule} className="space-y-4">
+              
+              {/* Quick Status Toggle */}
+              <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-black text-slate-900 dark:text-white">Status ng Clinic Ngayon</p>
+                  <p className="text-[11px] text-slate-500">
+                    {scheduleForm.is_open ? 'BUKAS - Makakakuha ng queue tickets ang mga residente' : 'SARADO - Makikita ng mga tao na sarado ang clinic'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setScheduleForm({ ...scheduleForm, is_open: !scheduleForm.is_open })}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                    scheduleForm.is_open
+                      ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30'
+                      : 'bg-rose-500 text-white shadow-md shadow-rose-500/30'
+                  }`}
+                >
+                  {scheduleForm.is_open ? '● BUKAS' : '● SARADO'}
+                </button>
+              </div>
+
+              {/* Operating Days */}
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-1">
+                  Mga Araw ng Operasyon (Schedule Days)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={scheduleForm.schedule_days}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, schedule_days: e.target.value })}
+                  placeholder="e.g. Lunes hanggang Biyernes (Mon - Fri)"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-rose-500 text-slate-900 dark:text-white"
+                />
+                <div className="flex gap-1.5 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleForm({ ...scheduleForm, schedule_days: 'Lunes hanggang Biyernes (Mon - Fri)' })}
+                    className="text-[9px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold"
+                  >
+                    Mon - Fri
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleForm({ ...scheduleForm, schedule_days: 'Lunes hanggang Sabado (Mon - Sat)' })}
+                    className="text-[9px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold"
+                  >
+                    Mon - Sat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleForm({ ...scheduleForm, schedule_days: 'Daily / 24/7 Emergency Care' })}
+                    className="text-[9px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold"
+                  >
+                    24/7 Care
+                  </button>
+                </div>
+              </div>
+
+              {/* Operating Hours */}
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-1">
+                  Oras ng Konsultasyon (Operating Hours)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={scheduleForm.operating_hours}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, operating_hours: e.target.value })}
+                  placeholder="e.g. 8:00 AM - 5:00 PM"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-rose-500 text-slate-900 dark:text-white"
+                />
+                <div className="flex gap-1.5 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => setScheduleForm({ ...scheduleForm, operating_hours: '8:00 AM - 5:00 PM' })}
+                    className="text-[9px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold"
+                  >
+                    8 AM - 5 PM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleForm({ ...scheduleForm, operating_hours: '8:00 AM - 12:00 PM (Half Day)' })}
+                    className="text-[9px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold"
+                  >
+                    Half Day
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setScheduleForm({ ...scheduleForm, operating_hours: '1:00 PM - 5:00 PM (Afternoon)' })}
+                    className="text-[9px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold"
+                  >
+                    Afternoon
+                  </button>
+                </div>
+              </div>
+
+              {/* Duty Nurse Name */}
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-1">
+                  Duty Nurse / Assigned Health Worker
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={scheduleForm.nurse_on_duty}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, nurse_on_duty: e.target.value })}
+                  placeholder="e.g. Nurse Joy Santos, RN"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-rose-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Advisory Note */}
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 block mb-1">
+                  Paunawa / Mahalagang Advisory para sa Residente
+                </label>
+                <textarea
+                  rows={2}
+                  value={scheduleForm.advisory}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, advisory: e.target.value })}
+                  placeholder="e.g. Bukas ang clinic para sa regular checkup, pagpapabakuna, at libreng gamot."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-rose-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              {/* Allow tickets while closed */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-900 dark:text-white">Payagan ang Queue Habang Sarado</p>
+                  <p className="text-[10px] text-slate-500">Payagan ang residente na magpalista ng maaga kahit sarado pa</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={scheduleForm.allow_queue_while_closed}
+                  onChange={(e) => setScheduleForm({ ...scheduleForm, allow_queue_while_closed: e.target.checked })}
+                  className="w-4 h-4 text-rose-600 rounded focus:ring-rose-500 cursor-pointer"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsScheduleModalOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Kanselahin
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingSchedule}
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-black rounded-xl shadow-md shadow-rose-600/25 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {isSavingSchedule ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Sine-save...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={14} />
+                      <span>I-save ang Schedule</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── CLINIC CLOSED RESIDENT ALERT MODAL ── */}
+      {isClosedAlertOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-rose-500/30 shadow-2xl space-y-4 text-center animate-scale-up">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/50 text-rose-500 border border-rose-200 dark:border-rose-900/50 flex items-center justify-center mx-auto">
+              <Lock size={28} />
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">
+                Kasalukuyang Sarado ang Clinic
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                Hindi muna tumatanggap ng bagong queue ticket dahil sarado pa ang Barangay Health Center sa ngayon.
+              </p>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-left text-xs space-y-1">
+              <p className="text-slate-700 dark:text-slate-300">
+                ⏰ <strong>Oras ng Konsultasyon:</strong> {clinicSchedule.operating_hours}
+              </p>
+              <p className="text-slate-700 dark:text-slate-300">
+                📅 <strong>Araw:</strong> {clinicSchedule.schedule_days}
+              </p>
+              <p className="text-slate-700 dark:text-slate-300">
+                👩‍⚕️ <strong>Duty Nurse:</strong> {clinicSchedule.nurse_on_duty}
+              </p>
+              {clinicSchedule.advisory && (
+                <p className="text-rose-600 dark:text-rose-400 text-[11px] pt-1 border-t border-slate-200 dark:border-slate-800">
+                  ℹ️ {clinicSchedule.advisory}
+                </p>
+              )}
+            </div>
+
+            <div className="pt-2 flex flex-col gap-2">
+              <a
+                href="tel:911"
+                className="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-black rounded-xl shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Phone size={14} />
+                <span>Para sa Emergency: Tawag sa 911</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsClosedAlertOpen(false)}
+                className="w-full py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
+              >
+                Naiintindihan Ko (Close)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Get Queue Ticket Modal */}
       {isModalOpen && (
@@ -529,13 +1030,13 @@ export const ClinicQueueView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl"
+                  className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer"
                 >
                   Kanselahin
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md shadow-rose-600/25"
+                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md shadow-rose-600/25 cursor-pointer"
                 >
                   Kumuha ng Ticket
                 </button>

@@ -6,7 +6,7 @@ import {
   Clock, CheckCircle2, SearchX, Package, AlertTriangle, PackagePlus, Trash2,
   Eye, Volume2, Filter, UserPlus,
   FileSpreadsheet, Upload, Download, XCircle, AlertCircle, Loader2,
-  History, Minus
+  History, Minus, Lock, Unlock, Calendar, Check
 } from 'lucide-react';
 
 interface HealthRecord {
@@ -417,6 +417,72 @@ export const HealthRecords: React.FC = () => {
     } catch { return []; }
   });
   const [queueForm, setQueueForm] = useState({ residentName: '', service: 'General Checkup', isPriority: false });
+
+  // Clinic Operating Schedule & Status (managed by Nurse / Health Worker)
+  const [clinicSchedule, setClinicSchedule] = useState({
+    is_open: true,
+    schedule_days: 'Lunes hanggang Biyernes (Mon - Fri)',
+    operating_hours: '8:00 AM - 5:00 PM',
+    nurse_on_duty: 'Nurse Joy Santos, RN',
+    advisory: 'Bukas ang clinic para sa consultation, BP check, pagpapabakuna, at libreng gamot.',
+    allow_queue_while_closed: false,
+  });
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState(clinicSchedule);
+  const [isSavingSchedule, setIsSavingSchedule] = useState(false);
+
+  useEffect(() => {
+    api.settings.getClinicSchedule().then(s => {
+      if (s && typeof s === 'object') {
+        const full = {
+          is_open: s.is_open ?? true,
+          schedule_days: s.schedule_days || 'Lunes hanggang Biyernes (Mon - Fri)',
+          operating_hours: s.operating_hours || '8:00 AM - 5:00 PM',
+          nurse_on_duty: s.nurse_on_duty || (user?.username ? `Nurse ${user.username}` : 'Duty Nurse'),
+          advisory: s.advisory || 'Bukas ang clinic para sa regular checkup.',
+          allow_queue_while_closed: s.allow_queue_while_closed ?? false,
+        };
+        setClinicSchedule(full);
+        setScheduleForm(full);
+      }
+    }).catch(() => {});
+  }, [user]);
+
+  const handleToggleClinicOpen = async () => {
+    const nextOpen = !clinicSchedule.is_open;
+    const updated = {
+      ...clinicSchedule,
+      is_open: nextOpen,
+      updated_by: user?.username || 'Nurse',
+      updated_at: new Date().toISOString()
+    };
+    setClinicSchedule(updated);
+    setScheduleForm(updated);
+    try {
+      await api.settings.updateClinicSchedule(updated);
+    } catch (e) {
+      console.error('Failed to update clinic status', e);
+    }
+  };
+
+  const handleSaveSchedule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingSchedule(true);
+    try {
+      const payload = {
+        ...scheduleForm,
+        updated_by: user?.username || 'Nurse',
+        updated_at: new Date().toISOString()
+      };
+      await api.settings.updateClinicSchedule(payload);
+      setClinicSchedule(payload);
+      setIsScheduleModalOpen(false);
+    } catch (err) {
+      console.error('Failed to save schedule', err);
+    } finally {
+      setIsSavingSchedule(false);
+    }
+  };
 
   // Persist to localStorage whenever queueList changes
   useEffect(() => {
@@ -1268,6 +1334,188 @@ export const HealthRecords: React.FC = () => {
       {/* ============ VIEW: QUEUE ============ */}
       {view === 'queue' && (
         <div className="space-y-6">
+
+          {/* ── Nurse Clinic Schedule & Open/Closed Status Bar ── */}
+          <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-3xl p-5 border border-blue-400/30 shadow-xl relative overflow-hidden">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-rose-400 shrink-0">
+                  <Stethoscope size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/20 px-2 py-0.5 rounded-full border border-amber-300/30">
+                      Nurse Duty Station
+                    </span>
+                    <span className={`flex items-center gap-1.5 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                      clinicSchedule.is_open
+                        ? 'text-emerald-300 bg-emerald-950/60 border-emerald-500/40'
+                        : 'text-rose-300 bg-rose-950/60 border-rose-500/40'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${clinicSchedule.is_open ? 'bg-emerald-400 animate-ping' : 'bg-rose-400'}`} />
+                      {clinicSchedule.is_open ? 'BUKAS ANG CLINIC' : 'SARADO ANG CLINIC'}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-extrabold text-white mt-1">
+                    Barangay Clinic Operating Status & Schedule
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Duty: <strong className="text-white">{clinicSchedule.nurse_on_duty}</strong> • Oras: <strong className="text-white">{clinicSchedule.operating_hours}</strong> ({clinicSchedule.schedule_days})
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={handleToggleClinicOpen}
+                  className={`flex-1 md:flex-initial px-4 py-2.5 rounded-2xl text-xs font-black flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 cursor-pointer ${
+                    clinicSchedule.is_open
+                      ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-500/30'
+                      : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
+                  }`}
+                >
+                  {clinicSchedule.is_open ? (
+                    <>
+                      <Lock size={15} />
+                      <span>Isara ang Clinic (Close)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Unlock size={15} />
+                      <span>Buksan ang Clinic (Open)</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setScheduleForm({
+                      ...clinicSchedule,
+                      nurse_on_duty: clinicSchedule.nurse_on_duty || (user?.username ? `Nurse ${user.username}` : 'Duty Nurse')
+                    });
+                    setIsScheduleModalOpen(true);
+                  }}
+                  className="flex-1 md:flex-initial px-4 py-2.5 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-2xl text-xs font-black flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Calendar size={15} className="text-amber-300" />
+                  <span>Baguhin ang Schedule</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Modal for Nurse to edit schedule */}
+          {isScheduleModalOpen && (
+            <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-scale-up">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="text-rose-500" size={20} />
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                      Oras at Schedule ng Clinic
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsScheduleModalOpen(false)}
+                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveSchedule} className="space-y-3.5">
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-black text-slate-900 dark:text-white">Status ng Clinic</p>
+                      <p className="text-[10px] text-slate-500">I-set kung bukas o sarado sa publiko</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setScheduleForm({ ...scheduleForm, is_open: !scheduleForm.is_open })}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase transition-all cursor-pointer ${
+                        scheduleForm.is_open ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                      }`}
+                    >
+                      {scheduleForm.is_open ? '● BUKAS' : '● SARADO'}
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                      Mga Araw ng Operasyon (Schedule Days)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={scheduleForm.schedule_days}
+                      onChange={e => setScheduleForm({ ...scheduleForm, schedule_days: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                      Oras ng Konsultasyon (Operating Hours)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={scheduleForm.operating_hours}
+                      onChange={e => setScheduleForm({ ...scheduleForm, operating_hours: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                      Duty Nurse / Health Worker on Duty
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={scheduleForm.nurse_on_duty}
+                      onChange={e => setScheduleForm({ ...scheduleForm, nurse_on_duty: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
+                      Paunawa / Advisory para sa Residente
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={scheduleForm.advisory}
+                      onChange={e => setScheduleForm({ ...scheduleForm, advisory: e.target.value })}
+                      className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="pt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsScheduleModalOpen(false)}
+                      className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl"
+                    >
+                      Kanselahin
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingSchedule}
+                      className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl shadow-md shadow-rose-600/25 flex items-center justify-center gap-1.5"
+                    >
+                      <Check size={14} />
+                      <span>{isSavingSchedule ? 'Sine-save...' : 'I-save Schedule'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
             <h3 className="text-lg font-black text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <Clock className="text-rose-500" />

@@ -205,3 +205,105 @@ func (h *SettingsHandler) UpdateFees(c *gin.Context) {
 	})
 }
 
+type ClinicSchedule struct {
+	IsOpen                bool   `json:"is_open"`
+	ScheduleDays          string `json:"schedule_days"`
+	OperatingHours        string `json:"operating_hours"`
+	NurseOnDuty           string `json:"nurse_on_duty"`
+	Advisory              string `json:"advisory"`
+	AllowQueueWhileClosed bool   `json:"allow_queue_while_closed"`
+	UpdatedAt             string `json:"updated_at,omitempty"`
+	UpdatedBy             string `json:"updated_by,omitempty"`
+}
+
+var DefaultClinicSchedule = ClinicSchedule{
+	IsOpen:                true,
+	ScheduleDays:          "Lunes hanggang Biyernes (Mon - Fri)",
+	OperatingHours:        "8:00 AM - 5:00 PM",
+	NurseOnDuty:           "Barangay Health Worker / Duty Nurse",
+	Advisory:              "Bukas ang clinic para sa regular checkup, pagpapabakuna, at libreng gamot. Para sa agarang medical emergency, tumawag sa RHU o 911.",
+	AllowQueueWhileClosed: false,
+}
+
+func GetClinicScheduleFromDB() ClinicSchedule {
+	sched := DefaultClinicSchedule
+	db := config.DB
+	if db == nil {
+		return sched
+	}
+
+	var setting models.SystemSetting
+	if err := db.First(&setting, "key = ?", "clinic_schedule").Error; err == nil && setting.Value != "" {
+		_ = json.Unmarshal([]byte(setting.Value), &sched)
+	}
+	return sched
+}
+
+// GetClinicSchedule returns the current clinic schedule and open/closed status
+func (h *SettingsHandler) GetClinicSchedule(c *gin.Context) {
+	sched := GetClinicScheduleFromDB()
+	c.JSON(http.StatusOK, gin.H{
+		"data": sched,
+	})
+}
+
+// UpdateClinicSchedule allows Nurse/Health Worker or Staff to toggle open/closed and edit schedule
+func (h *SettingsHandler) UpdateClinicSchedule(c *gin.Context) {
+	db := config.DB
+	if db == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database unavailable"})
+		return
+	}
+
+	var req ClinicSchedule
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid clinic schedule format"})
+		return
+	}
+
+	usernameVal, exists := c.Get("username")
+	if exists {
+		req.UpdatedBy = usernameVal.(string)
+	} else {
+		req.UpdatedBy = "Nurse / Health Worker"
+	}
+	req.UpdatedAt = time.Now().Format(time.RFC3339)
+
+	dataBytes, err := json.Marshal(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to serialize clinic schedule"})
+		return
+	}
+
+	setting := models.SystemSetting{
+		Key:       "clinic_schedule",
+		Value:     string(dataBytes),
+		UpdatedAt: time.Now(),
+	}
+
+	var existing models.SystemSetting
+	if err := db.First(&existing, "key = ?", "clinic_schedule").Error; err != nil {
+		if createErr := db.Create(&setting).Error; createErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save clinic schedule"})
+			return
+		}
+	} else {
+		existing.Value = setting.Value
+		existing.UpdatedAt = setting.UpdatedAt
+		if saveErr := db.Save(&existing).Error; saveErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update clinic schedule"})
+			return
+		}
+	}
+
+	statusText := "BUKAS (OPEN)"
+	if !req.IsOpen {
+		statusText = "SARADO (CLOSED)"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Matagumpay na na-update ang Clinic Schedule (" + statusText + ")!",
+		"data":    req,
+	})
+}
+

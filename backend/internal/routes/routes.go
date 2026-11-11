@@ -30,6 +30,9 @@ func SetupRouter() *gin.Engine {
 			"health":  "/api/ping",
 		})
 	})
+	r.HEAD("/", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
 
 	// Serve Static files for uploads (photos, certificates, etc.)
 	r.Static("/uploads", "./uploads")
@@ -57,10 +60,14 @@ func SetupRouter() *gin.Engine {
 		api.GET("/ping", func(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"message": "pong"})
 		})
+		api.HEAD("/ping", func(c *gin.Context) {
+			c.Status(http.StatusOK)
+		})
 		api.GET("/system/db-status", analyticsHandler.GetDBStatus)
 		api.GET("/public/stats", analyticsHandler.GetPublicStats)
 		api.GET("/settings/hotlines", settingsHandler.GetHotlines)
 		api.GET("/settings/fees", settingsHandler.GetFees)
+		api.GET("/settings/clinic-schedule", settingsHandler.GetClinicSchedule)
 
 		// License Validation & Activation (Publicly accessible for system activation checks)
 		licenses := api.Group("/licenses")
@@ -181,6 +188,7 @@ func SetupRouter() *gin.Engine {
 			// Official System Settings & Hotlines (Captain & Staff editable)
 			staffOnly.PUT("/settings/hotlines", settingsHandler.UpdateHotlines)
 			staffOnly.PUT("/settings/fees", settingsHandler.UpdateFees)
+			staffOnly.PUT("/settings/clinic-schedule", settingsHandler.UpdateClinicSchedule)
 
 			// Dashboards
 			staffOnly.GET("/analytics/dashboard", analyticsHandler.GetStats)

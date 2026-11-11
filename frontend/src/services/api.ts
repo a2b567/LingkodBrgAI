@@ -871,6 +871,36 @@ export const api = {
         () => ({ message: 'Fee schedule updated successfully', data: fees })
       );
     },
+
+    getClinicSchedule: () =>
+      withFallback(
+        () => client.get<{ data: any }>('/settings/clinic-schedule').then(r => r.data.data || r.data),
+        () => {
+          const defaultSched = {
+            is_open: true,
+            schedule_days: 'Lunes hanggang Biyernes (Mon - Fri)',
+            operating_hours: '8:00 AM - 5:00 PM',
+            nurse_on_duty: 'Barangay Health Worker / Duty Nurse',
+            advisory: 'Bukas ang clinic para sa regular checkup, pagpapabakuna, at libreng gamot.',
+            allow_queue_while_closed: false,
+          };
+          try {
+            const saved = localStorage.getItem('lingkod_clinic_schedule');
+            if (saved) return { ...defaultSched, ...JSON.parse(saved) };
+          } catch (e) {}
+          return defaultSched;
+        }
+      ),
+
+    updateClinicSchedule: (data: any) => {
+      try {
+        localStorage.setItem('lingkod_clinic_schedule', JSON.stringify(data));
+      } catch (e) {}
+      return withFallback(
+        () => client.put('/settings/clinic-schedule', data).then(r => r.data),
+        () => ({ message: 'Clinic schedule updated successfully', data })
+      );
+    },
   },
 };
 
