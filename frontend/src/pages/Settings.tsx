@@ -53,28 +53,16 @@ export const Settings: React.FC = () => {
   const [availableHouseholds, setAvailableHouseholds] = useState<Household[]>([]);
   const [householdSelectionMode, setHouseholdSelectionMode] = useState<'existing' | 'manual'>('existing');
 
-  // Profile & Household Collapsible / Hide Visibility States
-  const [isProfileHidden, setIsProfileHidden] = useState(() => {
-    return localStorage.getItem('hide_resident_profile') === 'true';
-  });
-  const [isHouseholdHidden, setIsHouseholdHidden] = useState(() => {
-    return localStorage.getItem('hide_household_section') === 'true';
-  });
+  // Profile & Household Collapsible / Hide Visibility States - Always Default to Hidden (Laging Naka-hide)
+  const [isProfileHidden, setIsProfileHidden] = useState(true);
+  const [isHouseholdHidden, setIsHouseholdHidden] = useState(true);
 
   const toggleProfileVisibility = () => {
-    setIsProfileHidden(prev => {
-      const next = !prev;
-      localStorage.setItem('hide_resident_profile', String(next));
-      return next;
-    });
+    setIsProfileHidden(prev => !prev);
   };
 
   const toggleHouseholdVisibility = () => {
-    setIsHouseholdHidden(prev => {
-      const next = !prev;
-      localStorage.setItem('hide_household_section', String(next));
-      return next;
-    });
+    setIsHouseholdHidden(prev => !prev);
   };
 
   // Password
@@ -638,9 +626,13 @@ export const Settings: React.FC = () => {
                         <EyeOff size={22} />
                       </div>
                       <div className="max-w-md">
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Naka-hide ang Profile at Household Information</h4>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                          {isStaff ? 'Naka-hide ang Opisyal na Account Profile' : 'Naka-hide ang Profile at Household Information'}
+                        </h4>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                          Nakatago ang personal at pampamilyang impormasyon para sa iyong privacy at seguridad. I-click ang button sa ibaba upang buksan o i-edit ang iyong talaan.
+                          {isStaff
+                            ? 'Nakatago ang iyong mga opisyal na login credentials at personal details para sa seguridad. I-click ang button sa ibaba upang buksan o i-edit ang iyong profile.'
+                            : 'Nakatago ang personal at pampamilyang impormasyon para sa iyong privacy at seguridad. I-click ang button sa ibaba upang buksan o i-edit ang iyong talaan.'}
                         </p>
                       </div>
                       <Button
@@ -651,7 +643,7 @@ export const Settings: React.FC = () => {
                         className="mt-2 flex items-center gap-2"
                       >
                         <Eye size={14} />
-                        Ipakita ang Profile & Household
+                        {isStaff ? 'Ipakita ang Account Profile' : 'Ipakita ang Profile & Household'}
                       </Button>
                     </div>
                   </CardContent>
