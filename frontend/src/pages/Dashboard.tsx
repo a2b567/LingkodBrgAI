@@ -319,7 +319,7 @@ export const Dashboard: React.FC = () => {
 
     try {
       // Build a contextual prompt for the AI including the dashboard stats
-      const statsContext = `Context: You are the AI Assistant for Barangay Lawrence. Current Stats:\n` +
+      const statsContext = `Context: You are the AI Assistant for Barangay San Isidro. Current Stats:\n` +
         `- Total Residents: ${stats.total_residents}\n` +
         `- Active Incident Blotters: ${stats.active_incidents}\n` +
         `- Households below sustenance/Indigent: ${stats.indigent_households}\n` +
@@ -601,7 +601,7 @@ export const Dashboard: React.FC = () => {
                   Groq AI Active
                 </span>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium truncate mt-0.5">Barangay Lawrence Smart Operations Officer • Fast Groq AI Engine</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium truncate mt-0.5">Barangay San Isidro Smart Operations Officer • Fast Groq AI Engine</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>

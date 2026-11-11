@@ -373,7 +373,7 @@ export const Businesses: React.FC = () => {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   required
-                  placeholder="Street name, Barangay Lawrence, Laguna..."
+                  placeholder="Street name, Barangay San Isidro, Laguna..."
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
                 />
               </div>

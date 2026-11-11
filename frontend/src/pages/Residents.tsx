@@ -781,7 +781,7 @@ export const Residents: React.FC = () => {
                     {editingId ? 'Edit Resident Profile' : 'Register New Resident'}
                   </h3>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-                    Barangay Lawrence Resident Database Entry
+                    Barangay San Isidro Resident Database Entry
                   </p>
                 </div>
               </div>

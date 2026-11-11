@@ -518,7 +518,7 @@ export const KioskCertificates: React.FC = () => {
               </span>
             </div>
             <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
-              {lang === 'tl' ? 'PORTAL SA PAGHILING NG DOKUMENTO • BARANGAY LAWRENCE' : 'DOCUMENT REQUEST PORTAL • BARANGAY LAWRENCE'}
+              {lang === 'tl' ? 'PORTAL SA PAGHILING NG DOKUMENTO • BARANGAY SAN ISIDRO' : 'DOCUMENT REQUEST PORTAL • BARANGAY SAN ISIDRO'}
             </p>
           </div>
         </div>
@@ -2320,7 +2320,7 @@ export const KioskCertificates: React.FC = () => {
       </main>
 
       <footer className="py-4 text-center text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 relative z-20 border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
-        LingkodBrgyAi • SELF-SERVICE KIOSK PORTAL • BARANGAY LAWRENCE
+        LingkodBrgyAi • SELF-SERVICE KIOSK PORTAL • BARANGAY SAN ISIDRO
       </footer>
 
       {/* Admin Authorization PIN Modal */}

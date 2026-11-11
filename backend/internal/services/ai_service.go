@@ -139,7 +139,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 		return s.fallbackLocalAI(prompt, userRole, contextData)
 	}
 
-	systemInstruction := fmt.Sprintf("You are LingkodBrgAI, the official AI Assistant of Barangay Lawrence. You help users query the community records. The user asking has the role: '%s'. Ensure you check role restrictions before displaying info. If data is missing from context, answer based on general knowledge or ask them to clarify.", userRole)
+	systemInstruction := fmt.Sprintf("You are LingkodBrgAI, the official AI Assistant of Barangay San Isidro, Bay, Laguna. You help users query the community records. The user asking has the role: '%s'. Ensure you check role restrictions before displaying info. If data is missing from context, answer based on general knowledge or ask them to clarify.", userRole)
 	if contextData != "" {
 		systemInstruction += "\n\nUse the following real-time database query results to answer the user's question accurately:\n" + contextData
 	}
@@ -199,12 +199,12 @@ func (s *AIService) fallbackLocalAI(prompt, role, contextData string) (string, i
 	lowerPrompt := strings.ToLower(prompt)
 	var sb strings.Builder
 
-	sb.WriteString("[Brgy. Lawrence Local AI Assistant - Offline Sandbox Mode]\n\n")
+	sb.WriteString("[Brgy. San Isidro Local AI Assistant - Offline Sandbox Mode]\n\n")
 
 	isStaff := role != "Resident"
 
 	if strings.Contains(lowerPrompt, "hello") || strings.Contains(lowerPrompt, "hi") {
-		sb.WriteString("Hello! I am your Barangay Lawrence Virtual Assistant. How can I help you manage community profiles, certificates, blotters, or appointments today?")
+		sb.WriteString("Hello! I am your Barangay San Isidro Virtual Assistant. How can I help you manage community profiles, certificates, blotters, or appointments today?")
 	} else if !isStaff && (strings.Contains(lowerPrompt, "unpaid") || strings.Contains(lowerPrompt, "fee") || strings.Contains(lowerPrompt, "blotter") || strings.Contains(lowerPrompt, "senior")) {
 		sb.WriteString("I am sorry, but as a Resident user, you do not have administrative privileges to view community-wide financial, incident, or senior citizen registries. You can request your own certificates or schedule appointments.")
 	} else if strings.Contains(lowerPrompt, "unpaid") || strings.Contains(lowerPrompt, "fee") {
@@ -219,7 +219,7 @@ func (s *AIService) fallbackLocalAI(prompt, role, contextData string) (string, i
 		if contextData == "" {
 			sb.WriteString("I couldn't find any residents aged 60 or older registered in the system.")
 		} else {
-			sb.WriteString("Here are the senior citizens currently registered in Barangay Lawrence:\n")
+			sb.WriteString("Here are the senior citizens currently registered in Barangay San Isidro:\n")
 			sb.WriteString(contextData)
 		}
 	} else if strings.Contains(lowerPrompt, "indigent") || strings.Contains(lowerPrompt, "poor") {

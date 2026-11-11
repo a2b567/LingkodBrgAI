@@ -65,7 +65,7 @@ export const Certificates: React.FC = () => {
     const residentName = cert.resident 
       ? `${cert.resident.first_name} ${cert.resident.middle_name ? cert.resident.middle_name[0] + '.' : ''} ${cert.resident.last_name}` 
       : 'RESIDENT USER';
-    const residentAddress = cert.resident?.address || 'Barangay Lawrence, Laguna, Philippines';
+    const residentAddress = cert.resident?.address || 'Barangay San Isidro, Bay, Laguna, Philippines';
     const residentGender = cert.resident?.gender || 'Male';
     const residentCivilStatus = cert.resident?.civil_status || 'Single';
     const residentVoterStatus = cert.resident?.voter_status || 'Registered Voter';
@@ -127,7 +127,7 @@ export const Certificates: React.FC = () => {
     const residentName = cert.resident 
       ? `${cert.resident.first_name} ${cert.resident.middle_name ? cert.resident.middle_name[0] + '.' : ''} ${cert.resident.last_name}` 
       : 'RESIDENT USER';
-    const residentAddress = cert.resident?.address || 'Purok 3, Barangay Lawrence, Laguna';
+    const residentAddress = cert.resident?.address || 'Purok 3, Barangay San Isidro, Laguna';
     const residentCivilStatus = cert.resident?.gender ? `${cert.resident.gender} / ${cert.resident.civil_status || 'Single'}` : 'Single';
     const issueDateFormatted = cert.issue_date 
       ? new Date(cert.issue_date).toISOString().split('T')[0] 
@@ -1326,7 +1326,7 @@ export const Certificates: React.FC = () => {
                       LIVE EDITOR &amp; PREVIEW
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Standard CR80 ISO Security ID • Barangay Lawrence, Laguna</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Standard CR80 ISO Security ID • Barangay San Isidro, Laguna</p>
                 </div>
               </div>
 
@@ -1576,7 +1576,7 @@ export const Certificates: React.FC = () => {
                           <div className="mt-1">
                             <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none mb-0.5">RESIDENTIAL ADDRESS</span>
                             <p className="text-[7.5px] font-bold text-slate-300 leading-tight line-clamp-2">
-                              {idForm.address || 'Barangay Lawrence, Laguna, Philippines'}
+                              {idForm.address || 'Barangay San Isidro, Laguna, Philippines'}
                             </p>
                           </div>
                         </div>
@@ -1612,7 +1612,7 @@ export const Certificates: React.FC = () => {
                           <span className="text-[7px] font-bold text-slate-500 uppercase">PHILIPPINES LGU</span>
                         </div>
                         <p className="text-[6.5px] text-slate-400 leading-tight pt-1">
-                          This official identification card certifies that the bearer is a recognized resident of Barangay Lawrence, Laguna. If found, please return to the Barangay Hall or the nearest police station.
+                          This official identification card certifies that the bearer is a recognized resident of Barangay San Isidro, Laguna. If found, please return to the Barangay Hall or the nearest police station.
                         </p>
                       </div>
 
@@ -1633,7 +1633,7 @@ export const Certificates: React.FC = () => {
                           </div>
                           <div>
                             <span className="text-[6px] uppercase font-bold text-slate-500 block">RESIDENTIAL ADDRESS</span>
-                            <span className="text-[7px] font-bold text-slate-300 leading-tight line-clamp-2 block">{idForm.address || 'Barangay Lawrence, Laguna'}</span>
+                            <span className="text-[7px] font-bold text-slate-300 leading-tight line-clamp-2 block">{idForm.address || 'Barangay San Isidro, Laguna'}</span>
                           </div>
                         </div>
 

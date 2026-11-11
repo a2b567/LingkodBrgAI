@@ -46,10 +46,10 @@ const DEFAULT_SCHEDULE: ClinicSchedule = {
 export const ClinicQueueView: React.FC = () => {
   const { user } = useAuthStore();
   const { isPrivacyMode, isItemRevealed, toggleRevealItem } = usePrivacyStore();
-  const isResident = user?.role === 'Resident';
-
   // Health Worker (Nurse), Captain, Super Admin, and Staff are authorized to manage clinic schedule & status
   const isNurseOrStaff = user?.role === 'Health Worker' || user?.role === 'Barangay Captain' || user?.role === 'Super Admin' || user?.role === 'Staff';
+  const isStaff = isNurseOrStaff || user?.role === 'Secretary' || user?.role === 'Treasurer';
+  const isResident = !isStaff || user?.role === 'Resident' || user?.role?.toLowerCase() === 'resident';
 
   const [queueList, setQueueList] = useState<QueueItem[]>([]);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());

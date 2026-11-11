@@ -1518,7 +1518,7 @@ export const Households: React.FC = () => {
                     <input 
                       type="text" 
                       required 
-                      placeholder="House No., Street Name, Zone Location, Barangay Lawrence"
+                      placeholder="House No., Street Name, Zone Location, Barangay San Isidro"
                       value={form.address} 
                       onChange={(e) => setForm({...form, address: e.target.value})} 
                       className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white" 

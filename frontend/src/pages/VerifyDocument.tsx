@@ -131,7 +131,7 @@ export const VerifyDocument: React.FC = () => {
                 </div>
                 <div className="col-span-2">
                   <span className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 block">Registered Address</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{data?.address || 'Barangay Lawrence, Laguna'}</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">{data?.address || 'Barangay San Isidro, Laguna'}</span>
                 </div>
                 <div>
                   <span className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 block">Civil Status & Gender</span>
@@ -181,7 +181,7 @@ export const VerifyDocument: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 block">Issuing Authority</span>
-                  <span className="font-bold text-slate-600 dark:text-slate-300">Barangay Lawrence Office</span>
+                  <span className="font-bold text-slate-600 dark:text-slate-300">Barangay San Isidro Office</span>
                 </div>
               </div>
             </div>
@@ -190,7 +190,7 @@ export const VerifyDocument: React.FC = () => {
 
         {/* Footer Seal */}
         <div className="text-center text-[9px] text-slate-500 dark:text-slate-400 font-semibold leading-normal pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
-          LingkodBrgyAi — Barangay Lawrence (Laguna, PH) • Secure Reference Code: <span className="font-mono">{hash?.slice(0, 16)}</span>
+          LingkodBrgyAi — Barangay San Isidro (Laguna, PH) • Secure Reference Code: <span className="font-mono">{hash?.slice(0, 16)}</span>
         </div>
 
         <div className="text-center text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest pt-4 border-t border-slate-200/50 dark:border-slate-800/50 mt-6">

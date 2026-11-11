@@ -186,7 +186,7 @@ export const Settings: React.FC = () => {
     {
       id: '1',
       title: 'Annual Dental & Medical Mission',
-      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the Lawrence Barangay Covered Court.',
+      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the San Isidro Barangay Covered Court.',
       category: 'Health Advisory',
       badge: 'Active',
       author: 'Barangay Health Council',
@@ -755,7 +755,7 @@ export const Settings: React.FC = () => {
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
                           isRequired
-                          placeholder="Hal. Lawrence"
+                          placeholder="Hal. Juan"
                         />
                         <Input
                           label="Middle Name"

@@ -60,7 +60,7 @@ export const AIFloatingPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [history, setHistory] = useState<ChatMessage[]>([
-    { sender: 'ai', text: 'Mabuhay! I am your Barangay Lawrence AI Assistant. Ask me anything about residents, households, blotters, certificates, or scheduling.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+    { sender: 'ai', text: 'Mabuhay! I am your Barangay San Isidro AI Assistant. Ask me anything about residents, households, blotters, certificates, or scheduling.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
@@ -143,7 +143,7 @@ export const AIFloatingPanel: React.FC = () => {
   const handleClearHistory = () => {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setHistory([
-      { sender: 'ai', text: 'Mabuhay! I am your Barangay Lawrence AI Assistant. Ask me anything about residents, households, blotters, certificates, or scheduling.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+      { sender: 'ai', text: 'Mabuhay! I am your Barangay San Isidro AI Assistant. Ask me anything about residents, households, blotters, certificates, or scheduling.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
     ]);
   };
 

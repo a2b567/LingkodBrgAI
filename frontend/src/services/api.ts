@@ -36,7 +36,7 @@ export const callGroqAI = async (prompt: string, systemContext?: string): Promis
     throw new Error("No Groq API key available");
   }
 
-  const defaultSystem = 'You are LingkodBrgyAI, the intelligent operations assistant for Barangay Lawrence, Laguna, Philippines. Assist residents and barangay officers politely and accurately in Tagalog, English, or Taglish. Format responses with clean bullet points and markdown bold text where appropriate.';
+  const defaultSystem = 'You are LingkodBrgyAI, the intelligent operations assistant for Barangay San Isidro, Bay, Laguna, Philippines. Assist residents and barangay officers politely and accurately in Tagalog, English, or Taglish. Format responses with clean bullet points and markdown bold text where appropriate.';
 
   const makeRequest = async (model: string) => {
     const res = await fetch(`${GROQ_BASE_URL}/openai/v1/chat/completions`, {
@@ -95,26 +95,26 @@ const mockState = {
 function getMockUser(username: string): User {
   const lower = username.toLowerCase();
   let role = 'Resident';
-  let email = `${username || 'user'}@barangay-lawrence.gov.ph`;
+  let email = `${username || 'user'}@barangay-sanisidro.gov.ph`;
 
   if (lower.includes('captain')) {
     role = 'Barangay Captain';
-    email = 'captain@barangay-lawrence.gov.ph';
+    email = 'captain@barangay-sanisidro.gov.ph';
   } else if (lower.includes('admin') || lower.includes('super')) {
     role = 'Super Admin';
-    email = 'admin@barangay-lawrence.gov.ph';
+    email = 'admin@barangay-sanisidro.gov.ph';
   } else if (lower.includes('sec') || lower.includes('secretary')) {
     role = 'Secretary';
-    email = 'secretary@barangay-lawrence.gov.ph';
+    email = 'secretary@barangay-sanisidro.gov.ph';
   } else if (lower.includes('treasurer')) {
     role = 'Treasurer';
-    email = 'treasurer@barangay-lawrence.gov.ph';
+    email = 'treasurer@barangay-sanisidro.gov.ph';
   } else if (lower.includes('health') || lower.includes('nurse')) {
     role = 'Health Worker';
-    email = 'health@barangay-lawrence.gov.ph';
+    email = 'health@barangay-sanisidro.gov.ph';
   } else if (lower.includes('staff')) {
     role = 'Staff';
-    email = 'staff@barangay-lawrence.gov.ph';
+    email = 'staff@barangay-sanisidro.gov.ph';
   }
 
   return {
@@ -336,7 +336,7 @@ export const api = {
     get: (id: string) =>
       withFallback(
         () => client.get<Resident>(`/residents/${id}`).then(r => r.data),
-        () => mockState.residents.find(r => r.id === id) || (mockState.residents[0] || { id, first_name: 'System', last_name: 'Resident', address: 'Barangay Lawrence' } as Resident)
+        () => mockState.residents.find(r => r.id === id) || (mockState.residents[0] || { id, first_name: 'System', last_name: 'Resident', address: 'Barangay San Isidro' } as Resident)
       ),
     create: (data: Partial<Resident>) =>
       withFallback(
@@ -349,7 +349,7 @@ export const api = {
             birthdate: data.birthdate || '1995-01-01',
             gender: data.gender || 'Male',
             civil_status: data.civil_status || 'Single',
-            address: data.address || 'Barangay Lawrence, Laguna',
+            address: data.address || 'Barangay San Isidro, Bay, Laguna',
             citizenship: 'Filipino',
             residency_status: 'Permanent',
             voter_status: 'Registered Voter',
@@ -398,7 +398,7 @@ export const api = {
     get: (id: string) =>
       withFallback(
         () => client.get<Household>(`/households/${id}`).then(r => r.data),
-        () => mockState.households.find(h => h.id === id) || (mockState.households[0] || { id, household_number: 'HH-000', head_id: 'res-1', poverty_level: 'Non-Poor', address: 'Barangay Lawrence' } as Household)
+        () => mockState.households.find(h => h.id === id) || (mockState.households[0] || { id, household_number: 'HH-000', head_id: 'res-1', poverty_level: 'Non-Poor', address: 'Barangay San Isidro' } as Household)
       ),
     create: (data: Partial<Household>) =>
       withFallback(
@@ -585,7 +585,7 @@ export const api = {
       try {
         const groqSummary = await callGroqAI(
           `Summarize this barangay blotter incident (ID: ${id}) as a brief AI Case Digest in 2-3 sentences. Include recommended action.`,
-          'You are LingkodBrgyAI, an AI legal assistant for Barangay Lawrence. Generate concise blotter case digests with recommended actions like conciliation, hearing scheduling, or escalation.'
+          'You are LingkodBrgyAI, an AI legal assistant for Barangay San Isidro. Generate concise blotter case digests with recommended actions like conciliation, hearing scheduling, or escalation.'
         );
         if (groqSummary) return { summary: groqSummary };
       } catch (_) {
@@ -824,7 +824,7 @@ export const api = {
 
       // Offline fallback mock responses
       const lower = prompt.toLowerCase();
-      let response = `Mabuhay! I am your Barangay Lawrence AI Operations Assistant. How may I assist you today?\n\n- **Resident Profiles**: Register, update, and search citizen profiles\n- **Certificates & Clearances**: Request Barangay Clearance, Indigency, Residency, and Cedulas online\n- **Queue & Scheduling**: Book counter pickup slots or view real-time queue status\n- **Blotters & Conciliation**: File incident reports and schedule Lupon peace hearings`;
+      let response = `Mabuhay! I am your Barangay San Isidro AI Operations Assistant. How may I assist you today?\n\n- **Resident Profiles**: Register, update, and search citizen profiles\n- **Certificates & Clearances**: Request Barangay Clearance, Indigency, Residency, and Cedulas online\n- **Queue & Scheduling**: Book counter pickup slots or view real-time queue status\n- **Blotters & Conciliation**: File incident reports and schedule Lupon peace hearings`;
 
       if (lower.includes('help') || lower.includes('can you help') || lower.includes('hello') || lower.includes('hi')) {
         response = `Mabuhay! I am glad to assist you. Here are the key services I can manage for you:\n- **Document Issuance**: Apply for Barangay Clearance, Certificate of Indigency, Certificate of Residency, and Business Permits.\n- **Queue Monitor**: Book appointment pickup slots and monitor live counter processing numbers.\n- **Blotter & Incident Registry**: Log public disputes, schedule peace hearings, and review AI dispute summaries.\n- **Demographics & Analytics**: Inspect resident statistics, indigent household counts, and senior citizen records.`;
