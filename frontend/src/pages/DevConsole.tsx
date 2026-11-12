@@ -163,23 +163,6 @@ export const DevConsole: React.FC = () => {
     });
   };
 
-  const handleMarkAllAsReviewed = () => {
-    const allIds = errorLogs.map(e => e.id);
-    setReviewedErrorIds(prev => {
-      const next = new Set([...Array.from(prev), ...allIds]);
-      try {
-        localStorage.setItem('dev_reviewed_error_ids', JSON.stringify(Array.from(next)));
-      } catch {}
-      return next;
-    });
-  };
-
-  const handleClearAllReviewed = () => {
-    setReviewedErrorIds(new Set());
-    try {
-      localStorage.removeItem('dev_reviewed_error_ids');
-    } catch {}
-  };
 
   const isSafeSecurityNotice = (err: ErrorLogEntry) => {
     const msg = (err.message || '').toLowerCase();
@@ -811,28 +794,6 @@ export const DevConsole: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-                <button
-                  type="button"
-                  onClick={handleMarkAllAsReviewed}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer"
-                  title="System automatically marks resolved & handled errors as OK"
-                >
-                  <CheckCheck size={14} />
-                  {errorLogs.length > 0 && errorLogs.every(e => isSafeSecurityNotice(e) || reviewedErrorIds.has(e.id)) ? '✓ Auto-Marked as OK' : 'Mark All as OK'}
-                </button>
-                {reviewedErrorIds.size > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearAllReviewed}
-                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    title="Reset all marked entries"
-                  >
-                    Reset
-                  </button>
-                )}
               </div>
             </div>
           </div>
