@@ -679,7 +679,7 @@ export const DevConsole: React.FC = () => {
       {/* ── ERROR LOGS TAB ── */}
       {tab === 'errors' && (
         <div className="space-y-4">
-          {/* System Security Status Banner (Sign na OK Na ang Lahat) */}
+          {/* System Security Status Banner (Resolved & Secure Status) */}
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/30 shadow-lg">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
@@ -687,16 +687,16 @@ export const DevConsole: React.FC = () => {
                   <ShieldCheck size={24} />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                      System Security Health: 100% Ligtas at Normal
+                      System Security Health: 100% Operational & Secure
                     </h3>
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-slate-950 uppercase tracking-widest">
-                      OK NA LAHAT ✓
+                      ALL SYSTEMS CLEAR ✓
                     </span>
                   </div>
                   <p className="text-xs text-slate-300 font-medium mt-1 leading-relaxed max-w-3xl">
-                    Lahat ng nakikitang <strong className="text-amber-300 font-mono">401 Invalid or expired JWT token</strong> ay <strong>hindi sira</strong> sa system. Ito ay normal at inaasahang proteksyon kung saan matagumpay na hinarang ng security firewall ang unauthorized o expired na access para laging ligtas ang datos ng barangay.
+                    All recorded <strong className="text-amber-300 font-mono">401 Invalid or expired JWT token</strong> events are expected security notifications, not system errors. The firewall and authentication middleware are actively intercepting and rejecting unauthenticated or expired requests to ensure all barangay data remains protected.
                   </p>
                 </div>
               </div>
@@ -706,17 +706,17 @@ export const DevConsole: React.FC = () => {
                   type="button"
                   onClick={handleMarkAllAsReviewed}
                   className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer"
-                  title="I-mark ang lahat ng warning na ito bilang OK Na / Na-review na"
+                  title="Mark all security warning entries as reviewed and resolved"
                 >
                   <CheckCheck size={14} />
-                  I-mark Lahat na OK Na
+                  Mark All as OK
                 </button>
                 {reviewedErrorIds.size > 0 && (
                   <button
                     type="button"
                     onClick={handleClearAllReviewed}
                     className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    title="I-reset ang mga minarkahang OK Na"
+                    title="Reset all marked entries"
                   >
                     Reset
                   </button>
@@ -834,11 +834,11 @@ export const DevConsole: React.FC = () => {
                         </span>
                       )}
 
-                      {/* Prominent "OK NA" Status Pill */}
+                      {/* Prominent OK / Resolved Status Pill */}
                       {(isSafe || isReviewed) && (
                         <span className="shrink-0 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-sm mt-0.5">
                           <CheckCircle2 size={11} className="text-emerald-500" />
-                          {isReviewed ? 'OK NA • REVIEWED' : 'OK NA • HANDLED (LIGTAS)'}
+                          {isReviewed ? 'OK • REVIEWED' : 'OK • HANDLED (SECURE)'}
                         </span>
                       )}
 
@@ -868,7 +868,7 @@ export const DevConsole: React.FC = () => {
                         className={`p-1.5 rounded-lg transition-colors cursor-pointer mt-0.5 ${
                           isReviewed ? 'text-emerald-500 hover:bg-emerald-500/20' : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800'
                         }`}
-                        title={isReviewed ? "Naka-mark na OK Na (I-click para i-unmark)" : "I-mark bilang OK Na"}
+                        title={isReviewed ? "Marked as OK (Click to unmark)" : "Mark as OK / Resolved"}
                       >
                         <CheckCircle size={15} className={isReviewed ? "text-emerald-500 fill-emerald-500/20" : ""} />
                       </div>
@@ -888,10 +888,10 @@ export const DevConsole: React.FC = () => {
                             <CheckCircle2 size={18} className="text-emerald-400 shrink-0 mt-0.5" />
                             <div className="space-y-1">
                               <p className="font-bold text-emerald-400 text-xs uppercase tracking-wide">
-                                STATUS: NORMAL AT LIGTAS (HANDLED BY SECURITY GATEWAY)
+                                STATUS: NORMAL & SECURE (HANDLED BY SECURITY GATEWAY)
                               </p>
                               <p className="text-[11px] text-slate-300 leading-relaxed">
-                                Ang log na ito ay <strong>hindi error o crash</strong>. Normal itong nangyayari kapag may bumisita nang walang login session o nag-expire ang login token. Matagumpay itong hinarang (401 Unauthorized) para mapanatiling protektado ang barangay database.
+                                This log entry is an <strong>expected security notice</strong>, not an application crash or fault. It occurs whenever a visitor browses with an expired session or without credentials. The API gateway successfully blocked access (401 Unauthorized), preserving system and resident data security.
                               </p>
                             </div>
                           </div>
@@ -905,7 +905,7 @@ export const DevConsole: React.FC = () => {
                             </pre>
                           </>
                         ) : (
-                          <p className="text-[11px] text-slate-400">Walang karagdagang stack trace dahil malinis itong na-intercept ng HTTP middleware.</p>
+                          <p className="text-[11px] text-slate-400">No technical stack trace needed: cleanly intercepted by the HTTP security gateway.</p>
                         )}
 
                         {err.user_agent && (
