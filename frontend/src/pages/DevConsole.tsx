@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Terminal, Activity, Users, ShieldAlert, RefreshCw, Search,
   ChevronLeft, ChevronRight, Filter, Clock, Globe, User,
@@ -190,6 +190,80 @@ export const DevConsole: React.FC = () => {
       err.message.toLowerCase().includes('expired')
     );
   };
+
+  // Dynamic System Security Health calculation
+  const securityHealth = useMemo(() => {
+    if (errorLogs.length === 0) {
+      return {
+        score: 100,
+        formatted: '100%',
+        statusText: 'ALL SYSTEMS CLEAR ✓',
+        statusColor: 'emerald',
+        safeCount: 0,
+        reviewedCount: 0,
+        critical: 0,
+        total: 0,
+        description: 'No errors or security warnings detected. System is running at 100% operational integrity.'
+      };
+    }
+
+    const critical = errorLogs.filter(e => e.level === 'panic' || (e.status_code && e.status_code >= 500)).length;
+    const unhandled = errorLogs.filter(e => e.level === 'error' && !isSafeSecurityNotice(e) && !reviewedErrorIds.has(e.id)).length;
+    const safeCount = errorLogs.filter(e => isSafeSecurityNotice(e)).length;
+    const reviewedCount = errorLogs.filter(e => reviewedErrorIds.has(e.id)).length;
+
+    let score = 100;
+    if (critical > 0) {
+      score -= critical * 25;
+    }
+    if (unhandled > 0) {
+      score -= unhandled * 5;
+    }
+
+    // Unreviewed security events (e.g. 401 JWT rejections) indicate active firewall blocks.
+    // If not yet marked as reviewed, health sits at an active security rating (e.g. 98.4%)
+    // When the user reviews or marks all OK, it scales up to 100%.
+    const unreviewedSafe = Math.max(0, safeCount - reviewedCount);
+    if (unreviewedSafe > 0 && critical === 0 && unhandled === 0) {
+      const deduction = Math.min(2.5, (unreviewedSafe / errorLogs.length) * 2.5);
+      score -= deduction;
+    }
+
+    score = Math.max(40, Math.min(100, score));
+    const formatted = score === 100 ? '100%' : `${score.toFixed(1)}%`;
+
+    let statusText = '100% SECURE & OPERATIONAL ✓';
+    let statusColor = 'emerald';
+
+    if (score === 100) {
+      statusText = '100% SECURE & OPERATIONAL ✓';
+      statusColor = 'emerald';
+    } else if (score >= 95) {
+      statusText = `ACTIVE SECURITY • ${formatted} ✓`;
+      statusColor = 'emerald';
+    } else if (score >= 80) {
+      statusText = `ATTENTION RECOMMENDED • ${formatted}`;
+      statusColor = 'amber';
+    } else {
+      statusText = `CRITICAL ACTION REQUIRED • ${formatted}`;
+      statusColor = 'rose';
+    }
+
+    return {
+      score,
+      formatted,
+      statusText,
+      statusColor,
+      critical,
+      unhandled,
+      safeCount,
+      reviewedCount,
+      total: errorLogs.length,
+      description: critical === 0 && unhandled === 0
+        ? `All recorded 401 Invalid or expired JWT token notices are expected security events, not system errors. The firewall and authentication middleware are actively intercepting and rejecting unauthenticated or expired requests to ensure all barangay data remains protected.`
+        : `${critical} critical failure(s) and ${unhandled} unhandled issue(s) detected. Please inspect the logs below.`
+    };
+  }, [errorLogs, reviewedErrorIds]);
 
   // Audit logs state
 
@@ -679,25 +753,50 @@ export const DevConsole: React.FC = () => {
       {/* ── ERROR LOGS TAB ── */}
       {tab === 'errors' && (
         <div className="space-y-4">
-          {/* System Security Status Banner (Resolved & Secure Status) */}
+          {/* System Security Status Banner (Dynamic Percentage & Security Health) */}
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900 to-slate-900 border border-emerald-500/30 shadow-lg">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3.5">
+              <div className="flex items-start gap-3.5 flex-1 min-w-0">
                 <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0 shadow-inner">
                   <ShieldCheck size={24} />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                      System Security Health: 100% Operational & Secure
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                      System Security Health: <span className="text-emerald-400 font-mono text-base font-extrabold">{securityHealth.formatted}</span>
                     </h3>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-slate-950 uppercase tracking-widest">
-                      ALL SYSTEMS CLEAR ✓
+                    <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-slate-950 uppercase tracking-widest shadow-sm">
+                      {securityHealth.statusText}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-300 font-medium mt-1 leading-relaxed max-w-3xl">
-                    All recorded <strong className="text-amber-300 font-mono">401 Invalid or expired JWT token</strong> events are expected security notifications, not system errors. The firewall and authentication middleware are actively intercepting and rejecting unauthenticated or expired requests to ensure all barangay data remains protected.
+
+                  {/* Health Progress Bar */}
+                  <div className="w-full max-w-xl bg-slate-800/80 rounded-full h-2 mt-2.5 overflow-hidden border border-slate-700/50">
+                    <div
+                      className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-emerald-500 to-teal-400"
+                      style={{ width: `${securityHealth.score}%` }}
+                    />
+                  </div>
+
+                  <p className="text-xs text-slate-300 font-medium mt-2 leading-relaxed max-w-3xl">
+                    {securityHealth.description}
                   </p>
+
+                  {/* Mini stats counters */}
+                  <div className="flex items-center gap-4 mt-2.5 text-[11px] text-slate-400 font-medium flex-wrap">
+                    <span className="flex items-center gap-1.5">
+                      <ShieldCheck size={12} className="text-emerald-400" />
+                      Firewall Intercepted: <strong className="text-slate-200">{securityHealth.safeCount}</strong>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <CheckCheck size={12} className="text-emerald-400" />
+                      Reviewed: <strong className="text-slate-200">{securityHealth.reviewedCount} / {securityHealth.total}</strong>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Activity size={12} className={securityHealth.critical > 0 ? "text-rose-400" : "text-emerald-400"} />
+                      Critical Failures: <strong className={securityHealth.critical > 0 ? "text-rose-300" : "text-slate-200"}>{securityHealth.critical}</strong>
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -705,8 +804,8 @@ export const DevConsole: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleMarkAllAsReviewed}
-                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer"
-                  title="Mark all security warning entries as reviewed and resolved"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer"
+                  title="Mark all security warning entries as reviewed to reach 100% health"
                 >
                   <CheckCheck size={14} />
                   Mark All as OK
@@ -715,7 +814,7 @@ export const DevConsole: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleClearAllReviewed}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                     title="Reset all marked entries"
                   >
                     Reset
