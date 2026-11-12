@@ -210,7 +210,7 @@ export const DevConsole: React.FC = () => {
     const critical = errorLogs.filter(e => e.level === 'panic' || (e.status_code && e.status_code >= 500)).length;
     const unhandled = errorLogs.filter(e => e.level === 'error' && !isSafeSecurityNotice(e) && !reviewedErrorIds.has(e.id)).length;
     const safeCount = errorLogs.filter(e => isSafeSecurityNotice(e)).length;
-    const reviewedCount = errorLogs.filter(e => reviewedErrorIds.has(e.id)).length;
+    const resolvedCount = errorLogs.filter(e => isSafeSecurityNotice(e) || reviewedErrorIds.has(e.id)).length;
 
     let score = 100;
     if (critical > 0) {
@@ -218,15 +218,6 @@ export const DevConsole: React.FC = () => {
     }
     if (unhandled > 0) {
       score -= unhandled * 5;
-    }
-
-    // Unreviewed security events (e.g. 401 JWT rejections) indicate active firewall blocks.
-    // If not yet marked as reviewed, health sits at an active security rating (e.g. 98.4%)
-    // When the user reviews or marks all OK, it scales up to 100%.
-    const unreviewedSafe = Math.max(0, safeCount - reviewedCount);
-    if (unreviewedSafe > 0 && critical === 0 && unhandled === 0) {
-      const deduction = Math.min(2.5, (unreviewedSafe / errorLogs.length) * 2.5);
-      score -= deduction;
     }
 
     score = Math.max(40, Math.min(100, score));
@@ -257,10 +248,10 @@ export const DevConsole: React.FC = () => {
       critical,
       unhandled,
       safeCount,
-      reviewedCount,
+      reviewedCount: resolvedCount,
       total: errorLogs.length,
       description: critical === 0 && unhandled === 0
-        ? `All recorded 401 Invalid or expired JWT token notices are expected security events, not system errors. The firewall and authentication middleware are actively intercepting and rejecting unauthenticated or expired requests to ensure all barangay data remains protected.`
+        ? `All recorded 401 Invalid or expired JWT token notices have been handled and auto-marked as OK. The firewall and authentication middleware are actively protecting all citizen data.`
         : `${critical} critical failure(s) and ${unhandled} unhandled issue(s) detected. Please inspect the logs below.`
     };
   }, [errorLogs, reviewedErrorIds]);
@@ -293,8 +284,21 @@ export const DevConsole: React.FC = () => {
     setErrorLogsLoading(true);
     try {
       const data = await api.dev.errorLogs({ page: errorLogsPage, limit: LIMIT, search: errorLogsSearch, source: errorLogsSource, level: errorLogsLevel });
-      setErrorLogs(data.data || []);
+      const entries = data.data || [];
+      setErrorLogs(entries);
       setErrorLogsTotal(data.total || 0);
+
+      // Auto-mark handled & safe security logs as OK immediately
+      const autoSafeIds = entries.filter(isSafeSecurityNotice).map(e => e.id);
+      if (autoSafeIds.length > 0) {
+        setReviewedErrorIds(prev => {
+          const next = new Set([...Array.from(prev), ...autoSafeIds]);
+          try {
+            localStorage.setItem('dev_reviewed_error_ids', JSON.stringify(Array.from(next)));
+          } catch {}
+          return next;
+        });
+      }
     } catch (err) {
       console.error('DevConsole: fetch error logs failed', err);
     } finally {
@@ -805,10 +809,10 @@ export const DevConsole: React.FC = () => {
                   type="button"
                   onClick={handleMarkAllAsReviewed}
                   className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all active:scale-95 cursor-pointer"
-                  title="Mark all security warning entries as reviewed to reach 100% health"
+                  title="System automatically marks resolved & handled errors as OK"
                 >
                   <CheckCheck size={14} />
-                  Mark All as OK
+                  {errorLogs.length > 0 && errorLogs.every(e => isSafeSecurityNotice(e) || reviewedErrorIds.has(e.id)) ? '✓ Auto-Marked as OK' : 'Mark All as OK'}
                 </button>
                 {reviewedErrorIds.size > 0 && (
                   <button
@@ -894,16 +898,15 @@ export const DevConsole: React.FC = () => {
             <div className="space-y-2">
               {errorLogs.map(err => {
                 const isSafe = isSafeSecurityNotice(err);
-                const isReviewed = reviewedErrorIds.has(err.id);
+                const isManuallyReviewed = reviewedErrorIds.has(err.id);
+                const isResolved = isSafe || isManuallyReviewed;
 
                 return (
                   <div
                     key={err.id}
                     className={`bg-white dark:bg-slate-900 rounded-2xl border overflow-hidden transition-all ${
-                      isReviewed
+                      isResolved
                         ? 'border-emerald-300 dark:border-emerald-800/80 bg-emerald-50/20 dark:bg-emerald-950/10'
-                        : isSafe
-                        ? 'border-emerald-200/80 dark:border-emerald-900/50'
                         : err.level === 'panic'
                         ? 'border-rose-200 dark:border-rose-800/60'
                         : err.level === 'warning'
@@ -934,10 +937,10 @@ export const DevConsole: React.FC = () => {
                       )}
 
                       {/* Prominent OK / Resolved Status Pill */}
-                      {(isSafe || isReviewed) && (
+                      {isResolved && (
                         <span className="shrink-0 text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-sm mt-0.5">
                           <CheckCircle2 size={11} className="text-emerald-500" />
-                          {isReviewed ? 'OK • REVIEWED' : 'OK • HANDLED (SECURE)'}
+                          {isSafe ? 'OK • AUTO-RESOLVED' : 'OK • REVIEWED'}
                         </span>
                       )}
 
@@ -965,11 +968,11 @@ export const DevConsole: React.FC = () => {
                           toggleMarkReviewed(err.id);
                         }}
                         className={`p-1.5 rounded-lg transition-colors cursor-pointer mt-0.5 ${
-                          isReviewed ? 'text-emerald-500 hover:bg-emerald-500/20' : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800'
+                          isResolved ? 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800'
                         }`}
-                        title={isReviewed ? "Marked as OK (Click to unmark)" : "Mark as OK / Resolved"}
+                        title={isResolved ? "Auto-marked as OK (Handled by system)" : "Click to mark as OK"}
                       >
-                        <CheckCircle size={15} className={isReviewed ? "text-emerald-500 fill-emerald-500/20" : ""} />
+                        <CheckCircle size={15} className={isResolved ? "text-emerald-500 fill-emerald-500/20" : ""} />
                       </div>
 
                       <ChevronRight
