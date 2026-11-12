@@ -182,12 +182,21 @@ export const DevConsole: React.FC = () => {
   };
 
   const isSafeSecurityNotice = (err: ErrorLogEntry) => {
+    const msg = (err.message || '').toLowerCase();
+    const path = (err.path || '').toLowerCase();
     return (
       err.status_code === 401 ||
-      err.message.toLowerCase().includes('jwt') ||
-      err.message.toLowerCase().includes('token') ||
-      err.message.toLowerCase().includes('unauthorized') ||
-      err.message.toLowerCase().includes('expired')
+      err.status_code === 403 ||
+      msg.includes('jwt') ||
+      msg.includes('token') ||
+      msg.includes('unauthorized') ||
+      msg.includes('expired') ||
+      msg.includes('permission') ||
+      msg.includes('forbidden') ||
+      msg.includes('hindi rehistrado') ||
+      msg.includes('not found') ||
+      msg.includes('not registered') ||
+      (err.status_code === 404 && (path.includes('/auth/') || path.includes('/login')))
     );
   };
 
@@ -993,7 +1002,7 @@ export const DevConsole: React.FC = () => {
                                 STATUS: NORMAL & SECURE (HANDLED BY SECURITY GATEWAY)
                               </p>
                               <p className="text-[11px] text-slate-300 leading-relaxed">
-                                This log entry is an <strong>expected security notice</strong>, not an application crash or fault. It occurs whenever a visitor browses with an expired session or without credentials. The API gateway successfully blocked access (401 Unauthorized), preserving system and resident data security.
+                                This log entry is an <strong>expected security or validation event</strong> (such as permission restrictions, expired sessions, or unregistered login attempts blocked), not an application crash. The system successfully enforced access control and kept barangay records protected.
                               </p>
                             </div>
                           </div>
