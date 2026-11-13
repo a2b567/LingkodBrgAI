@@ -508,7 +508,7 @@ export const Households: React.FC = () => {
   const fourPsCount = households.filter(h => h.is_4ps_member).length;
 
   return (
-    <div className="space-y-6 relative z-10 max-w-7xl">
+    <div className="space-y-6 relative z-10 w-full min-w-0">
 
       {/* Header */}
       <PageHeader
@@ -520,28 +520,28 @@ export const Households: React.FC = () => {
             <button
               onClick={handleDownloadSample}
               title="Download sample CSV format"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             >
               <FileText size={13} />
-              Sample Format
+              <span>Sample Format</span>
             </button>
             <button
               onClick={() => { setShowImportModal(true); setImportFile(null); setImportPreview([]); setImportErrors([]); setImportSuccess(0); }}
               title="Import households from CSV"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors cursor-pointer shrink-0"
             >
               <Upload size={13} />
-              Import CSV
+              <span>Import CSV</span>
             </button>
             <button
               onClick={handleExportCSV}
               title="Export all households to CSV"
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-gov-blue-200 dark:border-gov-blue-800 bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-700 dark:text-gov-blue-400 hover:bg-gov-blue-100 dark:hover:bg-gov-blue-900/40 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-gov-blue-200 dark:border-gov-blue-800 bg-gov-blue-50 dark:bg-gov-blue-950/30 text-gov-blue-700 dark:text-gov-blue-400 hover:bg-gov-blue-100 dark:hover:bg-gov-blue-900/40 transition-colors cursor-pointer shrink-0"
             >
               <Download size={13} />
-              Export CSV
+              <span>Export CSV</span>
             </button>
-            <Button onClick={handleOpenAdd} leftIcon={<Plus size={15} />}>
+            <Button onClick={handleOpenAdd} leftIcon={<Plus size={15} />} className="shrink-0 whitespace-nowrap">
               Create Household
             </Button>
           </div>
@@ -549,20 +549,22 @@ export const Households: React.FC = () => {
       />
 
       {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[
           { label: 'Total Households', value: totalHouseholds, icon: <Home size={20} />, iconBg: 'bg-gov-blue-50 dark:bg-gov-blue-950/40 text-gov-blue-600 dark:text-gov-blue-400 border-gov-blue-100 dark:border-gov-blue-900/50', valColor: 'text-gov-blue-700 dark:text-gov-blue-300', bar: 'from-gov-blue-400 to-gov-blue-600' },
           { label: 'Indigent / Poor', value: indigentCount, icon: <ShieldAlert size={20} />, iconBg: 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-900/50', valColor: 'text-rose-600 dark:text-rose-400', bar: 'from-rose-400 to-rose-600' },
           { label: 'Population (Registered)', value: totalMembers, icon: <Users size={20} />, iconBg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/50', valColor: 'text-emerald-700 dark:text-emerald-300', bar: 'from-emerald-400 to-emerald-600' },
           { label: '4Ps Beneficiaries', value: fourPsCount, icon: <Sparkles size={20} />, iconBg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/50', valColor: 'text-amber-600 dark:text-amber-400', bar: 'from-amber-400 to-amber-500' },
         ].map((stat, i) => (
-          <div key={i} className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-card p-4 sm:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-card-hover transition-all">
+          <div key={i} className="relative overflow-hidden bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-card p-3.5 sm:p-4 md:p-5 flex items-center gap-3 sm:gap-4 hover:shadow-card-hover transition-all">
             <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.bar}`} />
-            <div className={`w-11 h-11 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 ${stat.iconBg}`}>
+            <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl border flex items-center justify-center flex-shrink-0 mt-0.5 ${stat.iconBg}`}>
               {stat.icon}
             </div>
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 leading-none mb-1.5">{stat.label}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 truncate mb-1" title={stat.label}>
+                {stat.label}
+              </p>
               <p className={`text-2xl sm:text-3xl font-black leading-none ${stat.valColor}`}>{stat.value}</p>
             </div>
           </div>

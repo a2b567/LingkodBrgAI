@@ -16,8 +16,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   breadcrumbs,
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/60 dark:border-slate-800/60">
-      <div className="space-y-1">
+    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-slate-200/60 dark:border-slate-800/60 w-full min-w-0">
+      <div className="space-y-1 min-w-0 flex-1">
         {breadcrumbs && breadcrumbs.length > 0 && (
           <nav className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1" aria-label="Breadcrumb">
             {breadcrumbs.map((item, index) => (
@@ -40,7 +40,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           </nav>
         )}
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
             {title}
           </h1>
@@ -48,14 +48,14 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         </div>
 
         {subtitle && (
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-normal max-w-2xl">
             {subtitle}
           </p>
         )}
       </div>
 
       {actions && (
-        <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap shrink-0">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
           {actions}
         </div>
       )}
