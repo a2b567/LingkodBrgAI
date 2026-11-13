@@ -187,6 +187,14 @@ export const BlotterPage: React.FC = () => {
         hearing_schedules: updatedSchedules
       });
 
+      try {
+        await api.notifications.broadcastAnnouncement({
+          title: `Peace Mediation Scheduled: ${selectedCase.case_number}`,
+          content: `Peace Hearing session scheduled on ${new Date(isoDateTime).toLocaleDateString()} at ${hearingTime}. Naka-sync na ito sa Appointments & Queue calendar.`,
+          type: 'Blotter'
+        });
+      } catch (_) {}
+
       setIsHearingModalOpen(false);
       setHearingDate('');
       fetchCases();

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -150,6 +151,26 @@ func (h *AppointmentHandler) PredictCongestion(c *gin.Context) {
 	for _, app := range appointments {
 		d := app.AppointmentDate.Format("2006-01-02")
 		countsByDay[d]++
+	}
+
+	// Also count Blotter Peace Mediation hearing sessions scheduled within this timeframe
+	var blotters []models.Blotter
+	db.Select("hearing_schedules").
+		Where("hearing_schedules IS NOT NULL AND hearing_schedules != '' AND hearing_schedules != '[]'").
+		Find(&blotters)
+
+	for _, b := range blotters {
+		var schedules []struct {
+			HearingDate string `json:"hearing_date"`
+		}
+		if err := json.Unmarshal([]byte(b.HearingSchedules), &schedules); err == nil {
+			for _, s := range schedules {
+				if len(s.HearingDate) >= 10 {
+					d := s.HearingDate[:10]
+					countsByDay[d]++
+				}
+			}
+		}
 	}
 
 	var report []CongestionReport
