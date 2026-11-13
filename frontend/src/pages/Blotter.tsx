@@ -40,21 +40,24 @@ const formatHearingSchedule = (sched: any): string => {
 const convertToISODateTime = (dateStr: string, timeStr: string): string => {
   try {
     if (!timeStr) return `${dateStr}T09:00:00Z`;
-    const cleanTime = timeStr.trim();
-    // 24-hour format: HH:mm
-    if (/^\d{1,2}:\d{2}$/.test(cleanTime)) {
-      const [h, m] = cleanTime.split(':');
-      return `${dateStr}T${h.padStart(2, '0')}:${m}:00Z`;
-    }
-    // 12-hour format: HH:mm AM/PM
-    const parts = cleanTime.split(' ');
-    if (parts.length === 2) {
-      const [time, modifier] = parts;
-      let [hoursStr, minutesStr] = time.split(':');
-      let hours = parseInt(hoursStr, 10);
-      if (hours === 12) hours = 0;
-      if (modifier.toUpperCase() === 'PM') hours += 12;
-      return `${dateStr}T${hours.toString().padStart(2, '0')}:${minutesStr}:00Z`;
+    const clean = timeStr.trim().toLowerCase();
+    
+    const isPM = clean.includes('pm');
+    const isAM = clean.includes('am');
+    const numOnly = clean.replace(/[^\d:]/g, '');
+    
+    if (numOnly.includes(':')) {
+      const [hStr, mStr] = numOnly.split(':');
+      let h = parseInt(hStr, 10) || 9;
+      const m = parseInt(mStr, 10) || 0;
+      if (isPM && h < 12) h += 12;
+      if (isAM && h === 12) h = 0;
+      return `${dateStr}T${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00Z`;
+    } else if (numOnly) {
+      let h = parseInt(numOnly, 10) || 9;
+      if (isPM && h < 12) h += 12;
+      if (isAM && h === 12) h = 0;
+      return `${dateStr}T${h.toString().padStart(2, '0')}:00:00Z`;
     }
     return `${dateStr}T09:00:00Z`;
   } catch (e) {
@@ -62,13 +65,7 @@ const convertToISODateTime = (dateStr: string, timeStr: string): string => {
   }
 };
 
-const formatPresetTime = (hhmm: string): string => {
-  const [hStr, mStr] = hhmm.split(':');
-  let h = parseInt(hStr, 10);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  return `${h}:${mStr} ${ampm}`;
-};
+
 
 export const BlotterPage: React.FC = () => {
   const { isPrivacyMode, isItemRevealed, toggleRevealItem } = usePrivacyStore();
@@ -93,7 +90,7 @@ export const BlotterPage: React.FC = () => {
   const [selectedCase, setSelectedCase] = useState<Blotter | null>(null);
   const [isHearingModalOpen, setIsHearingModalOpen] = useState(false);
   const [hearingDate, setHearingDate] = useState('');
-  const [hearingTime, setHearingTime] = useState('09:00');
+  const [hearingTime, setHearingTime] = useState('09:00 AM');
   const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
 
   // Import/Export state
@@ -623,14 +620,15 @@ export const BlotterPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Incident Time (Hayaan ilagay)</label>
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Incident Time</label>
                   <input
-                    type="time"
+                    type="text"
                     value={incidentTime}
                     onChange={(e) => setIncidentTime(e.target.value)}
+                    placeholder="Halimbawa: 2:30 PM, 14:30"
                     required
                     title="Incident Time"
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white font-mono"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -700,34 +698,16 @@ export const BlotterPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Hearing Time (Ilagay ang Oras)</label>
-                <div className="space-y-2">
-                  <input
-                    type="time"
-                    value={hearingTime}
-                    onChange={(e) => setHearingTime(e.target.value)}
-                    required
-                    title="Hearing Time"
-                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white font-mono text-sm"
-                  />
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] text-slate-400 font-bold">Preset:</span>
-                    {['09:00', '10:00', '11:00', '13:30', '15:00'].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setHearingTime(preset)}
-                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
-                          hearingTime === preset 
-                            ? 'bg-gov-blue-600 text-white border-gov-blue-600'
-                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
-                        }`}
-                      >
-                        {formatPresetTime(preset)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Hearing Time</label>
+                <input
+                  type="text"
+                  value={hearingTime}
+                  onChange={(e) => setHearingTime(e.target.value)}
+                  placeholder="Halimbawa: 9:00 AM, 10:30 AM, 2:00 PM"
+                  required
+                  title="Hearing Time"
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                />
               </div>
 
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
