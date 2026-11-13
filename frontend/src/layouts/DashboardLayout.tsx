@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, Home, FileText, AlertOctagon,
@@ -31,19 +31,23 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [popupToast, setPopupToast] = useState<{ title: string; content: string; type?: string } | null>(null);
   const [isSoundEnabled, setIsSoundEnabled] = useState(isNotificationSoundEnabled());
+  const notifRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const handleClickOutside = () => {
-      setShowUserDropdown(false);
-      setShowNotifDropdown(false);
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifDropdown(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserDropdown(false);
+      }
     };
-    if (showUserDropdown || showNotifDropdown) {
-      window.addEventListener('click', handleClickOutside);
-      return () => window.removeEventListener('click', handleClickOutside);
-    }
-  }, [showUserDropdown, showNotifDropdown]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Listen for notification sound preference changes from Settings or anywhere in app
   useEffect(() => {
@@ -384,10 +388,14 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             </button>
 
             {/* Notification Bell */}
-            <div className="relative">
+            <div ref={notifRef} className="relative">
               <button
                 type="button"
-                onClick={() => setShowNotifDropdown(prev => !prev)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowNotifDropdown(prev => !prev);
+                  setShowUserDropdown(false);
+                }}
                 className="relative p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 aria-label="View notifications"
               >
@@ -504,7 +512,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
             </div>
 
             {/* Quick User Account Menu & Instant Sign Out */}
-            <div className="relative border-l border-slate-200 dark:border-slate-800 pl-3">
+            <div ref={userMenuRef} className="relative border-l border-slate-200 dark:border-slate-800 pl-3">
               <button
                 type="button"
                 onClick={(e) => {
