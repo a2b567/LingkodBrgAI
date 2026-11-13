@@ -78,7 +78,7 @@ export default async function handler(req, res) {
 
   try {
     const smtpUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'low22708@gmail.com';
-    const smtpPass = process.env.SMTP_PASSWORD || process.env.SMTP_APP_PASSWORD || 'hqugtizxudylilue';
+    const smtpPass = process.env.SMTP_PASSWORD || process.env.SMTP_APP_PASSWORD || 'essvxajrwuerzgnc';
 
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST || 'smtp.gmail.com',

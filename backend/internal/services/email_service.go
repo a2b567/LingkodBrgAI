@@ -52,7 +52,7 @@ func InitEmailService() *EmailService {
 		pass = os.Getenv("SMTP_APP_PASSWORD")
 	}
 	if pass == "" {
-		pass = "hqugtizxudylilue"
+		pass = "essvxajrwuerzgnc"
 	}
 
 	fromName := os.Getenv("SMTP_FROM_NAME")

@@ -17,6 +17,6 @@ services:
       - key: SMTP_USER
         value: low22708@gmail.com
       - key: SMTP_PASSWORD
-        value: hqugtizxudylilue
+        value: essvxajrwuerzgnc
       - key: SMTP_FROM_NAME
         value: "LingkodBrgy AI - Barangay San Isidro"
