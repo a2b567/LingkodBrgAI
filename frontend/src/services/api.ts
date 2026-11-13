@@ -178,7 +178,7 @@ export const api = {
           const registeredUsers = JSON.parse(localStorage.getItem('lingkodbrgai_registered_users') || '[]');
 
           const knownAccounts = [
-            { email: 'lawrencebelenaranas123@gmail.com', username: 'lawrence', role: 'Resident' },
+            { email: 'resident@barangay.gov', username: 'resident', role: 'Resident' },
             { email: 'admin@barangay.gov', username: 'admin', role: 'Super Admin' },
             { email: 'captain@barangay.gov', username: 'captain', role: 'Barangay Captain' },
             { email: 'secretary@barangay.gov', username: 'secretary', role: 'Secretary' },

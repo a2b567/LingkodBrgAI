@@ -908,7 +908,7 @@ export const Settings: React.FC = () => {
                             value={lastName}
                             onChange={(e) => setLastName(e.target.value)}
                             isRequired
-                            placeholder="Hal. Aranas"
+                            placeholder="Hal. Dela Cruz"
                           />
                           <Input
                             label="Suffix"

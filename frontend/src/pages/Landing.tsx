@@ -1067,8 +1067,6 @@ export const Landing: React.FC = () => {
           <p>© 2026 Barangay San Isidro, Bay, Laguna. All Rights Reserved.</p>
           <div className="flex items-center gap-2">
             <span className="text-gov-blue-600 dark:text-gov-blue-400 font-black">System Version 2.0.4</span>
-            <span>•</span>
-            <p>dev • lawreene b aranas</p>
           </div>
         </div>
       </footer>

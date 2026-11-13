@@ -562,9 +562,8 @@ export const Login: React.FC = () => {
           </form>
         )}
 
-        <div className="text-center text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pt-4 border-t border-slate-200/50 dark:border-slate-800/50 mt-6 space-y-0.5">
+        <div className="text-center text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest pt-4 border-t border-slate-200/50 dark:border-slate-800/50 mt-6">
           <p className="text-gov-blue-600 dark:text-gov-blue-400 font-black">LingkodBrgyAI System v2.0.4</p>
-          <p className="text-[8px] opacity-75">DEV: LAWREENE B ARANAS</p>
         </div>
       </div>
 
