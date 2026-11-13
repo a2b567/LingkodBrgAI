@@ -72,6 +72,10 @@ export const Settings: React.FC = () => {
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [passwordSuccessMsg, setPasswordSuccessMsg] = useState('');
   const [passwordErrorMsg, setPasswordErrorMsg] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [showFeePass, setShowFeePass] = useState(false);
 
   // Notification Sound Preferences
   const [soundEnabled, setSoundEnabled] = useState(isNotificationSoundEnabled());
@@ -495,21 +499,38 @@ export const Settings: React.FC = () => {
     }
   };
 
-  const handlePasswordUpdate = (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordErrorMsg('');
     setPasswordSuccessMsg('');
-    if (newPassword.length < 6) { setPasswordErrorMsg("New password must be at least 6 characters long."); return; }
-    if (newPassword !== confirmPassword) { setPasswordErrorMsg("New passwords do not match!"); return; }
+    if (!currentPassword) {
+      setPasswordErrorMsg("Please enter your current password.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordErrorMsg("New password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordErrorMsg("New passwords do not match!");
+      return;
+    }
     setIsUpdatingPassword(true);
-    setTimeout(() => {
-      setIsUpdatingPassword(false);
+    try {
+      await api.auth.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
       setPasswordSuccessMsg("Your account password has been updated successfully.");
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setPasswordSuccessMsg(''), 4000);
-    }, 1000);
+    } catch (err: any) {
+      setPasswordErrorMsg(err?.response?.data?.error || err?.message || "Failed to update password.");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   const handleResetQueueData = () => {
@@ -1430,30 +1451,60 @@ export const Settings: React.FC = () => {
                 <form onSubmit={handlePasswordUpdate} className="space-y-4">
                   <Input
                     label="Current Password"
-                    type="password"
+                    type={showCurrentPass ? "text" : "password"}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     isRequired
                     leftIcon={<Lock size={15} />}
+                    rightIcon={
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPass(!showCurrentPass)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        aria-label={showCurrentPass ? "Hide password" : "Show password"}
+                      >
+                        {showCurrentPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    }
                     placeholder="Enter your current login password..."
                   />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
                       label="New Password"
-                      type="password"
+                      type={showNewPass ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       isRequired
                       leftIcon={<KeyRound size={15} />}
+                      rightIcon={
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPass(!showNewPass)}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          aria-label={showNewPass ? "Hide password" : "Show password"}
+                        >
+                          {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      }
                       placeholder="Minimum 6 characters..."
                     />
                     <Input
                       label="Confirm New Password"
-                      type="password"
+                      type={showConfirmPass ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       isRequired
                       leftIcon={<KeyRound size={15} />}
+                      rightIcon={
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPass(!showConfirmPass)}
+                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          aria-label={showConfirmPass ? "Hide password" : "Show password"}
+                        >
+                          {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      }
                       placeholder="Re-enter new password..."
                     />
                   </div>
@@ -2181,13 +2232,23 @@ export const Settings: React.FC = () => {
         <div className="space-y-3">
           <Input
             label="Current Administrator Password"
-            type="password"
+            type={showFeePass ? "text" : "password"}
             value={feePassword}
             onChange={(e) => { setFeePassword(e.target.value); setFeePasswordError(''); }}
             error={feePasswordError}
             isRequired
             autoFocus
             leftIcon={<Lock size={15} />}
+            rightIcon={
+              <button
+                type="button"
+                onClick={() => setShowFeePass(!showFeePass)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                aria-label={showFeePass ? "Hide password" : "Show password"}
+              >
+                {showFeePass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            }
             placeholder="••••••••••••"
           />
         </div>

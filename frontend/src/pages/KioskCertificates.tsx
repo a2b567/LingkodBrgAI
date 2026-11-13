@@ -228,18 +228,43 @@ export const KioskCertificates: React.FC = () => {
     setFee(certFees[certType] ?? 100);
   }, [certType, certFees]);
 
+  // Accurate pointer coordinate calculation for Kiosk touch and mouse
+  const getKioskCoordinates = (canvas: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / (rect.width || 1);
+    const scaleY = canvas.height / (rect.height || 1);
+    let clientX = 0;
+    let clientY = 0;
+    if ('touches' in e && e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('clientX' in e) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Sync buffer resolution to offset dimensions if needed
+    if (canvas.width !== canvas.offsetWidth && canvas.offsetWidth > 0) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight || 224;
+    }
+
     ctx.lineWidth = 3.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#0F172A';
-    const rect = canvas.getBoundingClientRect();
-    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    const { x, y } = getKioskCoordinates(canvas, e);
     ctx.beginPath();
     ctx.moveTo(x, y);
     setIsDrawing(true);
@@ -251,9 +276,7 @@ export const KioskCertificates: React.FC = () => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
+    const { x, y } = getKioskCoordinates(canvas, e);
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -2230,6 +2253,8 @@ export const KioskCertificates: React.FC = () => {
             <div className="border-2 border-slate-700/80 rounded-3xl overflow-hidden bg-slate-50 touch-none relative shadow-inner">
               <canvas
                 ref={canvasRef}
+                width={600}
+                height={224}
                 onMouseDown={startDrawing}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
@@ -2237,7 +2262,7 @@ export const KioskCertificates: React.FC = () => {
                 onTouchStart={startDrawing}
                 onTouchMove={draw}
                 onTouchEnd={stopDrawing}
-                className="cursor-crosshair w-full h-56 block bg-slate-50"
+                className="cursor-crosshair w-full h-56 block bg-slate-50 touch-none"
               />
               <div className="absolute bottom-3 right-4 pointer-events-none text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
                 SIGNATURE PAD

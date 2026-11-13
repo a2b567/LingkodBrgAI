@@ -58,13 +58,13 @@ export const VerifyDocument: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 text-black dark:text-slate-200 relative overflow-hidden">
-      
+
       {/* Background glow dynamics */}
       <div className="ambient-glow glow-blue top-10 left-10"></div>
       <div className="ambient-glow glow-gold bottom-10 right-10"></div>
 
       <div className="max-w-xl w-full bg-white/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50 rounded-3xl p-6 md:p-8 shadow-2xl glass-panel relative z-10 space-y-6">
-        
+
         {/* Back Link */}
         <Link to="/" className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 uppercase tracking-wider mb-2">
           <ArrowLeft size={12} />
@@ -147,7 +147,7 @@ export const VerifyDocument: React.FC = () => {
             </div>
           ) : (
             <div className="border border-slate-200/60 dark:border-slate-800/60 rounded-3xl p-6 bg-slate-50/50 dark:bg-slate-950/20 space-y-4 relative">
-              
+
               {/* Watermark/stamp seal */}
               <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
                 <Stamp size={200} />

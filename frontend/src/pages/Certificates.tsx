@@ -388,21 +388,45 @@ export const Certificates: React.FC = () => {
   };
 
 
-  // Handle signature drawing
+  // Helper to get accurate canvas pointer coordinates
+  const getCanvasCoordinates = (canvas: HTMLCanvasElement, e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / (rect.width || 1);
+    const scaleY = canvas.height / (rect.height || 1);
+    let clientX = 0;
+    let clientY = 0;
+    if ('touches' in e && e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else if ('clientX' in e) {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
+  // Handle signature drawing with exact pixel accuracy
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Ensure internal resolution matches rendered size
+    if (canvas.width !== canvas.offsetWidth && canvas.offsetWidth > 0) {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight || 140;
+    }
+
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     ctx.strokeStyle = '#000080'; // Navy ink
 
-    const rect = canvas.getBoundingClientRect();
-    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
-
+    const { x, y } = getCanvasCoordinates(canvas, e);
     ctx.beginPath();
     ctx.moveTo(x, y);
     setIsDrawing(true);
@@ -415,10 +439,7 @@ export const Certificates: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const x = ('touches' in e) ? e.touches[0].clientX - rect.left : e.clientX - rect.left;
-    const y = ('touches' in e) ? e.touches[0].clientY - rect.top : e.clientY - rect.top;
-
+    const { x, y } = getCanvasCoordinates(canvas, e);
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -1133,6 +1154,8 @@ export const Certificates: React.FC = () => {
                 <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white">
                   <canvas
                     ref={canvasRef}
+                    width={500}
+                    height={140}
                     onMouseDown={startDrawing}
                     onMouseMove={draw}
                     onMouseUp={stopDrawing}
@@ -1140,7 +1163,7 @@ export const Certificates: React.FC = () => {
                     onTouchStart={startDrawing}
                     onTouchMove={draw}
                     onTouchEnd={stopDrawing}
-                    className="cursor-crosshair w-full block bg-white"
+                    className="cursor-crosshair w-full h-[140px] block bg-white touch-none"
                   />
                 </div>
                 <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1">Draw your signature above. It will be <strong className="text-gov-blue-500">automatically embedded</strong> into the final PDF certificate when approved.</p>

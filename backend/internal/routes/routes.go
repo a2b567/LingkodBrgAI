@@ -111,6 +111,7 @@ func SetupRouter() *gin.Engine {
 		protected.GET("/auth/me", authHandler.GetMe)
 		protected.PUT("/auth/me", authHandler.UpdateProfile)
 		protected.PUT("/auth/profile", authHandler.UpdateProfile)
+		protected.POST("/auth/change-password", authHandler.ChangePassword)
 
 		// Notifications
 		protected.GET("/notifications", notifHandler.List)

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   UserPlus, User, Users, Mail, Lock, Loader2, AlertCircle, 
   Calendar, Phone, MapPin, Vote, Accessibility, Award, CheckCircle2, KeyRound, UserCheck,
-  Upload, Sparkles, ShieldCheck, Trash2, FileCheck, Home
+  Upload, Sparkles, ShieldCheck, Trash2, FileCheck, Home, Eye, EyeOff
 } from 'lucide-react';
 import { api, callGroqAI } from '../services/api';
 import { CaptchaModal } from '../components/CaptchaModal';
@@ -117,6 +117,8 @@ export const Register: React.FC = () => {
   // CAPTCHA & Google SSO State
   const [showCaptchaModal, setShowCaptchaModal] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Google SSO & Registration Handler
   const handleGoogleAuth = () => {
@@ -360,14 +362,22 @@ export const Register: React.FC = () => {
                   <div className="relative">
                     <Lock size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
                     <input 
-                      type="password" 
+                      type={showPassword ? "text" : "password"} 
                       name="password" 
                       required 
                       placeholder="Minimum 6 characters" 
                       value={formData.password} 
                       onChange={handleChange} 
-                      className={inputCls} 
+                      className={`${inputCls} pr-10`} 
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
                   </div>
                 </div>
 
@@ -376,14 +386,22 @@ export const Register: React.FC = () => {
                   <div className="relative">
                     <Lock size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
                     <input 
-                      type="password" 
+                      type={showConfirmPassword ? "text" : "password"} 
                       name="confirm_password" 
                       required 
                       placeholder="Re-enter your password" 
                       value={formData.confirm_password} 
                       onChange={handleChange} 
-                      className={inputCls} 
+                      className={`${inputCls} pr-10`} 
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors cursor-pointer"
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
                   </div>
                 </div>
               </div>

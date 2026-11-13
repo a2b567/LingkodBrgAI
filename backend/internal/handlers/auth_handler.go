@@ -596,6 +596,66 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 	})
 }
 
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
+}
+
+func (h *AuthHandler) ChangePassword(c *gin.Context) {
+	userIDVal, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID, ok := userIDVal.(uuid.UUID)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	var req ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Current password and new password (minimum 6 characters) are required"})
+		return
+	}
+
+	db := config.DB
+	var user models.User
+	if err := db.First(&user, "id = ?", userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User account not found"})
+		return
+	}
+
+	// Verify current password
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Current password is incorrect. Please check and try again."})
+		return
+	}
+
+	// Hash new password
+	hashed, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt new password"})
+		return
+	}
+
+	user.PasswordHash = string(hashed)
+	if err := db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update password in database"})
+		return
+	}
+
+	// Audit Log
+	db.Create(&models.AuditLog{
+		UserID:    &user.ID,
+		Action:    "PASSWORD_CHANGE",
+		Details:   "User successfully changed their account password",
+		IPAddress: c.ClientIP(),
+	})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Your account password has been updated successfully."})
+}
+
 func (h *AuthHandler) VerifyOTP(c *gin.Context) {
 	var req struct {
 		Username string `json:"username" binding:"required"`

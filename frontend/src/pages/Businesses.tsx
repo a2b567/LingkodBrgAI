@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Briefcase, Plus, Search, Building2, CheckCircle2, Clock, AlertTriangle, Sparkles } from 'lucide-react';
+import { Briefcase, Plus, Search, Building2, CheckCircle2, Clock, AlertTriangle, Sparkles, X } from 'lucide-react';
 import { api } from '../services/api';
 import type { Business, Resident } from '../types';
 
@@ -110,6 +110,7 @@ export const Businesses: React.FC = () => {
   const totalCount = businesses.length;
   const activeCount = businesses.filter(b => b.status === 'Active').length;
   const pendingInspectionCount = businesses.filter(b => b.inspection_status === 'Pending').length;
+  const suspendedCount = businesses.filter(b => b.status === 'Suspended').length;
   const expiredCount = businesses.filter(b => b.status === 'Expired').length;
 
   return (
@@ -140,11 +141,11 @@ export const Businesses: React.FC = () => {
         </button>
       </div>
 
-      {/* 2. Responsive 4 Overview Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 2. Responsive Overview Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">REGISTERED BUSINESSES</span>
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">REGISTERED</span>
             <span className="text-3xl font-black text-slate-900 dark:text-white">{totalCount}</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-gov-blue-50 dark:bg-gov-blue-950/80 text-gov-blue-600 dark:text-gov-blue-400 flex items-center justify-center border border-gov-blue-200/60 dark:border-gov-blue-800/60">
@@ -154,7 +155,7 @@ export const Businesses: React.FC = () => {
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">ACTIVE PERMITS</span>
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">ACTIVE</span>
             <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{activeCount}</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/60 dark:border-emerald-800/60">
@@ -164,7 +165,7 @@ export const Businesses: React.FC = () => {
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">PENDING INSPECTION</span>
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">PENDING</span>
             <span className="text-3xl font-black text-amber-500 dark:text-amber-400">{pendingInspectionCount}</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/80 text-amber-500 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/60">
@@ -174,11 +175,21 @@ export const Businesses: React.FC = () => {
 
         <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
           <div className="space-y-1">
-            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">EXPIRED PERMITS</span>
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">SUSPENDED</span>
+            <span className="text-3xl font-black text-amber-600 dark:text-amber-400">{suspendedCount}</span>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200/60 dark:border-amber-800/60">
+            <AlertTriangle size={24} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider block">EXPIRED</span>
             <span className="text-3xl font-black text-rose-600 dark:text-rose-400">{expiredCount}</span>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/80 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200/60 dark:border-rose-800/60">
-            <AlertTriangle size={24} />
+            <X size={24} />
           </div>
         </div>
       </div>
@@ -270,13 +281,15 @@ export const Businesses: React.FC = () => {
                           ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
                           : b.status === 'Pending'
                           ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                          : b.status === 'Suspended'
+                          ? 'bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/40 font-black'
                           : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20'
                       }`}>
-                        {b.status}
+                        {b.status === 'Suspended' ? '⚠ Suspended' : b.status}
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1.5 flex-wrap">
                         {b.inspection_status === 'Pending' && (
                           <>
                             <button
@@ -294,12 +307,38 @@ export const Businesses: React.FC = () => {
                           </>
                         )}
                         {b.status === 'Active' ? (
-                          <button
-                            onClick={() => handleUpdatePermitStatus(b.id, 'Expired')}
-                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
-                          >
-                            Expire
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleUpdatePermitStatus(b.id, 'Suspended')}
+                              className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800/60 rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
+                              title="Suspend business operations/permit"
+                            >
+                              Suspend
+                            </button>
+                            <button
+                              onClick={() => handleUpdatePermitStatus(b.id, 'Expired')}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
+                              title="Mark permit as expired"
+                            >
+                              Expire
+                            </button>
+                          </>
+                        ) : b.status === 'Suspended' ? (
+                          <>
+                            <button
+                              onClick={() => handleUpdatePermitStatus(b.id, 'Active')}
+                              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
+                              title="Lift suspension and reactivate"
+                            >
+                              Reactivate
+                            </button>
+                            <button
+                              onClick={() => handleUpdatePermitStatus(b.id, 'Expired')}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-[10px] font-bold cursor-pointer transition-colors"
+                            >
+                              Expire
+                            </button>
+                          </>
                         ) : (
                           <button
                             onClick={() => handleUpdatePermitStatus(b.id, 'Active')}

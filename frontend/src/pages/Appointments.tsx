@@ -83,7 +83,7 @@ export const Appointments: React.FC = () => {
       await api.appointments.book({
         resident_id: residentId,
         purpose,
-        appointment_date: new Date(appointmentDate).toISOString(),
+        appointment_date: appointmentDate.includes('T') ? appointmentDate : `${appointmentDate}T09:00:00Z`,
         time_slot: timeSlot
       });
 
@@ -153,7 +153,12 @@ export const Appointments: React.FC = () => {
           {congestion.map((item, idx) => (
             <div 
               key={idx} 
-              className={`p-3.5 rounded-2xl border text-center relative overflow-hidden ${
+              onClick={() => {
+                setAppointmentDate(item.date.split('T')[0]);
+                setIsModalOpen(true);
+              }}
+              title={`Click to book appointment for ${new Date(item.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
+              className={`p-3.5 rounded-2xl border text-center relative overflow-hidden cursor-pointer hover:scale-[1.03] active:scale-95 transition-all shadow-xs ${
                 item.congestion_risk === 'High' 
                   ? 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300' 
                   : item.congestion_risk === 'Medium'

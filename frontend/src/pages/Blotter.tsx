@@ -39,19 +39,35 @@ const formatHearingSchedule = (sched: any): string => {
 
 const convertToISODateTime = (dateStr: string, timeStr: string): string => {
   try {
-    const [time, modifier] = timeStr.split(' ');
-    let [hoursStr, minutesStr] = time.split(':');
-    let hours = parseInt(hoursStr, 10);
-    if (hours === 12) {
-      hours = 0;
+    if (!timeStr) return `${dateStr}T09:00:00Z`;
+    const cleanTime = timeStr.trim();
+    // 24-hour format: HH:mm
+    if (/^\d{1,2}:\d{2}$/.test(cleanTime)) {
+      const [h, m] = cleanTime.split(':');
+      return `${dateStr}T${h.padStart(2, '0')}:${m}:00Z`;
     }
-    if (modifier === 'PM') {
-      hours += 12;
+    // 12-hour format: HH:mm AM/PM
+    const parts = cleanTime.split(' ');
+    if (parts.length === 2) {
+      const [time, modifier] = parts;
+      let [hoursStr, minutesStr] = time.split(':');
+      let hours = parseInt(hoursStr, 10);
+      if (hours === 12) hours = 0;
+      if (modifier.toUpperCase() === 'PM') hours += 12;
+      return `${dateStr}T${hours.toString().padStart(2, '0')}:${minutesStr}:00Z`;
     }
-    return `${dateStr}T${hours.toString().padStart(2, '0')}:${minutesStr}:00Z`;
+    return `${dateStr}T09:00:00Z`;
   } catch (e) {
-    return `${dateStr}T09:00:00Z`; // fallback
+    return `${dateStr}T09:00:00Z`;
   }
+};
+
+const formatPresetTime = (hhmm: string): string => {
+  const [hStr, mStr] = hhmm.split(':');
+  let h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${mStr} ${ampm}`;
 };
 
 export const BlotterPage: React.FC = () => {
@@ -66,14 +82,18 @@ export const BlotterPage: React.FC = () => {
   const [complainant, setComplainant] = useState('');
   const [respondent, setRespondent] = useState('');
   const [details, setDetails] = useState('');
-  const [incidentDate, setIncidentDate] = useState('');
+  const [incidentDate, setIncidentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [incidentTime, setIncidentTime] = useState(() => {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Hearing modal state
   const [selectedCase, setSelectedCase] = useState<Blotter | null>(null);
   const [isHearingModalOpen, setIsHearingModalOpen] = useState(false);
   const [hearingDate, setHearingDate] = useState('');
-  const [hearingTime, setHearingTime] = useState('09:00 AM');
+  const [hearingTime, setHearingTime] = useState('09:00');
   const [isSummarizing, setIsSummarizing] = useState<string | null>(null);
 
   // Import/Export state
@@ -106,11 +126,12 @@ export const BlotterPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
+      const incidentIso = convertToISODateTime(incidentDate, incidentTime);
       await api.blotters.create({
         complainant,
         respondent,
         details,
-        incident_date: new Date(incidentDate).toISOString(),
+        incident_date: incidentIso,
         status: 'Pending',
         hearing_schedules: '[]'
       });
@@ -119,7 +140,11 @@ export const BlotterPage: React.FC = () => {
       setComplainant('');
       setRespondent('');
       setDetails('');
-      setIncidentDate('');
+      setIncidentDate(new Date().toISOString().split('T')[0]);
+      setIncidentTime(() => {
+        const d = new Date();
+        return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      });
       fetchCases();
     } catch (err: any) {
       alert(err.response?.data?.error || "Failed to log case");
@@ -585,16 +610,29 @@ export const BlotterPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Incident Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={incidentDate}
-                  onChange={(e) => setIncidentDate(e.target.value)}
-                  required
-                  title="Incident Date & Time"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Incident Date</label>
+                  <input
+                    type="date"
+                    value={incidentDate}
+                    onChange={(e) => setIncidentDate(e.target.value)}
+                    required
+                    title="Incident Date"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Incident Time (Hayaan ilagay)</label>
+                  <input
+                    type="time"
+                    value={incidentTime}
+                    onChange={(e) => setIncidentTime(e.target.value)}
+                    required
+                    title="Incident Time"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
               </div>
 
               <div>
@@ -662,19 +700,34 @@ export const BlotterPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Hearing Time</label>
-                <select
-                  value={hearingTime}
-                  onChange={(e) => setHearingTime(e.target.value)}
-                  title="Hearing Time"
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
-                >
-                  <option value="09:00 AM">09:00 AM</option>
-                  <option value="10:00 AM">10:00 AM</option>
-                  <option value="11:00 AM">11:00 AM</option>
-                  <option value="01:30 PM">01:30 PM</option>
-                  <option value="03:00 PM">03:00 PM</option>
-                </select>
+                <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block mb-1">Hearing Time (Ilagay ang Oras)</label>
+                <div className="space-y-2">
+                  <input
+                    type="time"
+                    value={hearingTime}
+                    onChange={(e) => setHearingTime(e.target.value)}
+                    required
+                    title="Hearing Time"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white font-mono text-sm"
+                  />
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-slate-400 font-bold">Preset:</span>
+                    {['09:00', '10:00', '11:00', '13:30', '15:00'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setHearingTime(preset)}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-colors cursor-pointer ${
+                          hearingTime === preset 
+                            ? 'bg-gov-blue-600 text-white border-gov-blue-600'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {formatPresetTime(preset)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2">
