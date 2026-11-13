@@ -177,7 +177,7 @@ export const HealthRecords: React.FC = () => {
       medicineName: firstMed,
       quantity: 1,
       recipientName: '',
-      purpose: 'Lagnat / Sakit ng Ulo',
+      purpose: 'Fever / Headache',
       notes: '',
       selectedRecordId: null,
     });
@@ -187,22 +187,22 @@ export const HealthRecords: React.FC = () => {
   const handleDispense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!dispenseForm.medicineName) {
-      alert('Piliin ang gamot na ibabawas.');
+      alert('Please select the medicine to dispense.');
       return;
     }
     if (!dispenseForm.recipientName.trim()) {
-      alert('Pakilagay kung sinong pasyente o residente ang tumanggap ng gamot (Saan Napunta).');
+      alert('Please specify the recipient patient or resident name.');
       return;
     }
 
     const stockItem = medicineStock.find(m => m.name === dispenseForm.medicineName);
     if (!stockItem) {
-      alert('Hindi mahanap ang gamot sa inventory stock.');
+      alert('Medicine not found in inventory stock.');
       return;
     }
 
     if (stockItem.stock < dispenseForm.quantity) {
-      alert(`Kulang ang stock! Mayroon na lamang ${stockItem.stock} ${stockItem.unit} ng ${stockItem.name} na natitira.`);
+      alert(`Insufficient stock! Only ${stockItem.stock} ${stockItem.unit} of ${stockItem.name} remaining.`);
       return;
     }
 
@@ -220,7 +220,7 @@ export const HealthRecords: React.FC = () => {
       m.name === dispenseForm.medicineName ? { ...m, stock: newStockCount } : m
     ));
 
-    // 3. Create persistent Audit Trail entry (saan napunta ang gamot)
+    // 3. Create persistent Audit Trail entry (dispense logs)
     const newLog: MedicineDispenseLog = {
       id: `DISP-${Date.now()}`,
       medicineId: stockItem.id,
@@ -269,16 +269,16 @@ export const HealthRecords: React.FC = () => {
       }));
     }
 
-    setDispenseFeedback(`✓ Naibawas ang ${dispenseForm.quantity} ${stockItem.unit} ng ${stockItem.name} para kay ${dispenseForm.recipientName}! (Natirang stock: ${newStockCount} ${stockItem.unit})`);
+    setDispenseFeedback(`✓ Successfully dispensed ${dispenseForm.quantity} ${stockItem.unit} of ${stockItem.name} to ${dispenseForm.recipientName}! (Remaining stock: ${newStockCount} ${stockItem.unit})`);
     setTimeout(() => setDispenseFeedback(null), 6000);
 
     setIsDispenseModalOpen(false);
-    setDispenseForm({ medicineName: '', quantity: 1, recipientName: '', purpose: 'Lagnat / Sakit ng Ulo', notes: '', selectedRecordId: null });
+    setDispenseForm({ medicineName: '', quantity: 1, recipientName: '', purpose: 'Fever / Headache', notes: '', selectedRecordId: null });
   };
 
   const handleExportDispenseLogCSV = () => {
     if (dispenseLogs.length === 0) {
-      alert('Walang talaan ng naipamahaging gamot upang i-export.');
+      alert('No dispensed medicine records available to export.');
       return;
     }
     const headers = ['date', 'time', 'medicine_name', 'category', 'quantity_dispensed', 'unit', 'recipient_patient', 'purpose_diagnosis', 'dispensed_by', 'remaining_stock', 'notes'];
@@ -1101,7 +1101,7 @@ export const HealthRecords: React.FC = () => {
             }`}
           >
             <History size={15} />
-            <span>Saan Napunta ang Gamot</span>
+            <span>Dispense History</span>
             {dispenseLogs.length > 0 && (
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                 {dispenseLogs.length}
@@ -1744,21 +1744,21 @@ export const HealthRecords: React.FC = () => {
                           <div className="flex items-center gap-1.5 justify-end">
                             <button
                               onClick={() => handleOpenDispenseForMed(med)}
-                              title="Bawas Stock / Ibigay sa Residente"
+                              title="Dispense Stock / Issue to Resident"
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-300 rounded-xl text-[10px] font-black uppercase border border-rose-200 dark:border-rose-800 transition-colors cursor-pointer"
                             >
-                              <Minus size={12} /> Bawas
+                              <Minus size={12} /> Dispense
                             </button>
                             <button
                               onClick={() => handleRestock(med.id, 20)}
-                              title="Dagdag +20 Stock"
+                              title="Restock +20 Units"
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 dark:text-emerald-300 rounded-xl text-[10px] font-black uppercase border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer"
                             >
                               <PackagePlus size={12} /> +20
                             </button>
                             <button
                               onClick={() => { setDispenseLogMedFilter(med.name); setView('dispense-logs'); }}
-                              title="Tignan kung saan napunta ang gamot na ito"
+                              title="View Dispense History & Audit Trail"
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 dark:text-blue-300 rounded-xl text-[10px] font-black uppercase border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
                             >
                               <History size={12} /> History
@@ -1782,7 +1782,7 @@ export const HealthRecords: React.FC = () => {
         </div>
       )}
 
-      {/* ============ VIEW: Saan Napunta Ang Gamot (Dispense History / Audit Trail) ============ */}
+      {/* ============ VIEW: Dispense History & Audit Trail ============ */}
       {view === 'dispense-logs' && (
         <div className="space-y-6 animate-in fade-in duration-300">
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -1790,7 +1790,7 @@ export const HealthRecords: React.FC = () => {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="text"
-                placeholder="Hanapin pasyente, gamot, dahilan, o health worker..."
+                placeholder="Search patient, medicine, purpose, or health worker..."
                 value={dispenseLogSearch}
                 onChange={e => setDispenseLogSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:outline-none focus:ring-2 focus:ring-rose-500/20 shadow-sm"
@@ -1802,7 +1802,7 @@ export const HealthRecords: React.FC = () => {
                 onChange={e => setDispenseLogMedFilter(e.target.value)}
                 className="px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:outline-none shadow-sm cursor-pointer"
               >
-                <option value="ALL">Lahat ng Gamot</option>
+                <option value="ALL">All Medicines</option>
                 {medicineStock.map(m => (
                   <option key={m.id} value={m.name}>{m.name}</option>
                 ))}
@@ -1811,7 +1811,7 @@ export const HealthRecords: React.FC = () => {
                 onClick={handleOpenGeneralDispense}
                 className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl text-xs font-black flex items-center gap-2 shadow-lg shadow-rose-600/20 cursor-pointer"
               >
-                <Pill size={15} /> Magbawas / Mag-dispense
+                <Pill size={15} /> Dispense Medicine
               </button>
               <button
                 onClick={handleExportDispenseLogCSV}
@@ -1827,13 +1827,13 @@ export const HealthRecords: React.FC = () => {
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="px-6 py-4">Petsa & Oras</th>
-                    <th className="px-6 py-4">Gamot / Bakuna</th>
-                    <th className="px-6 py-4 text-center">Bilang Na Bawas</th>
-                    <th className="px-6 py-4">Kanino Napunta (Pasyente / Residente)</th>
-                    <th className="px-6 py-4">Dahilan / Rekomendasyon</th>
+                    <th className="px-6 py-4">Date & Time</th>
+                    <th className="px-6 py-4">Medicine / Vaccine</th>
+                    <th className="px-6 py-4 text-center">Quantity Dispensed</th>
+                    <th className="px-6 py-4">Recipient (Patient / Resident)</th>
+                    <th className="px-6 py-4">Purpose / Recommendation</th>
                     <th className="px-6 py-4">Health Worker</th>
-                    <th className="px-6 py-4">Natitirang Stock</th>
+                    <th className="px-6 py-4">Remaining Stock</th>
                     <th className="px-6 py-4">Notes</th>
                   </tr>
                 </thead>
@@ -1900,8 +1900,8 @@ export const HealthRecords: React.FC = () => {
                     <tr>
                       <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
                         <History size={36} className="mx-auto mb-2 text-slate-300 dark:text-slate-700" />
-                        <p className="font-bold text-sm">Walang tala ng nabawas na gamot.</p>
-                        <p className="text-xs text-slate-500 mt-1">Kapag nag-bawas o nag-dispense ng gamot gamit ang "- Bawas", lilitaw rito ang buong detalye kung kanino napunta.</p>
+                        <p className="font-bold text-sm">No dispensed medicine logs found.</p>
+                        <p className="text-xs text-slate-500 mt-1">When medicine is dispensed to a patient or resident, complete distribution details will appear here.</p>
                       </td>
                     </tr>
                   )}
@@ -2043,21 +2043,21 @@ export const HealthRecords: React.FC = () => {
         </div>
       )}
 
-      {/* ============ MODAL: Dispense Medicine (Bawas Gamot & San Napunta) ============ */}
+      {/* ============ MODAL: Dispense Medicine ============ */}
       {isDispenseModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full shadow-2xl p-6">
             <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1.5 flex items-center gap-2">
               <Pill className="text-rose-500" />
-              Bawas Gamot / Dispense Medicine
+              Dispense Medicine
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              I-record ang pagbawas ng stock at kung kaninong pasyente o residente ito napunta.
+              Record inventory deduction and recipient patient details.
             </p>
             <form onSubmit={handleDispense} className="space-y-4">
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
-                  Piliin ang Gamot / Bakuna <span className="text-rose-500">*</span>
+                  Select Medicine / Vaccine <span className="text-rose-500">*</span>
                 </label>
                 <select
                   required
@@ -2065,10 +2065,10 @@ export const HealthRecords: React.FC = () => {
                   onChange={e => setDispenseForm({...dispenseForm, medicineName: e.target.value})}
                   className={inputCls}
                 >
-                  <option value="">-- Piliin ang Gamot --</option>
+                  <option value="">-- Select Medicine --</option>
                   {medicineStock.map(m => (
                     <option key={m.id} value={m.name}>
-                      {m.name} ({m.stock} {m.unit} natitira)
+                      {m.name} ({m.stock} {m.unit} remaining)
                     </option>
                   ))}
                 </select>
@@ -2076,7 +2076,7 @@ export const HealthRecords: React.FC = () => {
 
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
-                  Bilang / Quantity na Ibabawas <span className="text-rose-500">*</span>
+                  Quantity to Dispense <span className="text-rose-500">*</span>
                 </label>
                 <input
                   required
@@ -2090,13 +2090,13 @@ export const HealthRecords: React.FC = () => {
 
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
-                  Kanino Napunta (Pangalan ng Pasyente / Residente) <span className="text-rose-500">*</span>
+                  Recipient (Patient / Resident Name) <span className="text-rose-500">*</span>
                 </label>
                 <input
                   required
                   type="text"
                   list="resident-names-list"
-                  placeholder="e.g. Maria Clara Santos o piliin sa listahan"
+                  placeholder="e.g. Maria Clara Santos or select from list"
                   value={dispenseForm.recipientName}
                   onChange={e => setDispenseForm({...dispenseForm, recipientName: e.target.value})}
                   className={inputCls}
@@ -2106,16 +2106,16 @@ export const HealthRecords: React.FC = () => {
                     <option key={i} value={name} />
                   ))}
                 </datalist>
-                <p className="text-[10px] text-slate-400 mt-1">May auto-complete mula sa registered residents ng barangay.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Auto-completes from registered barangay residents.</p>
               </div>
 
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
-                  Dahilan / Rekomendasyon (Purpose)
+                  Purpose / Medical Recommendation
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Lagnat, Ubo, Maintenance, First Aid, Reseta ni Doc"
+                  placeholder="e.g. Fever, Cough, Hypertension Maintenance, First Aid, Doctor Prescription"
                   value={dispenseForm.purpose}
                   onChange={e => setDispenseForm({...dispenseForm, purpose: e.target.value})}
                   className={inputCls}
@@ -2124,11 +2124,11 @@ export const HealthRecords: React.FC = () => {
 
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-500 block mb-1">
-                  Karagdagang Tala / Notes (Optional)
+                  Additional Notes (Optional)
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. 1 tableta bawat 8 oras pagkatapos kumain..."
+                  placeholder="e.g. 1 tablet every 8 hours after meals..."
                   value={dispenseForm.notes}
                   onChange={e => setDispenseForm({...dispenseForm, notes: e.target.value})}
                   className={inputCls}
@@ -2147,7 +2147,7 @@ export const HealthRecords: React.FC = () => {
                   type="submit"
                   className="px-5 py-2.5 font-black text-xs text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/30 flex items-center gap-2 cursor-pointer"
                 >
-                  <Pill size={14} /> I-bawas at I-rekord
+                  <Pill size={14} /> Confirm & Dispense
                 </button>
               </div>
             </form>
