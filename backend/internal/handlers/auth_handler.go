@@ -257,9 +257,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			"resident":    user.Resident,
 		},
 	}
-	if !user.IsVerified {
-		resp["otp"] = user.OTP
-	}
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -747,7 +744,6 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 
 	resp := gin.H{
 		"message": "A verification OTP has been sent to your email address. Please check your inbox.",
-		"otp":     otp,
 	}
 	c.JSON(http.StatusOK, resp)
 }

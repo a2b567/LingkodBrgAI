@@ -46,7 +46,7 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [sandboxOtp, setSandboxOtp] = useState('');
+  const [, setSandboxOtp] = useState('');
   const [isResending, setIsResending] = useState(false);
   
   const loginStore = useAuthStore(state => state.login);
@@ -309,19 +309,9 @@ export const Login: React.FC = () => {
             </form>
           ) : (
             <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
-              {sandboxOtp ? (
-                <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 text-xs font-semibold rounded-2xl border border-amber-200/40 dark:border-amber-900/30">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold">Reset OTP Code:</span>
-                    <span className="bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded font-mono text-sm tracking-wider font-extrabold">{sandboxOtp}</span>
-                  </div>
-                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">Maaari ring gamitin ang instant code: <strong>123456</strong></p>
-                </div>
-              ) : (
-                <div className="p-2.5 bg-blue-50/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-[11px] rounded-2xl border border-blue-200/40 dark:border-slate-700/50 text-center font-medium">
-                  Pakitingnan ang iyong email inbox o gamitin ang instant code: <strong className="text-gov-blue-600 dark:text-gov-blue-400 font-mono">123456</strong>
-                </div>
-              )}
+              <div className="p-3 bg-gov-blue-50/50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 text-xs rounded-2xl border border-gov-blue-200/50 dark:border-slate-800 text-center font-medium">
+                Pakitingnan ang iyong email inbox o spam folder para sa 6-digit verification OTP code na ipinadala sa iyong Gmail.
+              </div>
 
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
@@ -555,19 +545,9 @@ export const Login: React.FC = () => {
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            {sandboxOtp ? (
-              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-300">
-                <div className="font-bold flex items-center justify-between">
-                  <span>Verification Security Code:</span>
-                  <span className="bg-amber-400 text-slate-900 font-mono font-black text-sm px-2.5 py-0.5 rounded-lg tracking-widest">{sandboxOtp}</span>
-                </div>
-                <p className="text-[10px] text-amber-200/80 mt-1">Maaari ring gamitin ang instant demo code: <strong className="text-white">123456</strong></p>
-              </div>
-            ) : (
-              <div className="p-2.5 bg-blue-50/10 text-slate-300 text-[11px] rounded-2xl border border-blue-500/20 text-center">
-                Maaari mong gamitin ang ipinadalang code sa email o ang instant verification code: <strong className="text-gov-blue-400 font-mono">123456</strong>
-              </div>
-            )}
+            <div className="p-3 bg-gov-blue-50/50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-300 text-xs rounded-2xl border border-gov-blue-200/50 dark:border-slate-800 text-center font-medium">
+              Isang 6-digit verification code ang ipinadala sa iyong registered email address. Pakitingnan ang iyong inbox o spam folder.
+            </div>
 
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
