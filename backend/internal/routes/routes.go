@@ -5,6 +5,7 @@ import (
 
 	"backend/internal/handlers"
 	"backend/internal/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -134,11 +135,11 @@ func SetupRouter() *gin.Engine {
 		// Staff & Admins Only endpoints
 		staffOnly := protected.Group("")
 		staffOnly.Use(middleware.RequireRoles(
-			"Super Admin", 
-			"Barangay Captain", 
-			"Secretary", 
-			"Treasurer", 
-			"Health Worker", 
+			"Super Admin",
+			"Barangay Captain",
+			"Secretary",
+			"Treasurer",
+			"Health Worker",
 			"Staff",
 			"Developer",
 		))

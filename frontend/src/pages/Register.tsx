@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  UserPlus, User, Users, Mail, Lock, Loader2, AlertCircle, 
+import {
+  UserPlus, User, Users, Mail, Lock, Loader2, AlertCircle,
   Calendar, Phone, MapPin, Vote, Accessibility, Award, CheckCircle2, KeyRound, UserCheck,
   Upload, Sparkles, ShieldCheck, Trash2, FileCheck, Home, Eye, EyeOff
 } from 'lucide-react';
@@ -76,8 +76,8 @@ export const Register: React.FC = () => {
       setFormData(prev => ({ ...prev, address: '' }));
     } else {
       const cleanStreet = streetDetail.trim();
-      const combined = cleanStreet 
-        ? `${cleanStreet}, ${purok}, ${OFFICIAL_BARANGAY}` 
+      const combined = cleanStreet
+        ? `${cleanStreet}, ${purok}, ${OFFICIAL_BARANGAY}`
         : `${purok}, ${OFFICIAL_BARANGAY}`;
       setFormData(prev => ({ ...prev, address: combined }));
     }
@@ -89,8 +89,8 @@ export const Register: React.FC = () => {
       setFormData(prev => ({ ...prev, address: val }));
     } else if (selectedPurok) {
       const cleanStreet = val.trim();
-      const combined = cleanStreet 
-        ? `${cleanStreet}, ${selectedPurok}, ${OFFICIAL_BARANGAY}` 
+      const combined = cleanStreet
+        ? `${cleanStreet}, ${selectedPurok}, ${OFFICIAL_BARANGAY}`
         : `${selectedPurok}, ${OFFICIAL_BARANGAY}`;
       setFormData(prev => ({ ...prev, address: combined }));
     }
@@ -170,7 +170,7 @@ export const Register: React.FC = () => {
       try {
         const typeLabel = sectoralType === 'pwd' ? 'Person with Disability (PWD) ID' : 'Senior Citizen ID';
         const prompt = `Analyze this uploaded document proof named "${file.name}" (file size ${Math.round(file.size / 1024)}KB) submitted for ${typeLabel} verification in Barangay registration. Determine if this file name and document format appears to be a legitimate Philippine Government issued ID or medical certification. Reply in JSON format strictly: {"legitimate": true, "reason": "Short summary why valid", "confidence": "High"}`;
-        
+
         const responseText = await callGroqAI(prompt, 'You are an AI document verification officer for Philippine Barangay registration. Output strict JSON with keys: legitimate (boolean), reason (string), confidence (string).');
 
         try {
@@ -211,7 +211,7 @@ export const Register: React.FC = () => {
       setError('Please select your complete address / purok.');
       return;
     }
-    
+
     // Check Sectoral ID Upload if PWD or Senior selected
     if (sectoralType !== 'none') {
       if (!idProofImage) {
@@ -261,7 +261,7 @@ export const Register: React.FC = () => {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 overflow-x-hidden font-sans p-4 sm:p-6 transition-colors duration-300">
-      
+
       {/* Background Glow Ambience */}
       <div className="absolute top-[-10%] left-[-15%] w-[55vw] h-[55vw] bg-gov-blue-500/10 dark:bg-gov-blue-500/15 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="absolute bottom-[-10%] right-[-15%] w-[55vw] h-[55vw] bg-gov-gold-500/10 dark:bg-gov-gold-500/15 rounded-full blur-[140px] pointer-events-none z-0" />
@@ -279,7 +279,7 @@ export const Register: React.FC = () => {
               Official
             </span>
           </div>
-          
+
           <div>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white uppercase">
               Resident Registration
@@ -297,7 +297,7 @@ export const Register: React.FC = () => {
             <span>{error}</span>
           </div>
         )}
-        
+
         {success && (
           <div className="mb-6 p-5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-2xl border border-emerald-200/60 dark:border-emerald-900/40 space-y-1">
             <div className="flex items-center gap-2 font-black text-sm text-emerald-800 dark:text-emerald-200">
@@ -329,14 +329,14 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Username</label>
                   <div className="relative">
                     <User size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type="text" 
-                      name="username" 
-                      required 
-                      placeholder="e.g. juan_delacruz" 
-                      value={formData.username} 
-                      onChange={handleChange} 
-                      className={inputCls} 
+                    <input
+                      type="text"
+                      name="username"
+                      required
+                      placeholder="e.g. juan_delacruz"
+                      value={formData.username}
+                      onChange={handleChange}
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -345,14 +345,14 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Email Address</label>
                   <div className="relative">
                     <Mail size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type="email" 
-                      name="email" 
-                      required 
-                      placeholder="your.email@domain.com" 
-                      value={formData.email} 
-                      onChange={handleChange} 
-                      className={inputCls} 
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      placeholder="your.email@domain.com"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -361,14 +361,14 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Password</label>
                   <div className="relative">
                     <Lock size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      name="password" 
-                      required 
-                      placeholder="Minimum 6 characters" 
-                      value={formData.password} 
-                      onChange={handleChange} 
-                      className={`${inputCls} pr-10`} 
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      required
+                      placeholder="Minimum 6 characters"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className={`${inputCls} pr-10`}
                     />
                     <button
                       type="button"
@@ -385,14 +385,14 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Confirm Password</label>
                   <div className="relative">
                     <Lock size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type={showConfirmPassword ? "text" : "password"} 
-                      name="confirm_password" 
-                      required 
-                      placeholder="Re-enter your password" 
-                      value={formData.confirm_password} 
-                      onChange={handleChange} 
-                      className={`${inputCls} pr-10`} 
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      name="confirm_password"
+                      required
+                      placeholder="Re-enter your password"
+                      value={formData.confirm_password}
+                      onChange={handleChange}
+                      className={`${inputCls} pr-10`}
                     />
                     <button
                       type="button"
@@ -424,14 +424,14 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>First Name</label>
                   <div className="relative">
                     <User size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type="text" 
-                      name="first_name" 
-                      required 
-                      placeholder="Juan" 
-                      value={formData.first_name} 
-                      onChange={handleChange} 
-                      className={inputCls} 
+                    <input
+                      type="text"
+                      name="first_name"
+                      required
+                      placeholder="Juan"
+                      value={formData.first_name}
+                      onChange={handleChange}
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -440,13 +440,13 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Middle Name</label>
                   <div className="relative">
                     <User size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type="text" 
-                      name="middle_name" 
-                      placeholder="Optional" 
-                      value={formData.middle_name} 
-                      onChange={handleChange} 
-                      className={inputCls} 
+                    <input
+                      type="text"
+                      name="middle_name"
+                      placeholder="Optional"
+                      value={formData.middle_name}
+                      onChange={handleChange}
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -455,14 +455,14 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Last Name</label>
                   <div className="relative">
                     <User size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type="text" 
-                      name="last_name" 
-                      required 
-                      placeholder="Dela Cruz" 
-                      value={formData.last_name} 
-                      onChange={handleChange} 
-                      className={inputCls} 
+                    <input
+                      type="text"
+                      name="last_name"
+                      required
+                      placeholder="Dela Cruz"
+                      value={formData.last_name}
+                      onChange={handleChange}
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -471,13 +471,13 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Suffix</label>
                   <div className="relative">
                     <Award size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type="text" 
-                      name="suffix" 
-                      placeholder="Jr., Sr., III (Optional)" 
-                      value={formData.suffix} 
-                      onChange={handleChange} 
-                      className={inputCls} 
+                    <input
+                      type="text"
+                      name="suffix"
+                      placeholder="Jr., Sr., III (Optional)"
+                      value={formData.suffix}
+                      onChange={handleChange}
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -489,15 +489,15 @@ export const Register: React.FC = () => {
                   <label htmlFor="birthdate" className={labelCls}>Birthdate</label>
                   <div className="relative">
                     <Calendar size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                    <input 
-                      id="birthdate" 
-                      type="date" 
-                      name="birthdate" 
-                      required 
-                      value={formData.birthdate} 
-                      onChange={handleChange} 
-                      title="Birthdate" 
-                      className={inputCls} 
+                    <input
+                      id="birthdate"
+                      type="date"
+                      name="birthdate"
+                      required
+                      value={formData.birthdate}
+                      onChange={handleChange}
+                      title="Birthdate"
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -506,12 +506,12 @@ export const Register: React.FC = () => {
                   <label htmlFor="gender" className={labelCls}>Gender</label>
                   <div className="relative">
                     <Users size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                    <select 
-                      id="gender" 
-                      name="gender" 
-                      value={formData.gender} 
-                      onChange={handleChange} 
-                      title="Gender" 
+                    <select
+                      id="gender"
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      title="Gender"
                       className={inputCls}
                     >
                       <option value="Male">Male</option>
@@ -524,13 +524,13 @@ export const Register: React.FC = () => {
                   <label className={labelCls}>Contact Number</label>
                   <div className="relative">
                     <Phone size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500" />
-                    <input 
-                      type="text" 
-                      name="contact_number" 
-                      placeholder="09xxxxxxxxx" 
-                      value={formData.contact_number} 
-                      onChange={handleChange} 
-                      className={inputCls} 
+                    <input
+                      type="text"
+                      name="contact_number"
+                      placeholder="09xxxxxxxxx"
+                      value={formData.contact_number}
+                      onChange={handleChange}
+                      className={inputCls}
                     />
                   </div>
                 </div>
@@ -541,7 +541,7 @@ export const Register: React.FC = () => {
                 <label htmlFor="address_purok" className={labelCls}>
                   Complete Address (Purok / Sitio) *
                 </label>
-                
+
                 <div className="relative">
                   <MapPin size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
                   <select
@@ -565,12 +565,12 @@ export const Register: React.FC = () => {
                 {selectedPurok && selectedPurok !== 'custom' && (
                   <div className="relative animate-in fade-in duration-200">
                     <Home size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                    <input 
-                      type="text" 
-                      placeholder="House No., Street Name, or Sitio (Opsyonal)" 
-                      value={streetDetail} 
-                      onChange={(e) => handleStreetChange(e.target.value)} 
-                      className={inputCls} 
+                    <input
+                      type="text"
+                      placeholder="House No., Street Name, or Sitio (Opsyonal)"
+                      value={streetDetail}
+                      onChange={(e) => handleStreetChange(e.target.value)}
+                      className={inputCls}
                     />
                   </div>
                 )}
@@ -579,13 +579,13 @@ export const Register: React.FC = () => {
                 {selectedPurok === 'custom' && (
                   <div className="relative animate-in fade-in duration-200">
                     <MapPin size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       required
-                      placeholder="Ilagay ang Buong Address (House No., Street, Purok, etc.)" 
-                      value={streetDetail} 
-                      onChange={(e) => handleStreetChange(e.target.value)} 
-                      className={inputCls} 
+                      placeholder="Ilagay ang Buong Address (House No., Street, Purok, etc.)"
+                      value={streetDetail}
+                      onChange={(e) => handleStreetChange(e.target.value)}
+                      className={inputCls}
                     />
                   </div>
                 )}
@@ -605,12 +605,12 @@ export const Register: React.FC = () => {
                 <label htmlFor="voter_status" className={labelCls}>Voter Registration</label>
                 <div className="relative">
                   <Vote size={15} className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 pointer-events-none" />
-                  <select 
-                    id="voter_status" 
-                    name="voter_status" 
-                    value={formData.voter_status} 
-                    onChange={handleChange} 
-                    title="Voter Registration" 
+                  <select
+                    id="voter_status"
+                    name="voter_status"
+                    value={formData.voter_status}
+                    onChange={handleChange}
+                    title="Voter Registration"
                     className={inputCls}
                   >
                     <option value="Not Registered">Not Registered</option>
@@ -639,16 +639,14 @@ export const Register: React.FC = () => {
                   {/* PWD Choice Card */}
                   <div
                     onClick={() => handleSelectSectoral('pwd')}
-                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${
-                      sectoralType === 'pwd'
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${sectoralType === 'pwd'
                         ? 'bg-gov-blue-500/10 border-gov-blue-500 text-gov-blue-700 dark:text-gov-blue-300 ring-2 ring-gov-blue-500/20'
                         : 'bg-slate-50 dark:bg-slate-950/80 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl transition-colors ${
-                        sectoralType === 'pwd' ? 'bg-gov-blue-600 text-white shadow-md' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-500'
-                      }`}>
+                      <div className={`p-2.5 rounded-xl transition-colors ${sectoralType === 'pwd' ? 'bg-gov-blue-600 text-white shadow-md' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-500'
+                        }`}>
                         <Accessibility size={18} />
                       </div>
                       <div>
@@ -657,11 +655,10 @@ export const Register: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      sectoralType === 'pwd'
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${sectoralType === 'pwd'
                         ? 'border-gov-blue-600 bg-gov-blue-600 text-white'
                         : 'border-slate-300 dark:border-slate-700'
-                    }`}>
+                      }`}>
                       {sectoralType === 'pwd' && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                   </div>
@@ -669,16 +666,14 @@ export const Register: React.FC = () => {
                   {/* Senior Citizen Choice Card */}
                   <div
                     onClick={() => handleSelectSectoral('senior')}
-                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${
-                      sectoralType === 'senior'
+                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all cursor-pointer select-none ${sectoralType === 'senior'
                         ? 'bg-gov-blue-500/10 border-gov-blue-500 text-gov-blue-700 dark:text-gov-blue-300 ring-2 ring-gov-blue-500/20'
                         : 'bg-slate-50 dark:bg-slate-950/80 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2.5 rounded-xl transition-colors ${
-                        sectoralType === 'senior' ? 'bg-gov-blue-600 text-white shadow-md' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-500'
-                      }`}>
+                      <div className={`p-2.5 rounded-xl transition-colors ${sectoralType === 'senior' ? 'bg-gov-blue-600 text-white shadow-md' : 'bg-slate-200/80 dark:bg-slate-800 text-slate-500'
+                        }`}>
                         <UserCheck size={18} />
                       </div>
                       <div>
@@ -687,11 +682,10 @@ export const Register: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                      sectoralType === 'senior'
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${sectoralType === 'senior'
                         ? 'border-gov-blue-600 bg-gov-blue-600 text-white'
                         : 'border-slate-300 dark:border-slate-700'
-                    }`}>
+                      }`}>
                       {sectoralType === 'senior' && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                   </div>
@@ -805,11 +799,10 @@ export const Register: React.FC = () => {
             </div>
 
             {/* ── Data Privacy Notice (RA 10173) ── */}
-            <div className={`p-4 sm:p-5 rounded-2xl border transition-all space-y-3 ${
-              privacyError
+            <div className={`p-4 sm:p-5 rounded-2xl border transition-all space-y-3 ${privacyError
                 ? 'bg-rose-50/50 dark:bg-rose-950/20 border-rose-400 dark:border-rose-900/50'
                 : 'bg-slate-50 dark:bg-slate-950/60 border-slate-200 dark:border-slate-800'
-            }`}>
+              }`}>
               <div className="text-[10px] leading-relaxed">
                 <span className="font-black uppercase tracking-wider text-gov-blue-600 dark:text-gov-blue-400 block mb-1">
                   Data Privacy Notice (RA 10173):
@@ -820,11 +813,11 @@ export const Register: React.FC = () => {
               </div>
 
               <label className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/60 cursor-pointer select-none hover:border-gov-blue-500 transition-colors">
-                <input 
-                  type="checkbox" 
-                  checked={privacyConsent} 
-                  onChange={(e) => { setPrivacyConsent(e.target.checked); setPrivacyError(false); }} 
-                  className="w-4 h-4 accent-gov-blue-600 rounded flex-shrink-0 cursor-pointer" 
+                <input
+                  type="checkbox"
+                  checked={privacyConsent}
+                  onChange={(e) => { setPrivacyConsent(e.target.checked); setPrivacyError(false); }}
+                  className="w-4 h-4 accent-gov-blue-600 rounded flex-shrink-0 cursor-pointer"
                 />
                 <span className="text-[11px] font-semibold text-slate-800 dark:text-slate-200 leading-snug">
                   I have read and understood the Data Privacy Notice. I confirm that all submitted information is accurate and voluntarily provided.
@@ -841,8 +834,8 @@ export const Register: React.FC = () => {
 
             {/* ── Submit Action Button (Magbubukas ng CAPTCHA Popup kapag pinindot) ── */}
             <div className="pt-2">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 disabled={isLoading}
                 className="w-full bg-gradient-to-r from-gov-blue-600 via-gov-blue-700 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-extrabold py-4 rounded-2xl text-xs tracking-wider uppercase transition-all shadow-lg shadow-gov-blue-600/30 hover:shadow-gov-blue-600/50 flex items-center justify-center gap-2 cursor-pointer"
               >

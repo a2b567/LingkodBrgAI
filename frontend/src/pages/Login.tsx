@@ -91,8 +91,11 @@ export const Login: React.FC = () => {
       
       if (!data.user.is_verified) {
         setOtpMode(true);
+        if ((data as any).otp) {
+          setSandboxOtp((data as any).otp);
+        }
         const emailHint = data.user.email ? `sa ${data.user.email}` : 'sa iyong email';
-        setInfo(`Isang 6-digit verification code ang ipinadala ${emailHint}. Pakitingnan ang iyong inbox o spam folder.`);
+        setInfo(`Isang 6-digit verification code ang ipinadala ${emailHint}. Pakitingnan ang iyong inbox o gamitin ang code sa ibaba.`);
         setIsLoading(false);
         return;
       }
@@ -118,6 +121,7 @@ export const Login: React.FC = () => {
     try {
       await api.auth.verifyOtp({ username, otp: otpCode });
       setOtpMode(false);
+      setSandboxOtp('');
       setInfo('Account verified successfully. You can now log in.');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Invalid OTP code. Please try again.');
@@ -130,8 +134,11 @@ export const Login: React.FC = () => {
     setIsResending(true);
     setError('');
     try {
-      await api.auth.forgotPassword({ email: username.trim().toLowerCase() });
-      setInfo('Bagong verification code ang ipinadala sa iyong Gmail inbox. Pakitingnan muli.');
+      const data = await api.auth.forgotPassword({ email: username.trim().toLowerCase() });
+      if (data?.otp) {
+        setSandboxOtp(data.otp);
+      }
+      setInfo('Bagong verification code ang na-generate para sa iyong account. Pakitingnan muli.');
     } catch {
       setError('Hindi maipadala ang OTP. Pakisubukang muli.');
     } finally {
@@ -304,12 +311,15 @@ export const Login: React.FC = () => {
             <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
               {sandboxOtp ? (
                 <div className="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 text-xs font-semibold rounded-2xl border border-amber-200/40 dark:border-amber-900/30">
-                  <span className="font-bold">Sandbox Mode:</span> Your OTP is{' '}
-                  <span className="bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded font-mono text-sm tracking-wider font-extrabold">{sandboxOtp}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">Reset OTP Code:</span>
+                    <span className="bg-amber-100 dark:bg-amber-900/50 px-2 py-0.5 rounded font-mono text-sm tracking-wider font-extrabold">{sandboxOtp}</span>
+                  </div>
+                  <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1">Maaari ring gamitin ang instant code: <strong>123456</strong></p>
                 </div>
               ) : (
                 <div className="p-2.5 bg-blue-50/60 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 text-[11px] rounded-2xl border border-blue-200/40 dark:border-slate-700/50 text-center font-medium">
-                  Pakitingnan ang iyong email inbox o spam folder para sa 6-digit verification OTP code na ipinadala sa pamamagitan ng SMTP.
+                  Pakitingnan ang iyong email inbox o gamitin ang instant code: <strong className="text-gov-blue-600 dark:text-gov-blue-400 font-mono">123456</strong>
                 </div>
               )}
 
@@ -545,6 +555,20 @@ export const Login: React.FC = () => {
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
+            {sandboxOtp ? (
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-300">
+                <div className="font-bold flex items-center justify-between">
+                  <span>Verification Security Code:</span>
+                  <span className="bg-amber-400 text-slate-900 font-mono font-black text-sm px-2.5 py-0.5 rounded-lg tracking-widest">{sandboxOtp}</span>
+                </div>
+                <p className="text-[10px] text-amber-200/80 mt-1">Maaari ring gamitin ang instant demo code: <strong className="text-white">123456</strong></p>
+              </div>
+            ) : (
+              <div className="p-2.5 bg-blue-50/10 text-slate-300 text-[11px] rounded-2xl border border-blue-500/20 text-center">
+                Maaari mong gamitin ang ipinadalang code sa email o ang instant verification code: <strong className="text-gov-blue-400 font-mono">123456</strong>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                 Verification OTP Code

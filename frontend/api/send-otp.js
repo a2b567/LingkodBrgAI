@@ -77,13 +77,16 @@ export default async function handler(req, res) {
   `;
 
   try {
+    const smtpUser = process.env.SMTP_USER || process.env.SMTP_EMAIL || 'low22708@gmail.com';
+    const smtpPass = process.env.SMTP_PASSWORD || process.env.SMTP_APP_PASSWORD || 'hqugtizxudylilue';
+
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: Number(process.env.SMTP_PORT) || 587,
       secure: false,
       auth: {
-        user: 'low22708@gmail.com',
-        pass: 'hqugtizxudylilue',
+        user: smtpUser,
+        pass: smtpPass,
       },
       tls: {
         rejectUnauthorized: false,
@@ -91,7 +94,7 @@ export default async function handler(req, res) {
     });
 
     await transporter.sendMail({
-      from: '"LingkodBrgy AI - Barangay San Isidro" <low22708@gmail.com>',
+      from: `"LingkodBrgy AI - Barangay San Isidro" <${smtpUser}>`,
       to,
       subject,
       html: htmlContent,
