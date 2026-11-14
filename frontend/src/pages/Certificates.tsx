@@ -460,9 +460,9 @@ export const Certificates: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Capture signature from canvas
+    // Capture signature from canvas ONLY for residents (Staff does not need to draw signature)
     let signatureData: string | undefined;
-    if (canvasRef.current) {
+    if (!isStaff && canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       // Check if canvas has any drawn content (not blank)
       const pixelBuffer = ctx?.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height).data;
@@ -475,7 +475,7 @@ export const Certificates: React.FC = () => {
     try {
       const residentId = isStaff ? selectedResidentId : (user?.resident_id || user?.id || 'res-1');
       if (!residentId) {
-        alert("Walang resident profile na nakaugnay sa account na ito. Mangyaring makipag-ugnayan sa barangay administrator.");
+        alert("Walang napiling residente. Pakipili muna ang residenteng bibigyan ng sertipiko.");
         setIsSubmitting(false);
         return;
       }
@@ -492,21 +492,21 @@ export const Certificates: React.FC = () => {
       setPurpose('');
       clearCanvas();
       fetchCerts();
-      alert("Matagumpay na naisumite ang iyong certificate request! Ito ay naka-queue na para sa pagsusuri ng barangay.");
+      alert(isStaff ? "Matagumpay na nai-issue ang sertipiko para sa residente!" : "Matagumpay na naisumite ang iyong certificate request! Ito ay naka-queue na para sa pagsusuri ng barangay.");
     } catch (err: any) {
       console.warn("Cert request caught:", err);
       const errMsg = String(err.response?.data?.error || err.message || "");
       const isAuthIssue = err.response?.status === 401 || errMsg.toLowerCase().includes('token') || errMsg.toLowerCase().includes('jwt') || errMsg.toLowerCase().includes('auth');
 
       if (isAuthIssue) {
-        // Fallback: save locally so resident never loses their request even with expired token
-        const residentId = isStaff ? selectedResidentId : (user?.resident_id || user?.id || 'res-1');
+        // Fallback: save locally so request is never lost
+        const fallbackResidentId = isStaff ? selectedResidentId : (user?.resident_id || user?.id || 'res-1');
         const fallbackCert: Certificate = {
           id: `cert-${Date.now()}`,
-          resident_id: residentId || 'res-1',
+          resident_id: fallbackResidentId || 'res-1',
           type: certType,
           document_number: `BC-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-          status: 'Pending',
+          status: isStaff ? 'Approved' : 'Pending',
           purpose: purpose || 'Official Document Request',
           qr_hash: Math.random().toString(36).substring(2, 15),
           fee: fee || 50,
@@ -525,7 +525,7 @@ export const Certificates: React.FC = () => {
         setPurpose('');
         clearCanvas();
         fetchCerts();
-        alert("Matagumpay na naisumite ang iyong certificate request! Ito ay naka-queue na para sa pagsusuri ng barangay.");
+        alert(isStaff ? "Matagumpay na nai-issue ang sertipiko para sa residente!" : "Matagumpay na naisumite ang iyong certificate request! Ito ay naka-queue na para sa pagsusuri ng barangay.");
         return;
       }
 
@@ -1112,7 +1112,7 @@ export const Certificates: React.FC = () => {
             <div className="flex items-center justify-between mb-4 border-b border-slate-200 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                 <FileText className="text-gov-blue-600 dark:text-gov-blue-400" size={18} />
-                Certificate Request Wizard
+                {isStaff ? 'Issue Barangay Certificate' : 'Certificate Request Wizard'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -1172,38 +1172,40 @@ export const Certificates: React.FC = () => {
                 />
               </div>
 
-              {/* Signature Canvas */}
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                    <Signature size={12} className="text-gov-blue-600 dark:text-gov-blue-400" />
-                    e-Signature Pad (Required)
-                  </label>
-                  <button
-                    type="button"
-                    onClick={clearCanvas}
-                    className="text-[9px] font-bold text-rose-500 hover:underline uppercase"
-                  >
-                    Clear Canvas
-                  </button>
+              {/* Signature Canvas - Online Residente lamang ang kailangang mag-eSignature pad; Hindi kailangan ng staff */}
+              {!isStaff && (
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                      <Signature size={12} className="text-gov-blue-600 dark:text-gov-blue-400" />
+                      e-Signature Pad (Required)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={clearCanvas}
+                      className="text-[9px] font-bold text-rose-500 hover:underline uppercase"
+                    >
+                      Clear Canvas
+                    </button>
+                  </div>
+                  <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white">
+                    <canvas
+                      ref={canvasRef}
+                      width={500}
+                      height={140}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                      onTouchStart={startDrawing}
+                      onTouchMove={draw}
+                      onTouchEnd={stopDrawing}
+                      className="cursor-crosshair w-full h-[140px] block bg-white touch-none"
+                    />
+                  </div>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1">Draw your signature above. It will be <strong className="text-gov-blue-500">automatically embedded</strong> into the final PDF certificate when approved.</p>
                 </div>
-                <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white">
-                  <canvas
-                    ref={canvasRef}
-                    width={500}
-                    height={140}
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
-                    onTouchStart={startDrawing}
-                    onTouchMove={draw}
-                    onTouchEnd={stopDrawing}
-                    className="cursor-crosshair w-full h-[140px] block bg-white touch-none"
-                  />
-                </div>
-                <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1">Draw your signature above. It will be <strong className="text-gov-blue-500">automatically embedded</strong> into the final PDF certificate when approved.</p>
-              </div>
+              )}
 
               <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div className="text-left">
@@ -1225,7 +1227,7 @@ export const Certificates: React.FC = () => {
                     disabled={isSubmitting}
                     className="px-5 py-2.5 rounded-full bg-gradient-to-r from-gov-blue-600 to-indigo-700 hover:from-gov-blue-700 hover:to-indigo-800 text-white font-extrabold text-xs transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 shadow-md shadow-gov-blue-600/25"
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                    {isSubmitting ? 'Processing...' : (isStaff ? 'Issue Certificate' : 'Submit Request')}
                   </button>
                 </div>
               </div>

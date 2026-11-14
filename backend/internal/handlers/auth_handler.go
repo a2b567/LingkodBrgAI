@@ -226,8 +226,9 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		IPAddress: ip,
 	})
 
-	// If user is not yet verified, dispatch real OTP via SMTP immediately
-	if !user.IsVerified {
+	// If user is not yet verified and is a Resident, dispatch real OTP via SMTP immediately
+	// Staff / Admins / Barangay Officials bypass OTP to guarantee unhindered operational dashboard access
+	if !user.IsVerified && (user.Role == "Resident" || user.Role == "") {
 		otp := generateRandomOTP()
 		expiry := time.Now().Add(15 * time.Minute)
 		user.OTP = otp

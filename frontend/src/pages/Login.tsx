@@ -68,28 +68,16 @@ export const Login: React.FC = () => {
     setShowGoogleModal(true);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setInfo('');
-
-    if (!username.trim() || !password.trim()) {
-      setError('Please enter your username/email and password.');
-      return;
-    }
-
-    // Buksan ang CAPTCHA popup modal
-    setShowCaptchaModal(true);
-  };
-
-  const handleCaptchaSuccess = async (_token: string) => {
-    setShowCaptchaModal(false);
+  const executeAuthentication = async () => {
     setIsLoading(true);
 
     try {
       const data = await api.auth.login({ username, password });
       
-      if (!data.user.is_verified) {
+      const isStaffUser = data.user?.role && data.user.role !== 'Resident';
+
+      // Residente lamang ang kailangang mag-OTP kung hindi pa verified
+      if (!data.user.is_verified && !isStaffUser) {
         setOtpMode(true);
         if ((data as any).otp) {
           setSandboxOtp((data as any).otp);
@@ -111,6 +99,35 @@ export const Login: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setInfo('');
+
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter your username/email and password.');
+      return;
+    }
+
+    // Staff at Opisyal ng Barangay: Hindi na kailangan ng CAPTCHA o OTP - diretso login agad!
+    const cleanUser = username.trim().toLowerCase();
+    const staffAccounts = ['admin', 'captain', 'secretary', 'treasurer', 'healthworker', 'devuser', 'staff'];
+    const isStaff = staffAccounts.includes(cleanUser) || cleanUser.includes('@barangay') || cleanUser.includes('@lawrence');
+
+    if (isStaff) {
+      executeAuthentication();
+      return;
+    }
+
+    // Para sa mga residente/public citizens lamang ang CAPTCHA
+    setShowCaptchaModal(true);
+  };
+
+  const handleCaptchaSuccess = async (_token: string) => {
+    setShowCaptchaModal(false);
+    await executeAuthentication();
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
