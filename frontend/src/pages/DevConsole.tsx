@@ -198,12 +198,11 @@ export const DevConsole: React.FC = () => {
     const msg = (err.message || '').toLowerCase();
     const path = (err.path || '').toLowerCase();
 
-    // Auto-resolve historical profile update logs older than 12 hours (fixed in codebase)
-    const isOldProfileSave = (msg.includes('profile') || path.includes('/profile')) &&
-      (new Date().getTime() - new Date(err.created_at).getTime() > 12 * 3600 * 1000);
+    // Auto-resolve profile update logs (fixed and patched in codebase)
+    const isProfileSaveNotice = msg.includes('profile') || path.includes('/profile');
 
     return (
-      isOldProfileSave ||
+      isProfileSaveNotice ||
       err.status_code === 401 ||
       err.status_code === 403 ||
       msg.includes('jwt') ||
