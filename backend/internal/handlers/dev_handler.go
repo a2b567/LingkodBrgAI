@@ -16,10 +16,16 @@ type DevHandler struct{}
 func (h *DevHandler) GetErrorLogs(c *gin.Context) {
 	db := config.DB
 
-	// Sanitize historical error logs: downgrade standard HTTP 500 logs misclassified as panic
+	// Sanitize historical error logs:
+	// 1. Downgrade standard HTTP 500 logs misclassified as panic to error
 	db.Model(&models.ErrorLog{}).
 		Where("level = ? AND LOWER(message) NOT LIKE ? AND LOWER(message) NOT LIKE ?", "panic", "%panic%", "%runtime error%").
 		Update("level", "error")
+
+	// 2. Classify client HTTP 4xx (bad request / not found / validation) as warning
+	db.Model(&models.ErrorLog{}).
+		Where("status_code >= 400 AND status_code < 500 AND level = ?", "error").
+		Update("level", "warning")
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))

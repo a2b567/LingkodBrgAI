@@ -195,6 +195,15 @@ export const DevConsole: React.FC = () => {
   };
 
   const isSafeSecurityNotice = (err: ErrorLogEntry) => {
+    // Client HTTP 4xx (Bad Request, Unauthorized, Forbidden, Not Found, Validation)
+    // are standard client input / security interception events handled cleanly by the gateway.
+    if (err.status_code && err.status_code >= 400 && err.status_code < 500) {
+      return true;
+    }
+    if (err.level === 'warning') {
+      return true;
+    }
+
     const msg = (err.message || '').toLowerCase();
     const path = (err.path || '').toLowerCase();
 
@@ -203,8 +212,6 @@ export const DevConsole: React.FC = () => {
 
     return (
       isProfileSaveNotice ||
-      err.status_code === 401 ||
-      err.status_code === 403 ||
       msg.includes('jwt') ||
       msg.includes('token') ||
       msg.includes('unauthorized') ||
@@ -213,8 +220,7 @@ export const DevConsole: React.FC = () => {
       msg.includes('forbidden') ||
       msg.includes('hindi rehistrado') ||
       msg.includes('not found') ||
-      msg.includes('not registered') ||
-      (err.status_code === 404 && (path.includes('/auth/') || path.includes('/login')))
+      msg.includes('not registered')
     );
   };
 

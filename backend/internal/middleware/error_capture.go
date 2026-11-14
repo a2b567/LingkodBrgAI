@@ -74,8 +74,8 @@ func ErrorCaptureMiddleware() gin.HandlerFunc {
 		// Extract error message from response body
 		message := extractErrorMessage(blw.body.Bytes(), status)
 
-		// Determine severity level
-		level := "error"
+		// Determine severity level: 4xx are client request warnings; 5xx are server errors/panics
+		level := "warning"
 		if status >= 500 {
 			lowerMsg := strings.ToLower(message)
 			if strings.Contains(lowerMsg, "panic") || strings.Contains(lowerMsg, "recovered") || strings.Contains(lowerMsg, "runtime error") {
@@ -83,8 +83,6 @@ func ErrorCaptureMiddleware() gin.HandlerFunc {
 			} else {
 				level = "error"
 			}
-		} else if status == 401 || status == 403 {
-			level = "warning"
 		}
 
 		// Get user ID if available
