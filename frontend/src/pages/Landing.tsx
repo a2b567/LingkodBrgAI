@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Calendar, AlertOctagon, Briefcase, Sun, Moon, 
   ArrowRight, Search, ShieldCheck, Sparkles, MessageSquareCode, 
-  ChevronRight, MapPin, Phone, Mail, Clock, CheckCircle2, QrCode, Camera, X, Upload
+  ChevronRight, MapPin, Phone, Mail, Clock, CheckCircle2, QrCode, Camera, X, Upload, Menu
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
@@ -19,6 +19,7 @@ export const Landing: React.FC = () => {
   const [simulatedAnswer, setSimulatedAnswer] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -336,30 +337,30 @@ export const Landing: React.FC = () => {
 
       {/* 1. Header Navigation */}
       <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md transition-colors duration-300">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 h-20 flex items-center justify-between gap-3 sm:gap-4">
           
           {/* Logo Letterhead */}
-          <div className="flex items-center gap-3.5 select-none cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <div className="flex items-center gap-2.5 sm:gap-3.5 select-none cursor-pointer shrink-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="w-10 h-10 bg-gradient-to-tr from-gov-blue-700 to-indigo-800 rounded-2xl shadow-md shadow-gov-blue-600/20 flex items-center justify-center text-white flex-shrink-0">
               <ShieldCheck size={22} className="text-gov-gold-400" />
             </div>
             <div className="flex flex-col justify-center">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base leading-tight tracking-tight text-gov-blue-900 dark:text-gov-blue-300">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="font-extrabold text-sm sm:text-base leading-tight tracking-tight text-gov-blue-900 dark:text-gov-blue-300">
                   LingkodBrgyAi Portal
                 </span>
                 <span className="text-[9px] font-black uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/60 px-1.5 py-0.2 rounded-md tracking-tight">
                   v2.0.4
                 </span>
               </div>
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-black tracking-widest uppercase leading-tight">
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold tracking-wider uppercase leading-tight hidden xs:block">
                 Laguna Government LGU
               </p>
             </div>
           </div>
 
           {/* Quick Links Menu */}
-          <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden lg:flex items-center gap-3.5 xl:gap-6 2xl:gap-8 shrink-0">
             <a href="#services" className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-gov-blue-600 dark:hover:text-gov-blue-400 transition-colors">Services</a>
             <a href="#stats" className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-gov-blue-600 dark:hover:text-gov-blue-400 transition-colors">Portals & Stats</a>
             <a href="#announcements" className="text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-gov-blue-600 dark:hover:text-gov-blue-400 transition-colors">Announcements</a>
@@ -368,20 +369,20 @@ export const Landing: React.FC = () => {
           </nav>
 
           {/* Action Menu (CTAs + Theme Toggle) */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 shadow-xs flex items-center gap-2 text-xs font-bold"
+              className="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all duration-200 shadow-xs flex items-center gap-1.5 text-xs font-bold"
               title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             >
-              {theme === 'light' ? <Moon size={16} className="text-slate-700" /> : <Sun size={16} className="text-amber-400" />}
-              <span className="hidden sm:inline text-[11px] font-semibold">{theme === 'light' ? 'Dark' : 'Light'}</span>
+              {theme === 'light' ? <Moon size={15} className="text-slate-700" /> : <Sun size={15} className="text-amber-400" />}
+              <span className="hidden xl:inline text-[11px] font-semibold">{theme === 'light' ? 'Dark' : 'Light'}</span>
             </button>
 
             {token && user ? (
               <button
                 onClick={handlePortalRedirect}
-                className="bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-md shadow-gov-blue-600/20 dark:shadow-gov-blue-900/40 transition-all hover:translate-y-[-1px] active:translate-y-0"
+                className="bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold text-xs px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl shadow-md shadow-gov-blue-600/20 dark:shadow-gov-blue-900/40 transition-all hover:translate-y-[-1px] active:translate-y-0 whitespace-nowrap"
               >
                 Go to Portal
               </button>
@@ -389,24 +390,55 @@ export const Landing: React.FC = () => {
               <>
                 <Link
                   to="/login"
-                  className="hidden sm:inline-flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 px-5 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all bg-white/50 dark:bg-slate-900/50"
+                  className="hidden sm:inline-flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 px-3.5 py-2 sm:px-4 sm:py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all bg-white/50 dark:bg-slate-900/50 whitespace-nowrap"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-md shadow-gov-blue-600/20 dark:shadow-gov-blue-900/40 transition-all hover:translate-y-[-1px] active:translate-y-0"
+                  className="bg-gradient-to-r from-gov-blue-600 to-gov-blue-800 hover:from-gov-blue-700 hover:to-gov-blue-900 text-white font-bold text-xs px-3.5 py-2 sm:px-4.5 sm:py-2.5 rounded-xl shadow-md shadow-gov-blue-600/20 dark:shadow-gov-blue-900/40 transition-all hover:translate-y-[-1px] active:translate-y-0 whitespace-nowrap"
                 >
                   Register Profile
                 </Link>
               </>
             )}
+
+            {/* Mobile / Tablet Menu Trigger */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              className="lg:hidden p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+              aria-label="Toggle navigation"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Dropdown */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl px-4 sm:px-6 py-4 space-y-3 shadow-2xl animate-in fade-in duration-150">
+            <nav className="flex flex-col space-y-1">
+              <a href="#services" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">Services</a>
+              <a href="#stats" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">Portals & Stats</a>
+              <a href="#announcements" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">Announcements</a>
+              <a href="#verify" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">E-Verification</a>
+              <a href="#ai-assistant" onClick={() => setMobileMenuOpen(false)} className="px-3.5 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">LGU AI</a>
+            </nav>
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex gap-2">
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex-1 text-center py-2 text-xs font-bold border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200">
+                Log In
+              </Link>
+              <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="flex-1 text-center py-2 text-xs font-bold bg-gov-blue-600 text-white rounded-xl shadow-sm">
+                Register Profile
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* 2. Hero Section */}
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 md:pt-20 pb-20">
+      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 pt-12 md:pt-20 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
           {/* Left Text Block */}
@@ -548,7 +580,7 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* 3. Core Services Grid Section */}
-      <section id="services" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-slate-200/80 dark:border-slate-800/80">
+      <section id="services" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-t border-slate-200/80 dark:border-slate-800/80">
         
         <div className="text-center space-y-3 mb-16">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-gov-gold-500/10 dark:bg-gov-gold-500/20 text-gov-gold-700 dark:text-gov-gold-400 border border-gov-gold-500/25">
@@ -657,7 +689,7 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* 4. Real-time stats & portal block */}
-      <section id="stats" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 bg-gradient-to-br from-gov-blue-900 via-gov-blue-950 to-slate-900 dark:from-slate-900 dark:via-slate-950 dark:to-gov-blue-950 text-white rounded-[3rem] shadow-2xl overflow-hidden border border-gov-blue-800/40 dark:border-slate-800 select-none">
+      <section id="stats" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 bg-gradient-to-br from-gov-blue-900 via-gov-blue-950 to-slate-900 dark:from-slate-900 dark:via-slate-950 dark:to-gov-blue-950 text-white rounded-[3rem] shadow-2xl overflow-hidden border border-gov-blue-800/40 dark:border-slate-800 select-none">
         
         {/* Glow Effects */}
         <div className="absolute top-[-20%] right-[-10%] w-[35vw] h-[35vw] bg-gov-gold-500/15 rounded-full blur-[140px] pointer-events-none"></div>
@@ -736,7 +768,7 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* 5. Interactive simulated AI Assistant Teaser Widget */}
-      <section id="ai-assistant" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-b border-slate-200/80 dark:border-slate-800/80">
+      <section id="ai-assistant" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-b border-slate-200/80 dark:border-slate-800/80">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
@@ -842,7 +874,7 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* 6. Document & Resident Account E-Verification Information Segment */}
-      <section id="verify" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-b border-slate-200/80 dark:border-slate-800/80 text-center space-y-6">
+      <section id="verify" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-b border-slate-200/80 dark:border-slate-800/80 text-center space-y-6">
         
         <div className="space-y-3">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
@@ -953,7 +985,7 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* 7. Public Announcements Board */}
-      <section id="announcements" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-b border-slate-200/80 dark:border-slate-800/80">
+      <section id="announcements" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-b border-slate-200/80 dark:border-slate-800/80">
         
         <div className="text-center space-y-3 mb-16">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-gov-red-500/10 dark:bg-gov-red-500/20 text-gov-red-700 dark:text-gov-red-400 border border-gov-red-500/25">
@@ -1006,7 +1038,7 @@ export const Landing: React.FC = () => {
 
       {/* 8. Professional Footer */}
       <footer className="relative z-10 bg-white dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition-colors duration-300 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 grid grid-cols-1 md:grid-cols-4 gap-8">
           
           {/* Col 1: LGU Seal Details */}
           <div className="space-y-4 col-span-1 md:col-span-2">
@@ -1063,7 +1095,7 @@ export const Landing: React.FC = () => {
 
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-200/60 dark:border-slate-800/60 pt-8 mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest select-none">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 border-t border-slate-200/60 dark:border-slate-800/60 pt-8 mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest select-none">
           <p>© 2026 Barangay San Isidro, Bay, Laguna. All Rights Reserved.</p>
           <div className="flex items-center gap-2">
             <span className="text-gov-blue-600 dark:text-gov-blue-400 font-black">System Version 2.0.4</span>
