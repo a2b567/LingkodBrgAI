@@ -206,11 +206,20 @@ export const DevConsole: React.FC = () => {
 
     const msg = (err.message || '').toLowerCase();
     const path = (err.path || '').toLowerCase();
+    const ip = (err.ip_address || '').toLowerCase();
+
+    // Auto-resolve local development test artifacts (localhost, ::1, 127.0.0.1)
+    const isLocalDevArtifact = ip === '::1' || ip === '127.0.0.1' || msg.includes('localhost') || path.includes('localhost');
+
+    // Auto-resolve frontend dynamic chunk loading / Vite HMR reload events (already protected by lazyRetry)
+    const isChunkLoadNotice = msg.includes('dynamically imported module') || msg.includes('loading chunk') || msg.includes('chunk_reload');
 
     // Auto-resolve profile update logs (fixed and patched in codebase)
     const isProfileSaveNotice = msg.includes('profile') || path.includes('/profile');
 
     return (
+      isLocalDevArtifact ||
+      isChunkLoadNotice ||
       isProfileSaveNotice ||
       msg.includes('jwt') ||
       msg.includes('token') ||
