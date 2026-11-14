@@ -272,11 +272,23 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	db := config.DB
 
-	// Check if username/email already taken
+	// 1. Strict One-Account-Per-Citizen Policy: Bawal ang duplicate resident record
+	cleanFirst := strings.ToLower(strings.TrimSpace(req.FirstName))
+	cleanLast := strings.ToLower(strings.TrimSpace(req.LastName))
+	var dupResident models.Resident
+	if err := db.Where("LOWER(TRIM(first_name)) = ? AND LOWER(TRIM(last_name)) = ?", cleanFirst, cleanLast).First(&dupResident).Error; err == nil {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": fmt.Sprintf("Bawal ang duplicate account. Mayroon nang umiiral na profile sa pangalang '%s %s' sa barangay records. Kung hindi mo ma-open ang iyong account, mangyaring makipag-ugnayan sa Barangay Staff upang maayos o ma-reset ang iyong account.", req.FirstName, req.LastName),
+			"duplicate_resident": true,
+		})
+		return
+	}
+
+	// 2. Check if username/email already taken
 	var count int64
 	db.Model(&models.User{}).Where("username = ? OR email = ?", req.Username, req.Email).Count(&count)
 	if count > 0 {
-		c.JSON(http.StatusConflict, gin.H{"error": "Username or Email already exists"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Ang username o email na ito ay ginagamit na sa system. Mangyaring makipag-ugnayan sa Barangay Staff kung kailangan mo ng tulong sa pag-recover ng iyong account."})
 		return
 	}
 

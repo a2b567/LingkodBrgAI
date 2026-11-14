@@ -8,12 +8,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"backend/internal/config"
 	"backend/internal/models"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/skip2/go-qrcode"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type ResidentHandler struct{}
@@ -124,6 +126,21 @@ func (h *ResidentHandler) Create(c *gin.Context) {
 	}
 
 	db := config.DB
+
+	// Strict One-Record Policy: Bawal ang duplicate resident record
+	cleanFirst := strings.ToLower(strings.TrimSpace(resident.FirstName))
+	cleanLast := strings.ToLower(strings.TrimSpace(resident.LastName))
+	if cleanFirst != "" && cleanLast != "" {
+		var existing models.Resident
+		if err := db.Where("LOWER(TRIM(first_name)) = ? AND LOWER(TRIM(last_name)) = ?", cleanFirst, cleanLast).First(&existing).Error; err == nil {
+			c.JSON(http.StatusConflict, gin.H{
+				"error": fmt.Sprintf("Bawal ang duplicate profile! Mayroon nang umiiral na profile si '%s %s' sa Barangay Registry (QR ID: %s). I-edit o ayusin na lamang ang umiiral na profile sa halip na gumawa ng bago.", resident.FirstName, resident.LastName, existing.QRID),
+				"duplicate_resident": true,
+			})
+			return
+		}
+	}
+
 	resident.ID = uuid.New()
 	resident.QRID = "QR-RES-" + strings.ReplaceAll(uuid.New().String()[:8], "-", "")
 
@@ -142,6 +159,87 @@ func (h *ResidentHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, resident)
+}
+
+// ResetResidentAccount allows staff to fix/reset a resident's login credentials when locked out or unable to sign in
+func (h *ResidentHandler) ResetResidentAccount(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid resident ID"})
+		return
+	}
+
+	var req struct {
+		NewPassword string `json:"new_password"`
+		NewEmail    string `json:"new_email"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	db := config.DB
+	var resident models.Resident
+	if err := db.First(&resident, "id = ?", id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Hindi natagpuan ang profile ng residente"})
+		return
+	}
+
+	newPass := strings.TrimSpace(req.NewPassword)
+	if newPass == "" {
+		newPass = "SanIsidro@2026"
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to encrypt password"})
+		return
+	}
+
+	cleanEmail := strings.ToLower(strings.TrimSpace(req.NewEmail))
+	if cleanEmail == "" {
+		cleanEmail = strings.ToLower(strings.TrimSpace(resident.Email))
+	}
+
+	// Hanapin ang linked user account
+	var user models.User
+	userErr := db.Where("resident_id = ? OR LOWER(TRIM(email)) = ?", resident.ID, cleanEmail).First(&user).Error
+
+	if userErr != nil {
+		// Gumawa ng bago at maayos na user account para sa residenteng ito
+		usernameBase := strings.ToLower(strings.ReplaceAll(resident.FirstName, " ", "")) + strings.ToLower(strings.ReplaceAll(resident.LastName, " ", ""))
+		newUser := models.User{
+			Username:     usernameBase,
+			Email:        cleanEmail,
+			PasswordHash: string(hashedPassword),
+			Role:         "Resident",
+			IsVerified:   true,
+			ResidentID:   &resident.ID,
+		}
+		if err := db.Create(&newUser).Error; err != nil {
+			newUser.Username = fmt.Sprintf("%s%d", usernameBase, time.Now().Unix()%1000)
+			_ = db.Create(&newUser)
+		}
+		user = newUser
+	} else {
+		// I-update at i-reset ang umiiral na user account
+		updates := map[string]interface{}{
+			"password_hash": string(hashedPassword),
+			"is_verified":   true,
+			"resident_id":   &resident.ID,
+		}
+		if cleanEmail != "" {
+			updates["email"] = cleanEmail
+			resident.Email = cleanEmail
+			db.Model(&resident).Update("email", cleanEmail)
+		}
+		db.Model(&user).Updates(updates)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":      fmt.Sprintf("Matagumpay na naayos ang account ni %s %s!", resident.FirstName, resident.LastName),
+		"username":     user.Username,
+		"email":        cleanEmail,
+		"new_password": newPass,
+	})
 }
 
 func (h *ResidentHandler) Update(c *gin.Context) {

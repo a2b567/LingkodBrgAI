@@ -153,6 +153,7 @@ func SetupRouter() *gin.Engine {
 			staffOnly.PUT("/residents/:id", resHandler.Update)
 			staffOnly.DELETE("/residents/:id", resHandler.Delete)
 			staffOnly.POST("/residents/upload-photo", resHandler.UploadPhoto)
+			staffOnly.POST("/residents/:id/reset-account", resHandler.ResetResidentAccount)
 
 			// Household Management
 			staffOnly.GET("/households", houseHandler.List)

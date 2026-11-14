@@ -302,6 +302,27 @@ export const api = {
       withFallback(
         () => client.post('/auth/register', data).then(r => r.data),
         () => {
+          const cleanFirst = String(data.first_name || '').trim().toLowerCase();
+          const cleanLast = String(data.last_name || '').trim().toLowerCase();
+
+          // Check if resident with same first and last name already exists in mock/local state
+          const isDuplicate = mockState.residents.some(r => 
+            r.first_name?.trim().toLowerCase() === cleanFirst &&
+            r.last_name?.trim().toLowerCase() === cleanLast
+          );
+
+          if (isDuplicate) {
+            const err: any = new Error(`Bawal ang duplicate account. Mayroon nang umiiral na profile si ${data.first_name} ${data.last_name} sa barangay records. Kung hindi mo ma-open ang iyong account, mangyaring makipag-ugnayan sa Barangay Staff upang maayos o ma-reset ang iyong account.`);
+            err.response = {
+              status: 409,
+              data: {
+                error: `Bawal ang duplicate account. Mayroon nang umiiral na profile si ${data.first_name} ${data.last_name} sa barangay records. Kung hindi mo ma-open ang iyong account, mangyaring makipag-ugnayan sa Barangay Staff upang maayos o ma-reset ang iyong account.`,
+                duplicate_resident: true,
+              }
+            };
+            throw err;
+          }
+
           const newResId = `res-${Date.now()}`;
           const newResident: Resident = {
             id: newResId,
@@ -471,6 +492,26 @@ export const api = {
       withFallback(
         () => client.post<Resident>('/residents', data).then(r => r.data),
         () => {
+          const cleanFirst = String(data.first_name || '').trim().toLowerCase();
+          const cleanLast = String(data.last_name || '').trim().toLowerCase();
+
+          const isDuplicate = mockState.residents.some(r => 
+            r.first_name?.trim().toLowerCase() === cleanFirst &&
+            r.last_name?.trim().toLowerCase() === cleanLast
+          );
+
+          if (isDuplicate) {
+            const err: any = new Error(`Bawal ang duplicate profile. Mayroon nang umiiral na resident profile si ${data.first_name} ${data.last_name}.`);
+            err.response = {
+              status: 409,
+              data: {
+                error: `Bawal ang duplicate profile. Mayroon nang umiiral na resident profile si ${data.first_name} ${data.last_name}. I-edit na lamang ang umiiral na profile.`,
+                duplicate_resident: true,
+              }
+            };
+            throw err;
+          }
+
           const newRes: Resident = {
             id: `res-${Date.now()}`,
             first_name: data.first_name || 'Resident',
@@ -490,6 +531,16 @@ export const api = {
           mockState.residents.push(newRes);
           return newRes;
         }
+      ),
+    resetAccount: (id: string, data?: { new_password?: string; new_email?: string }) =>
+      withFallback(
+        () => client.post<{ message: string; username: string; email: string; new_password?: string }>(`/residents/${id}/reset-account`, data).then(r => r.data),
+        () => ({
+          message: 'Matagumpay na naayos ang account ng residente!',
+          username: 'resident_user',
+          email: data?.new_email || 'resident@barangay.gov',
+          new_password: data?.new_password || 'SanIsidro@2026',
+        })
       ),
     update: (id: string, data: Partial<Resident>) =>
       withFallback(

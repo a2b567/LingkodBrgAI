@@ -292,9 +292,18 @@ export const Register: React.FC = () => {
 
         {/* Notifications */}
         {error && (
-          <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs font-semibold rounded-2xl border border-rose-200/60 dark:border-rose-900/40 flex items-center gap-3 animate-shake">
-            <AlertCircle size={16} className="text-rose-500 flex-shrink-0" />
-            <span>{error}</span>
+          <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 text-xs font-semibold rounded-2xl border border-rose-200/60 dark:border-rose-900/40 space-y-2 animate-shake">
+            <div className="flex items-start gap-3">
+              <AlertCircle size={18} className="text-rose-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-1">
+                <p className="font-bold text-rose-700 dark:text-rose-300">{error}</p>
+                {error.includes('duplicate') && (
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400">
+                    Bawal ang magkahiwalay na account para sa iisang mamamayan. Kung nakalimutan mo ang iyong password o hindi ma-open ang account, gamitin ang <button type="button" onClick={() => navigate('/login')} className="font-black text-gov-blue-600 dark:text-gov-blue-400 underline">Sign In / Forgot Password</button> o humingi ng tulong sa Barangay Staff.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

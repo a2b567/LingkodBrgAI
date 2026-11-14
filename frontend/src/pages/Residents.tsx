@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Users, Plus, Search, Edit2, Trash2, FileSpreadsheet, QrCode,
   XCircle, UserX, UserCheck, Loader2, Upload, CheckCircle2, Sparkles, Save,
-  Eye, EyeOff, ExternalLink, FileText, Download, AlertCircle
+  Eye, EyeOff, ExternalLink, FileText, Download, AlertCircle, KeyRound, Copy, Check
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { api } from '../services/api';
@@ -48,6 +48,53 @@ export const Residents: React.FC = () => {
 
   // QR Modal States
   const [qrModal, setQrModal] = useState<Resident | null>(null);
+
+  // Resident Account Management / Recovery modal (para sa staff kung hindi ma-open ang account)
+  const [accountModalResident, setAccountModalResident] = useState<Resident | null>(null);
+  const [fixPassword, setFixPassword] = useState('SanIsidro@2026');
+  const [fixEmail, setFixEmail] = useState('');
+  const [isFixingAccount, setIsFixingAccount] = useState(false);
+  const [fixSuccessInfo, setFixSuccessInfo] = useState<{ message: string; username: string; email: string; new_password: string } | null>(null);
+  const [copiedCreds, setCopiedCreds] = useState(false);
+
+  // Duplicate name detection map
+  const duplicateNameMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    residents.forEach(r => {
+      const key = `${(r.first_name || '').trim().toLowerCase()} ${(r.last_name || '').trim().toLowerCase()}`;
+      if (key.trim()) {
+        map[key] = (map[key] || 0) + 1;
+      }
+    });
+    return map;
+  }, [residents]);
+
+  const handleOpenAccountFix = (r: Resident) => {
+    setAccountModalResident(r);
+    setFixPassword('SanIsidro@2026');
+    setFixEmail(r.email || '');
+    setFixSuccessInfo(null);
+    setCopiedCreds(false);
+  };
+
+  const handleExecuteAccountFix = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountModalResident) return;
+    setIsFixingAccount(true);
+
+    try {
+      const res = await (api.residents as any).resetAccount(accountModalResident.id, {
+        new_password: fixPassword,
+        new_email: fixEmail,
+      });
+      setFixSuccessInfo(res);
+      fetchResidents();
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Hindi maayos ang account. Pakisubukang muli.");
+    } finally {
+      setIsFixingAccount(false);
+    }
+  };
 
   // Import CSV states
   const [showImportModal, setShowImportModal] = useState(false);
@@ -487,6 +534,21 @@ export const Residents: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
 
+    // Strict One-Record Rule: Bawal gumawa ng duplicate resident record
+    if (!editingId) {
+      const cleanFirst = (form.first_name || '').trim().toLowerCase();
+      const cleanLast = (form.last_name || '').trim().toLowerCase();
+      const isDuplicate = residents.some(r => 
+        (r.first_name || '').trim().toLowerCase() === cleanFirst &&
+        (r.last_name || '').trim().toLowerCase() === cleanLast
+      );
+      if (isDuplicate) {
+        alert(`Bawal ang duplicate profile! Mayroon nang umiiral na profile si '${form.first_name} ${form.last_name}' sa Barangay Registry. I-edit o ayusin na lamang ang umiiral na profile sa halip na gumawa ng bago.`);
+        setIsSaving(false);
+        return;
+      }
+    }
+
     try {
       const payload = {
         ...form,
@@ -502,8 +564,8 @@ export const Residents: React.FC = () => {
 
       setShowModal(false);
       fetchResidents();
-    } catch (err) {
-      // Handle save error
+    } catch (err: any) {
+      alert(err.response?.data?.error || "Nabigong i-save ang resident profile.");
     } finally {
       setIsSaving(false);
     }
@@ -652,9 +714,11 @@ export const Residents: React.FC = () => {
                   const isRevealed = isItemRevealed(r.id);
                   const displayEmail = isRevealed ? (r.email || 'No email') : maskEmail(r.email);
                   const displayAddress = isRevealed ? (r.address || '—') : maskAddress(r.address);
+                  const nameKey = `${(r.first_name || '').trim().toLowerCase()} ${(r.last_name || '').trim().toLowerCase()}`;
+                  const isDuplicateName = (duplicateNameMap[nameKey] || 0) > 1;
 
                   return (
-                    <tr key={r.id} className="hover:bg-slate-50/40 dark:hover:bg-slate-800/10">
+                    <tr key={r.id} className={`hover:bg-slate-50/40 dark:hover:bg-slate-800/10 ${isDuplicateName ? 'bg-amber-500/5' : ''}`}>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex items-center justify-center flex-shrink-0">
@@ -667,6 +731,11 @@ export const Residents: React.FC = () => {
                           <div>
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="font-bold">{r.last_name || 'Resident'}, {r.first_name || ''} {r.middle_name || ''}</p>
+                              {isDuplicateName && (
+                                <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase rounded border border-amber-500/30 flex items-center gap-1" title="May higit sa isang profile ang pangalang ito. Bawal ang duplicate profile.">
+                                  ⚠️ Duplicate
+                                </span>
+                              )}
                               {r.is_pregnant && <span title="Pregnant" className="text-[10px]">🤰</span>}
                               {r.is_senior && <span title="Senior Citizen" className="text-[10px]">👴</span>}
                               {r.is_pwd && <span title="Person with Disability" className="text-[9px] bg-blue-600 text-white px-1 rounded font-bold">♿ PWD</span>}
@@ -719,6 +788,13 @@ export const Residents: React.FC = () => {
                             {isRevealed ? <EyeOff size={14} className="text-blue-500" /> : <Eye size={14} />}
                           </button>
                         )}
+                        <button 
+                          onClick={() => handleOpenAccountFix(r)}
+                          title="Ayusin / I-reset ang Account ng Residente (Staff Tool)"
+                          className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 transition-colors inline-flex cursor-pointer"
+                        >
+                          <KeyRound size={14} />
+                        </button>
                         <button 
                           onClick={() => handleOpenEdit(r)}
                           title="Edit Resident"
@@ -1106,6 +1182,145 @@ export const Residents: React.FC = () => {
               </div>
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* Resident Account Fix & Recovery Modal (Staff Tool para ayusin ang account kung hindi ma-open) */}
+      {accountModalResident && (
+        <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full shadow-2xl p-6 space-y-4 animate-scale-up">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                  <KeyRound size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-wider">
+                    Ayusin ang Account ni Resident
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    I-recover, i-reset ang password, o i-update ang credentials
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAccountModalResident(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            {/* Resident Info Summary Card */}
+            <div className="p-3 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 text-xs space-y-1">
+              <p className="font-extrabold text-slate-900 dark:text-white">
+                {accountModalResident.first_name} {accountModalResident.middle_name || ''} {accountModalResident.last_name}
+              </p>
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>QR ID: <strong className="text-gov-blue-600">{accountModalResident.qr_id}</strong></span>
+                <span>Address: {accountModalResident.address || 'Barangay San Isidro'}</span>
+              </div>
+            </div>
+
+            {!fixSuccessInfo ? (
+              <form onSubmit={handleExecuteAccountFix} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block">
+                    Bagong Password para kay Resident
+                  </label>
+                  <input
+                    type="text"
+                    value={fixPassword}
+                    onChange={(e) => setFixPassword(e.target.value)}
+                    required
+                    placeholder="e.g. SanIsidro@2026"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono focus:outline-none focus:border-amber-500 text-slate-900 dark:text-white"
+                  />
+                  <p className="text-[9px] text-slate-400">
+                    Default: <span className="font-mono font-bold text-amber-600 dark:text-amber-400">SanIsidro@2026</span> (Maaaring baguhin)
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300 block">
+                    Registered Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={fixEmail}
+                    onChange={(e) => setFixEmail(e.target.value)}
+                    required
+                    placeholder="resident@gmail.com"
+                    className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-amber-500 text-slate-900 dark:text-white"
+                  />
+                  <p className="text-[9px] text-slate-400">
+                    Kung nagbago o nawala ang email ng residente, ilagay ang bago dito.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAccountModalResident(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300"
+                  >
+                    Kanselahin
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isFixingAccount}
+                    className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-black shadow-md shadow-amber-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    {isFixingAccount ? 'Inaayos...' : 'Ayusin at I-reset ang Account'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-black">
+                    <CheckCircle2 size={18} className="text-emerald-600" />
+                    <span>Naayos na ang Account!</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                    Maaari nang gamitin ng residente ang credentials na ito upang mag-log in sa citizen portal:
+                  </p>
+                  <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200/60 dark:border-emerald-800/60 space-y-1.5 font-mono text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Username / Email:</span>
+                      <strong className="text-slate-900 dark:text-white">{fixSuccessInfo.username || fixSuccessInfo.email}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Temporary Password:</span>
+                      <strong className="text-amber-600 dark:text-amber-400 font-bold">{fixSuccessInfo.new_password}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`Username: ${fixSuccessInfo.username || fixSuccessInfo.email}\nPassword: ${fixSuccessInfo.new_password}`);
+                      setCopiedCreds(true);
+                      setTimeout(() => setCopiedCreds(false), 2000);
+                    }}
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {copiedCreds ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                    <span>{copiedCreds ? 'Nakopya Na!' : 'Kopyahin ang Credentials'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAccountModalResident(null)}
+                    className="px-5 py-2.5 bg-gov-blue-600 hover:bg-gov-blue-700 text-white rounded-xl font-bold text-xs cursor-pointer"
+                  >
+                    Tapos Na
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
