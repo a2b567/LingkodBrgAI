@@ -72,7 +72,7 @@ func ErrorCaptureMiddleware() gin.HandlerFunc {
 		}
 
 		// Extract error message from response body
-		message := extractErrorMessage(blw.body.Bytes(), status, c.Request.URL.Path)
+		message := extractErrorMessage(blw.body.Bytes(), status)
 
 		// Determine severity level
 		level := "error"
@@ -117,7 +117,7 @@ func ErrorCaptureMiddleware() gin.HandlerFunc {
 	}
 }
 
-func extractErrorMessage(body []byte, status int, path string) string {
+func extractErrorMessage(body []byte, status int) string {
 	if len(body) == 0 {
 		return http.StatusText(status)
 	}
