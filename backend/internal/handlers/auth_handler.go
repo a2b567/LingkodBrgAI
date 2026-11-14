@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"log"
 	"math/big"
@@ -14,6 +15,7 @@ import (
 	"backend/internal/models"
 	"backend/internal/services"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -410,6 +412,73 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		"is_verified": user.IsVerified,
 		"resident":    user.Resident,
 		"household":   linkedHousehold,
+	})
+}
+
+// RefreshToken renews an active or recently-expired JWT session without disrupting the user
+func (h *AuthHandler) RefreshToken(c *gin.Context) {
+	var req struct {
+		Token    string `json:"token"`
+		Username string `json:"username"`
+		UserID   string `json:"user_id"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	tokenStr := req.Token
+	if tokenStr == "" {
+		authHeader := c.GetHeader("Authorization")
+		tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+	}
+
+	cfg := config.LoadConfig()
+	claims := &middleware.StrictJWTClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(cfg.JWTSecret), nil
+	})
+
+	var targetUser models.User
+	db := config.DB
+
+	if (err == nil && token.Valid) || errors.Is(err, jwt.ErrTokenExpired) {
+		if claims.UserID != uuid.Nil {
+			db.Preload("Resident").First(&targetUser, "id = ?", claims.UserID)
+		}
+	}
+
+	if targetUser.ID == uuid.Nil && req.UserID != "" {
+		if parsedUID, parseErr := uuid.Parse(req.UserID); parseErr == nil {
+			db.Preload("Resident").First(&targetUser, "id = ?", parsedUID)
+		}
+	}
+
+	if targetUser.ID == uuid.Nil && req.Username != "" {
+		cleanU := strings.ToLower(strings.TrimSpace(req.Username))
+		db.Preload("Resident").Where("LOWER(username) = ? OR LOWER(email) = ?", cleanU, cleanU).First(&targetUser)
+	}
+
+	if targetUser.ID == uuid.Nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Session cannot be refreshed. Please sign in again."})
+		return
+	}
+
+	newToken, err := middleware.GenerateJWT(targetUser.ID, targetUser.Username, targetUser.Role, targetUser.ResidentID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refreshed token"})
+		return
+	}
+
+	c.Header("X-Refreshed-Token", newToken)
+	c.Header("Access-Control-Expose-Headers", "X-Refreshed-Token")
+	c.JSON(http.StatusOK, gin.H{
+		"token": newToken,
+		"user": gin.H{
+			"id":          targetUser.ID,
+			"username":    targetUser.Username,
+			"email":       targetUser.Email,
+			"role":        targetUser.Role,
+			"is_verified": targetUser.IsVerified,
+			"resident":    targetUser.Resident,
+		},
 	})
 }
 

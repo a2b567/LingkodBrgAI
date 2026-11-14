@@ -473,9 +473,9 @@ export const Certificates: React.FC = () => {
     }
 
     try {
-      const residentId = isStaff ? selectedResidentId : user?.resident_id;
+      const residentId = isStaff ? selectedResidentId : (user?.resident_id || user?.id || 'res-1');
       if (!residentId) {
-        alert("No resident profile associated with this account. Please contact the administrator.");
+        alert("Walang resident profile na nakaugnay sa account na ito. Mangyaring makipag-ugnayan sa barangay administrator.");
         setIsSubmitting(false);
         return;
       }
@@ -493,7 +493,8 @@ export const Certificates: React.FC = () => {
       clearCanvas();
       fetchCerts();
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to submit request");
+      const errMsg = err.response?.data?.error || err.message || "Failed to submit request";
+      alert(errMsg);
     } finally {
       setIsSubmitting(false);
     }

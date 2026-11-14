@@ -45,10 +45,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     try {
+      // Auto-refresh token if server is accessible to ensure session remains perpetually active
+      if (!token.startsWith('mock_')) {
+        api.auth.refreshToken().catch(() => {});
+      }
+
       const user = await api.auth.getMe();
       if (user && user.id) {
         localStorage.setItem('lingkodbrgai_user', JSON.stringify(user));
-        set({ user, token, isLoading: false });
+        set({ user, token: localStorage.getItem('lingkodbrgai_token') || token, isLoading: false });
       }
     } catch {
       // Keep offline/stale state active so user does not experience lockouts during network cold-starts

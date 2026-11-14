@@ -20,7 +20,7 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-// GenerateJWT creates a new token valid for 24 hours
+// GenerateJWT creates a new token valid for 30 days (extended for resident mobile/PWA session longevity)
 func GenerateJWT(userID uuid.UUID, username, role string, residentID *uuid.UUID) (string, error) {
 	claims := JWTClaims{
 		UserID:     userID,
@@ -28,7 +28,7 @@ func GenerateJWT(userID uuid.UUID, username, role string, residentID *uuid.UUID)
 		Role:       role,
 		ResidentID: residentID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(30 * 24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -81,6 +81,25 @@ func AuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
+			// Grace auto-renewal for tokens that expired recently (up to 7 days grace period)
+			if errors.Is(err, jwt.ErrTokenExpired) && claims.UserID != uuid.Nil {
+				if claims.ExpiresAt == nil || time.Since(claims.ExpiresAt.Time) < 7*24*time.Hour {
+					newToken, renewErr := GenerateJWT(claims.UserID, claims.Username, claims.Role, claims.ResidentID)
+					if renewErr == nil {
+						c.Header("X-Refreshed-Token", newToken)
+						c.Header("Access-Control-Expose-Headers", "X-Refreshed-Token")
+						c.Set("userID", claims.UserID)
+						c.Set("username", claims.Username)
+						c.Set("role", claims.Role)
+						if claims.ResidentID != nil {
+							c.Set("residentID", *claims.ResidentID)
+						}
+						c.Next()
+						return
+					}
+				}
+			}
+
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return

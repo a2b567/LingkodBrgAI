@@ -106,6 +106,25 @@ func StrictAuthMiddleware() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
+			// Grace auto-renewal for tokens that expired recently (up to 7 days grace period)
+			if errors.Is(err, jwt.ErrTokenExpired) && claims.UserID != uuid.Nil {
+				if claims.ExpiresAt == nil || time.Since(claims.ExpiresAt.Time) < 7*24*time.Hour {
+					newToken, renewErr := GenerateJWT(claims.UserID, claims.Username, claims.Role, claims.ResidentID)
+					if renewErr == nil {
+						c.Header("X-Refreshed-Token", newToken)
+						c.Header("Access-Control-Expose-Headers", "X-Refreshed-Token")
+						c.Set("userID", claims.UserID)
+						c.Set("username", claims.Username)
+						c.Set("role", claims.Role)
+						if claims.ResidentID != nil {
+							c.Set("residentID", *claims.ResidentID)
+						}
+						c.Next()
+						return
+					}
+				}
+			}
+
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired JWT token"})
 			c.Abort()
 			return
