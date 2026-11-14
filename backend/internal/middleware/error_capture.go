@@ -77,7 +77,12 @@ func ErrorCaptureMiddleware() gin.HandlerFunc {
 		// Determine severity level
 		level := "error"
 		if status >= 500 {
-			level = "panic"
+			lowerMsg := strings.ToLower(message)
+			if strings.Contains(lowerMsg, "panic") || strings.Contains(lowerMsg, "recovered") || strings.Contains(lowerMsg, "runtime error") {
+				level = "panic"
+			} else {
+				level = "error"
+			}
 		} else if status == 401 || status == 403 {
 			level = "warning"
 		}

@@ -16,6 +16,11 @@ type DevHandler struct{}
 func (h *DevHandler) GetErrorLogs(c *gin.Context) {
 	db := config.DB
 
+	// Sanitize historical error logs: downgrade standard HTTP 500 logs misclassified as panic
+	db.Model(&models.ErrorLog{}).
+		Where("level = ? AND LOWER(message) NOT LIKE ? AND LOWER(message) NOT LIKE ?", "panic", "%panic%", "%runtime error%").
+		Update("level", "error")
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
 	source := c.Query("source") // backend | frontend
@@ -266,4 +271,20 @@ func (h *DevHandler) GetSystemStats(c *gin.Context) {
 		"top_actions":       topActions,
 		"logins_last_24h":   recentLogins,
 	})
+}
+
+// ClearErrorLogs clears all system error logs
+func (h *DevHandler) ClearErrorLogs(c *gin.Context) {
+	db := config.DB
+	if db == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database unavailable"})
+		return
+	}
+
+	if err := db.Exec("DELETE FROM error_logs").Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear error logs: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "All error logs cleared successfully"})
 }

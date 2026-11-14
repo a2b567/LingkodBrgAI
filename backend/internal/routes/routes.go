@@ -234,6 +234,7 @@ func SetupRouter() *gin.Engine {
 			devOnly.GET("/users", devHandler.GetAllUsers)
 			devOnly.GET("/stats", devHandler.GetSystemStats)
 			devOnly.GET("/error-logs", devHandler.GetErrorLogs)
+			devOnly.DELETE("/error-logs", devHandler.ClearErrorLogs)
 		}
 
 		// Frontend JS error reporting (accessible while logged in, any role)

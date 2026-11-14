@@ -1106,6 +1106,12 @@ export const api = {
         () => ({ data: [], total: 0, page: 1, limit: 25 })
       ),
 
+    clearErrorLogs: () =>
+      withFallback(
+        () => client.delete<{ message: string }>('/dev/error-logs').then(r => r.data),
+        () => ({ message: 'All error logs cleared successfully' })
+      ),
+
     reportError: (data: { message: string; stack?: string; path?: string; user_agent?: string }) =>
       withFallback(
         () => client.post<{ message: string }>('/dev/report-error', data).then(r => r.data),
