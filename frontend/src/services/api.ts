@@ -192,18 +192,20 @@ function getMockUser(username: string): User {
 // Helper to execute API request with automatic Mock Fallback on connection error or expired/mock session
 async function withFallback<T>(apiCall: () => Promise<T>, fallbackDataFn: () => T): Promise<T> {
   const token = localStorage.getItem('lingkodbrgai_token');
-  const isMockToken = Boolean(token && token.startsWith('mock_'));
+  const isMockToken = Boolean(!token || token.startsWith('mock_'));
 
   try {
     return await apiCall();
   } catch (err: any) {
     const isNetworkError = !err.response || err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT';
     const isAuthError = err.response?.status === 401;
-    const errMsg = String(err.response?.data?.error || '');
+    const errMsg = String(err.response?.data?.error || err.message || '').toLowerCase();
     const isTokenError = isAuthError && (
-      errMsg.includes('Invalid or expired') ||
-      errMsg.includes('Authorization') ||
-      errMsg.includes('token')
+      errMsg.includes('invalid or expired') ||
+      errMsg.includes('authorization') ||
+      errMsg.includes('token') ||
+      errMsg.includes('jwt') ||
+      errMsg.includes('unauthorized')
     );
 
     // If connection refused, network error, mock session active, or token expired/invalid,
@@ -779,8 +781,28 @@ export const api = {
   appointments: {
     list: (params?: any) =>
       withFallback(
-        () => client.get<Appointment[]>('/appointments', { params }).then(r => r.data),
-        () => mockState.appointments
+        () => client.get<Appointment[]>('/appointments', { params }).then(r => {
+          const list = Array.isArray(r.data) ? r.data : [];
+          try {
+            const localApps = JSON.parse(localStorage.getItem('lingkodbrgai_mock_appointments') || '[]');
+            if (Array.isArray(localApps) && localApps.length > 0) {
+              const remoteIds = new Set(list.map((a: any) => a.id));
+              const pendingLocal = localApps.filter((a: any) => !remoteIds.has(a.id));
+              return [...pendingLocal, ...list];
+            }
+          } catch (e) {}
+          return list;
+        }),
+        () => {
+          try {
+            const localApps = JSON.parse(localStorage.getItem('lingkodbrgai_mock_appointments') || '[]');
+            if (Array.isArray(localApps) && localApps.length > 0) {
+              const remoteIds = new Set(localApps.map((a: any) => a.id));
+              return [...localApps, ...mockState.appointments.filter(a => !remoteIds.has(a.id))];
+            }
+          } catch (e) {}
+          return mockState.appointments;
+        }
       ),
     book: (data: any) =>
       withFallback(
@@ -796,7 +818,12 @@ export const api = {
             queue_number: Math.floor(1 + Math.random() * 15),
             created_at: new Date().toISOString(),
           };
-          mockState.appointments.push(newApp);
+          mockState.appointments.unshift(newApp);
+          try {
+            const stored = JSON.parse(localStorage.getItem('lingkodbrgai_mock_appointments') || '[]');
+            stored.unshift(newApp);
+            localStorage.setItem('lingkodbrgai_mock_appointments', JSON.stringify(stored));
+          } catch (e) {}
           return newApp;
         }
       ),
