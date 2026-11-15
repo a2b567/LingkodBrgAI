@@ -60,17 +60,9 @@ const parseMarkdown = (text: string) => {
   });
 };
 
-export const Dashboard: React.FC = () => {
+const StaffDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
-
-  if (user && user.role === 'Resident') {
-    return <ResidentDashboard />;
-  }
-
-  if (user && user.role === 'Developer') {
-    return <Navigate to="/dev-console" replace />;
-  }
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -1104,4 +1096,33 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+export const Dashboard: React.FC = () => {
+  const { user, isLoading } = useAuthStore();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div className="h-10 bg-slate-200 dark:bg-slate-800 rounded-2xl w-1/4"></div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-slate-200 dark:bg-slate-800 rounded-3xl"></div>
+          ))}
+        </div>
+        <div className="h-96 bg-slate-200 dark:bg-slate-800 rounded-3xl"></div>
+      </div>
+    );
+  }
+
+  if (user && user.role === 'Resident') {
+    return <ResidentDashboard />;
+  }
+
+  if (user && user.role === 'Developer') {
+    return <Navigate to="/dev-console" replace />;
+  }
+
+  return <StaffDashboard />;
+};
+
 export default Dashboard;
