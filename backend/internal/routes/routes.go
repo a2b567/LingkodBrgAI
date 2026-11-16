@@ -71,6 +71,9 @@ func SetupRouter() *gin.Engine {
 		api.GET("/settings/clinic-schedule", settingsHandler.GetClinicSchedule)
 		api.GET("/settings/kiosk-wallpaper", settingsHandler.GetKioskWallpaper)
 
+		// Frontend JS error reporting (publicly accessible so errors on /login or before authentication are captured)
+		api.POST("/dev/report-error", middleware.ReportFrontendError)
+
 		// License Validation & Activation (Publicly accessible for system activation checks)
 		licenses := api.Group("/licenses")
 		{
@@ -236,9 +239,6 @@ func SetupRouter() *gin.Engine {
 			devOnly.GET("/error-logs", devHandler.GetErrorLogs)
 			devOnly.DELETE("/error-logs", devHandler.ClearErrorLogs)
 		}
-
-		// Frontend JS error reporting (accessible while logged in, any role)
-		protected.POST("/dev/report-error", middleware.ReportFrontendError)
 	}
 
 	return r

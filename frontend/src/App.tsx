@@ -94,7 +94,10 @@ const PublicAuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }
 
   if (token && user) {
-    return <Navigate to="/" replace />;
+    if (user.role === 'Developer') {
+      return <Navigate to="/dev-console" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;

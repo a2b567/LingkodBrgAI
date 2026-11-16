@@ -77,7 +77,7 @@ export const Appointments: React.FC = () => {
         setAppointments(appRes.value || []);
       }
       if (blotterRes.status === 'fulfilled') {
-        setBlotters(blotterRes.value || []);
+        setBlotters(isStaff ? (blotterRes.value || []) : []);
       }
     } catch (err) {
       console.error('Error fetching schedules:', err);
@@ -111,6 +111,13 @@ export const Appointments: React.FC = () => {
     fetchCongestion();
     fetchResidents();
   }, [fetchData]);
+
+  // Privacy enforce: Never allow non-staff to linger on blotter tab
+  useEffect(() => {
+    if (!isStaff && activeTab === 'blotters') {
+      setActiveTab('all');
+    }
+  }, [isStaff, activeTab]);
 
   // Unified Schedule builder: merges standard appointments + Blotter Peace Hearing sessions
   const unifiedSchedules = useMemo<UnifiedSchedule[]>(() => {

@@ -57,10 +57,10 @@ export const Login: React.FC = () => {
   const [showGoogleModal, setShowGoogleModal] = useState(false);
 
   // Password Complexity Verification Rules
-  const meetsLength = newPassword.length >= 8;
-  const meetsCase = /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword);
-  const meetsDigitSpecial = /[0-9]/.test(newPassword) && /[!@#$%^&*()_+\-=\[\]{}|;':",./\<>?]/.test(newPassword);
-  const passwordsMatch = newPassword !== '' && newPassword === confirmPassword;
+  const meetsLength = (newPassword || '').length >= 8;
+  const meetsCase = /[A-Z]/.test(newPassword || '') && /[a-z]/.test(newPassword || '');
+  const meetsDigitSpecial = /[0-9]/.test(newPassword || '') && /[!@#$%^&*()_+\-=[\]{}|;':",./<>?]/.test(newPassword || '');
+  const passwordsMatch = Boolean(newPassword) && newPassword === confirmPassword;
 
   // Google SSO Handler
   const handleGoogleAuth = () => {
