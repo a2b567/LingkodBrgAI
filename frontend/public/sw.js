@@ -43,25 +43,29 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-First for API requests with cache fallback
+  // Network-First for API requests with safe fallback
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       fetch(event.request)
-        .then((response) => {
-          // Clone and cache successful API responses if applicable
-          return response;
-        })
-        .catch(() => {
-          return caches.match(event.request);
+        .then((response) => response)
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return new Response(JSON.stringify({ offline: true, message: 'Network offline' }), {
+            status: 503,
+            headers: { 'Content-Type': 'application/json' }
+          });
         })
     );
     return;
   }
 
-  // Stale-while-revalidate for static assets & HTML navigation
+  // Stale-while-revalidate for static assets & HTML navigation (guaranteed valid Response)
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
+    (async () => {
+      const cachedResponse = await caches.match(event.request);
+      try {
+        const networkResponse = await fetch(event.request);
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -69,14 +73,14 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Fallback to offline index.html for navigation requests
+      } catch {
+        if (cachedResponse) return cachedResponse;
         if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
+          const appShell = await caches.match('/index.html');
+          if (appShell) return appShell;
         }
-      });
-
-      return cachedResponse || fetchPromise;
-    })
+        return new Response('Network offline', { status: 503, statusText: 'Offline' });
+      }
+    })()
   );
 });

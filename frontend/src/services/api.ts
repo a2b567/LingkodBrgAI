@@ -58,7 +58,7 @@ client.interceptors.response.use(
             token: currentToken,
             username: user?.username,
             user_id: user?.id,
-          }, { timeout: 8000 });
+          }, { timeout: 25000 });
 
           const newToken = res.data?.token;
           if (newToken) {
@@ -68,7 +68,7 @@ client.interceptors.response.use(
           }
         }
       } catch (refreshErr) {
-        console.warn('Silent token renewal could not reach backend:', refreshErr);
+        console.debug('Silent token renewal could not reach backend:', refreshErr);
       }
     }
 

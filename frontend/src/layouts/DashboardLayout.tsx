@@ -129,15 +129,20 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, [location.pathname, isMobile]);
 
-  // WebSocket Live announcements & notifications
+  // WebSocket Live announcements & notifications (with graceful fallback to HTTP polling)
   useEffect(() => {
+    const isVercel = typeof window !== 'undefined' && window.location.host.includes('vercel.app');
     const wsUrl = window.location.protocol === 'https:'
-      ? `wss://${window.location.host}/api/ws`
+      ? (isVercel ? 'wss://lingkodbrgai.onrender.com/api/ws' : `wss://${window.location.host}/api/ws`)
       : 'ws://localhost:8080/api/ws';
 
     let ws: WebSocket | null = null;
     try {
       ws = new WebSocket(wsUrl);
+
+      ws.onerror = () => {
+        // Silently handled: HTTP notification poller provides reliable fallback
+      };
 
       ws.onmessage = (event) => {
         try {
