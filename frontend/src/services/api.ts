@@ -4,7 +4,11 @@ import type {
   Appointment, Notification, Payment, DashboardStats, PublicCertificateResponse 
 } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api');
+const API_URL = import.meta.env.VITE_API_URL || (
+  typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
+    ? 'https://lingkodbrgai.onrender.com/api'
+    : (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api')
+);
 
 const client = axios.create({
   baseURL: API_URL,

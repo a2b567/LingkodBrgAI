@@ -5,7 +5,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.go"
+      "destination": "https://lingkodbrgai.onrender.com/api/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "https://lingkodbrgai.onrender.com/uploads/$1"
     },
     {
       "source": "/(.*)",
@@ -13,5 +17,3 @@
     }
   ]
 }
-
-
