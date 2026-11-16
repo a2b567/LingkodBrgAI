@@ -149,7 +149,7 @@ export const Appointments: React.FC = () => {
           schedules = typeof caseItem.hearing_schedules === 'string'
             ? JSON.parse(caseItem.hearing_schedules)
             : caseItem.hearing_schedules;
-        } catch (_) {
+        } catch {
           schedules = [];
         }
         if (!Array.isArray(schedules)) return;

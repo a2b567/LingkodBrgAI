@@ -29,7 +29,7 @@ const formatHearingSchedule = (sched: any): string => {
         });
         return `${dateStr} @ ${timeStr}${remarksVal ? ` - ${remarksVal}` : ''}`;
       }
-    } catch (e) {
+    } catch {
       // Fallback
     }
     return `${dateVal}${remarksVal ? ` - ${remarksVal}` : ''}`;
@@ -60,7 +60,7 @@ const convertToISODateTime = (dateStr: string, timeStr: string): string => {
       return `${dateStr}T${h.toString().padStart(2, '0')}:00:00Z`;
     }
     return `${dateStr}T09:00:00Z`;
-  } catch (e) {
+  } catch {
     return `${dateStr}T09:00:00Z`;
   }
 };
@@ -172,7 +172,7 @@ export const BlotterPage: React.FC = () => {
         if (selectedCase.hearing_schedules) {
           currentSchedules = JSON.parse(selectedCase.hearing_schedules);
         }
-      } catch (err) {
+      } catch {
         currentSchedules = [];
       }
 
@@ -193,7 +193,7 @@ export const BlotterPage: React.FC = () => {
           content: `Peace Hearing session scheduled on ${new Date(isoDateTime).toLocaleDateString()} at ${hearingTime}. Naka-sync na ito sa Appointments & Queue calendar.`,
           type: 'Blotter'
         });
-      } catch (_) {}
+      } catch {}
 
       setIsHearingModalOpen(false);
       setHearingDate('');
@@ -440,7 +440,7 @@ export const BlotterPage: React.FC = () => {
                   if (c.hearing_schedules) {
                     schedules = JSON.parse(c.hearing_schedules);
                   }
-                } catch (err) {
+                } catch {
                   schedules = [];
                 }
 

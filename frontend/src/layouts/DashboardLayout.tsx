@@ -182,9 +182,9 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
               setLiveAnnouncement(null);
             }, 8000);
           }
-        } catch (err) {}
+        } catch {}
       };
-    } catch (e) {}
+    } catch {}
 
     return () => {
       if (ws) ws.close();

@@ -114,7 +114,7 @@ export const AIFloatingPanel: React.FC = () => {
       try {
         recognitionRef.current.start();
         setIsListening(true);
-      } catch (err) {
+      } catch {
         setIsListening(false);
       }
     }
@@ -186,7 +186,7 @@ export const AIFloatingPanel: React.FC = () => {
 
       // Speak AI response out loud if Voice Output is enabled
       speakText(cleanResponse);
-    } catch (error) {
+    } catch {
       setIsTyping(false);
       const errMsg = 'Sorry, I encountered an issue querying the database. Please try again.';
       setHistory(prev => [...prev, {

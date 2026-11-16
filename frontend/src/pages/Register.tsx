@@ -178,11 +178,11 @@ export const Register: React.FC = () => {
           const json = JSON.parse(cleanText);
           setAiVerified(json.legitimate ?? true);
           setAiAnalysisMessage(json.reason || `${typeLabel} verified as legitimate government document.`);
-        } catch (pErr) {
+        } catch {
           setAiVerified(true);
           setAiAnalysisMessage(`AI verified ${typeLabel} format as legitimate.`);
         }
-      } catch (err) {
+      } catch {
         setAiVerified(true);
         setAiAnalysisMessage(`AI Document scanner validated ${file.name} format.`);
       } finally {

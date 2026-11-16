@@ -85,7 +85,7 @@ export const QueueSchedule: React.FC = () => {
     try {
       const savedDismissed = localStorage.getItem('lingkod_queue_dismissed');
       if (savedDismissed) dismissedIds = JSON.parse(savedDismissed);
-    } catch (e) {}
+    } catch {}
 
     // 1. Fetch real pending certificates from backend (Primary Source of Truth)
     let backendQueueSlots: QueueSlot[] = [];
@@ -120,7 +120,7 @@ export const QueueSchedule: React.FC = () => {
       if (saved) {
         localSlots = JSON.parse(saved);
       }
-    } catch (e) {}
+    } catch {}
 
     // 3. Strict Deduplication: one entry per person + document type, and one per unique ID
     const finalSlots: QueueSlot[] = [];
@@ -157,7 +157,7 @@ export const QueueSchedule: React.FC = () => {
     setQueueSlots(finalSlots);
     try {
       localStorage.setItem('lingkod_queue_slots', JSON.stringify(finalSlots));
-    } catch (e) {}
+    } catch {}
   };
 
   useEffect(() => {
@@ -170,7 +170,7 @@ export const QueueSchedule: React.FC = () => {
     setQueueSlots(newSlots);
     try {
       localStorage.setItem('lingkod_queue_slots', JSON.stringify(newSlots));
-    } catch (e) {}
+    } catch {}
   };
 
 
@@ -238,7 +238,7 @@ export const QueueSchedule: React.FC = () => {
       try {
         const allIds = queueSlots.map(s => s.id);
         localStorage.setItem('lingkod_queue_dismissed', JSON.stringify(allIds));
-      } catch (e) {}
+      } catch {}
       localStorage.setItem('lingkod_queue_slots', JSON.stringify([]));
       setQueueSlots([]);
     }
@@ -253,7 +253,7 @@ export const QueueSchedule: React.FC = () => {
           list.push(id);
           localStorage.setItem('lingkod_queue_dismissed', JSON.stringify(list));
         }
-      } catch (e) {}
+      } catch {}
       const updated = queueSlots.filter(s => s.id !== id);
       updateSlots(updated);
     }

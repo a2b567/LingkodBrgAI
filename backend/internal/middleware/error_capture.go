@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-	"time"
 
 	"backend/internal/config"
 	"backend/internal/models"
@@ -60,9 +59,7 @@ func ErrorCaptureMiddleware() gin.HandlerFunc {
 		blw := &responseBodyWriter{body: new(bytes.Buffer), ResponseWriter: c.Writer}
 		c.Writer = blw
 
-		start := time.Now()
 		c.Next()
-		_ = start
 
 		status := c.Writer.Status()
 

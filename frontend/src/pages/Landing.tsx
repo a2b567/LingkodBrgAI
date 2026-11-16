@@ -77,7 +77,7 @@ export const Landing: React.FC = () => {
     try {
       const saved = localStorage.getItem('lingkod_landing_announcements');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch {}
     return defaultAnnouncements;
   });
 
@@ -103,7 +103,7 @@ export const Landing: React.FC = () => {
       try {
         const savedAnn = localStorage.getItem('lingkod_landing_announcements');
         if (savedAnn) setAnnouncements(JSON.parse(savedAnn));
-      } catch (e) {}
+      } catch {}
       setContactAddress(localStorage.getItem('brgy_address') || 'Brgy. Hall, Main Road, Laguna');
       setContactHotline(localStorage.getItem('brgy_hotline') || '(049) 123-4567');
       setContactEmail(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');

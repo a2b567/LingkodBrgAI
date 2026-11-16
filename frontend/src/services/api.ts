@@ -387,7 +387,7 @@ export const api = {
         () => {
           const saved = localStorage.getItem('lingkodbrgai_mock_user');
           if (saved) {
-            try { return JSON.parse(saved); } catch (e) {}
+            try { return JSON.parse(saved); } catch {}
           }
           return getMockUser('captain');
         }
@@ -631,7 +631,7 @@ export const api = {
               const pendingLocal = localCerts.filter((c: any) => !remoteIds.has(c.id) && !remoteIds.has(c.document_number));
               return [...pendingLocal, ...list];
             }
-          } catch (e) {}
+          } catch {}
           return list;
         }),
         () => {
@@ -641,7 +641,7 @@ export const api = {
               const remoteIds = new Set(localCerts.map((c: any) => c.id));
               return [...localCerts, ...mockState.certificates.filter(c => !remoteIds.has(c.id))];
             }
-          } catch (e) {}
+          } catch {}
           return mockState.certificates;
         }
       ),
@@ -668,7 +668,7 @@ export const api = {
             const stored = JSON.parse(localStorage.getItem('lingkodbrgai_mock_certs') || '[]');
             stored.unshift(newCert);
             localStorage.setItem('lingkodbrgai_mock_certs', JSON.stringify(stored));
-          } catch (e) {}
+          } catch {}
           return newCert;
         }
       ),
@@ -802,7 +802,7 @@ export const api = {
       try {
         const res = await client.post<{ summary: string }>(`/blotters/${id}/summarize`);
         return res.data;
-      } catch (_) {
+      } catch {
         // Backend unavailable
       }
       try {
@@ -811,7 +811,7 @@ export const api = {
           'You are LingkodBrgyAI, an AI legal assistant for Barangay San Isidro. Generate concise blotter case digests with recommended actions like conciliation, hearing scheduling, or escalation.'
         );
         if (groqSummary) return { summary: groqSummary };
-      } catch (_) {
+      } catch {
         // Groq unavailable
       }
       return { summary: 'Neighborhood noise dispute log. Recommended for amicable conciliation at hall.' };
@@ -858,7 +858,7 @@ export const api = {
               const pendingLocal = localApps.filter((a: any) => !remoteIds.has(a.id));
               return [...pendingLocal, ...list];
             }
-          } catch (e) {}
+          } catch {}
           return list;
         }),
         () => {
@@ -868,7 +868,7 @@ export const api = {
               const remoteIds = new Set(localApps.map((a: any) => a.id));
               return [...localApps, ...mockState.appointments.filter(a => !remoteIds.has(a.id))];
             }
-          } catch (e) {}
+          } catch {}
           return mockState.appointments;
         }
       ),
@@ -891,7 +891,7 @@ export const api = {
             const stored = JSON.parse(localStorage.getItem('lingkodbrgai_mock_appointments') || '[]');
             stored.unshift(newApp);
             localStorage.setItem('lingkodbrgai_mock_appointments', JSON.stringify(stored));
-          } catch (e) {}
+          } catch {}
           return newApp;
         }
       ),
@@ -1144,7 +1144,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('lingkod_emergency_hotlines');
             if (saved) return JSON.parse(saved);
-          } catch (e) {}
+          } catch {}
           return [
             { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
             { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
@@ -1158,7 +1158,7 @@ export const api = {
     updateHotlines: (hotlines: any[]) => {
       try {
         localStorage.setItem('lingkod_emergency_hotlines', JSON.stringify(hotlines));
-      } catch (e) {}
+      } catch {}
       return withFallback(
         () => client.put('/settings/hotlines', { hotlines }).then(r => r.data),
         () => ({ message: 'Hotlines updated successfully', data: hotlines })
@@ -1173,7 +1173,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('cert_fees');
             if (saved) return { ...defaultFees, ...JSON.parse(saved) };
-          } catch (e) {}
+          } catch {}
           return defaultFees;
         }
       ),
@@ -1181,7 +1181,7 @@ export const api = {
     updateFees: (fees: Record<string, number>) => {
       try {
         localStorage.setItem('cert_fees', JSON.stringify(fees));
-      } catch (e) {}
+      } catch {}
       return withFallback(
         () => client.put('/settings/fees', { fees }).then(r => r.data),
         () => ({ message: 'Fee schedule updated successfully', data: fees })
@@ -1203,7 +1203,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('lingkod_clinic_schedule');
             if (saved) return { ...defaultSched, ...JSON.parse(saved) };
-          } catch (e) {}
+          } catch {}
           return defaultSched;
         }
       ),
@@ -1211,7 +1211,7 @@ export const api = {
     updateClinicSchedule: (data: any) => {
       try {
         localStorage.setItem('lingkod_clinic_schedule', JSON.stringify(data));
-      } catch (e) {}
+      } catch {}
       return withFallback(
         () => client.put('/settings/clinic-schedule', data).then(r => r.data),
         () => ({ message: 'Clinic schedule updated successfully', data })
@@ -1231,7 +1231,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('kiosk_wallpaper_config');
             if (saved) return { ...defaultCfg, ...JSON.parse(saved) };
-          } catch (e) {}
+          } catch {}
           return defaultCfg;
         }
       ),
@@ -1243,7 +1243,7 @@ export const api = {
         localStorage.setItem('kiosk_wallpaper_overlay', String(data.overlay));
         localStorage.setItem('kiosk_wallpaper_blur', String(data.blur));
         if (data.theme_name) localStorage.setItem('kiosk_wallpaper_theme', data.theme_name);
-      } catch (e) {}
+      } catch {}
       return withFallback(
         () => client.put<{ message: string; data: any }>('/settings/kiosk-wallpaper', data).then(r => r.data),
         () => ({ message: 'Matagumpay na na-save ang Kiosk Wallpaper!', data })

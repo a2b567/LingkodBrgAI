@@ -98,7 +98,7 @@ export const Households: React.FC = () => {
         poverty_level: poverty,
       });
       setHouseholds(data);
-    } catch (err) {
+    } catch {
       // Fetch error
     } finally {
       setIsLoading(false);
@@ -109,7 +109,7 @@ export const Households: React.FC = () => {
     try {
       const data = await api.residents.list({ limit: 100 });
       setResidents(data.data);
-    } catch (err) {}
+    } catch {}
   };
 
   useEffect(() => {
@@ -271,7 +271,7 @@ export const Households: React.FC = () => {
       }
       setShowModal(false);
       fetchHouseholds();
-    } catch (err) {
+    } catch {
     } finally {
       setIsSaving(false);
     }
@@ -286,7 +286,7 @@ export const Households: React.FC = () => {
       setShowAssignModal(false);
       fetchHouseholds();
       fetchResidentsWithoutHousehold();
-    } catch (err) {
+    } catch {
     } finally {
       setIsSaving(false);
     }
@@ -297,7 +297,7 @@ export const Households: React.FC = () => {
       try {
         await api.households.delete(id);
         fetchHouseholds();
-      } catch (err) {}
+      } catch {}
     }
   };
 

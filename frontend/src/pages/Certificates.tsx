@@ -224,7 +224,7 @@ export const Certificates: React.FC = () => {
         }));
         setImportFeedback(`Successfully imported fields from "${file.name}"!`);
         setTimeout(() => setImportFeedback(null), 4000);
-      } catch (err) {
+      } catch {
         alert("Failed to parse JSON file. Please ensure it is valid JSON.");
       }
     };
@@ -519,7 +519,7 @@ export const Certificates: React.FC = () => {
           const stored = JSON.parse(localStorage.getItem('lingkodbrgai_mock_certs') || '[]');
           stored.unshift(fallbackCert);
           localStorage.setItem('lingkodbrgai_mock_certs', JSON.stringify(stored));
-        } catch (e) {}
+        } catch {}
 
         setIsModalOpen(false);
         setPurpose('');

@@ -361,7 +361,7 @@ export const Settings: React.FC = () => {
     try {
       const saved = localStorage.getItem('lingkod_landing_announcements');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch {}
     localStorage.setItem('lingkod_landing_announcements', JSON.stringify(defaultAnnouncements));
     return defaultAnnouncements;
   });
@@ -430,7 +430,7 @@ export const Settings: React.FC = () => {
           if (data.household.purok) setPurok(data.household.purok);
           if (data.household.poverty_level) setPovertyLevel(data.household.poverty_level);
         }
-      } catch (e) {}
+      } catch {}
     };
     fetchFreshProfile();
 
@@ -564,7 +564,7 @@ export const Settings: React.FC = () => {
       initials: user?.role === 'Secretary' ? 'BS' : 'BC',
       date: `Issued ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
     };
-    try { await api.notifications.broadcastAnnouncement({ title: annTitle, content: annContent }); } catch (err: any) {}
+    try { await api.notifications.broadcastAnnouncement({ title: annTitle, content: annContent }); } catch {}
     const updated = [newAnn, ...announcements];
     setAnnouncements(updated);
     localStorage.setItem('lingkod_landing_announcements', JSON.stringify(updated));

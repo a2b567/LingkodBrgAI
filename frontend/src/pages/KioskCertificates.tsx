@@ -35,7 +35,7 @@ export const KioskCertificates: React.FC = () => {
         }
         setServingTicket('---');
         setNextTicket('---');
-      } catch (e) {
+      } catch {
         setServingTicket('---');
         setNextTicket('---');
       }
@@ -447,7 +447,7 @@ export const KioskCertificates: React.FC = () => {
         const updatedQueue = [...existing, newQueueSlot];
         localStorage.setItem('lingkod_queue_slots', JSON.stringify(updatedQueue));
         window.dispatchEvent(new Event('storage'));
-      } catch (e) {}
+      } catch {}
 
       setStep(4);
     } finally {

@@ -40,7 +40,7 @@ export const QueueMonitor: React.FC = () => {
           }
         }
         setQueueSlots([]);
-      } catch (e) {
+      } catch {
         setQueueSlots([]);
       }
     };

@@ -117,7 +117,7 @@ export const Residents: React.FC = () => {
       });
       setResidents(data.data);
       setTotal(data.total);
-    } catch (err) {
+    } catch {
       // Handle error
     } finally {
       setIsLoading(false);
@@ -525,7 +525,7 @@ export const Residents: React.FC = () => {
     try {
       const res = await api.residents.uploadPhoto(formData);
       setPhotoUrl(res.photo_url);
-    } catch (err) {
+    } catch {
       // Photo upload failed
     }
   };
@@ -576,7 +576,7 @@ export const Residents: React.FC = () => {
       try {
         await api.residents.delete(id);
         fetchResidents();
-      } catch (err) {
+      } catch {
         // Delete error
       }
     }

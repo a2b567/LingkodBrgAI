@@ -106,7 +106,7 @@ const StaffDashboard: React.FC = () => {
         }
       }
       setQueueSlots([]);
-    } catch (e) {
+    } catch {
       setQueueSlots([]);
     }
   };
@@ -121,7 +121,7 @@ const StaffDashboard: React.FC = () => {
     setQueueSlots(newSlots);
     try {
       localStorage.setItem('lingkod_queue_slots', JSON.stringify(newSlots));
-    } catch (e) {}
+    } catch {}
   };
 
   const waitingSlots = queueSlots.filter(s => s.status === 'Waiting');
@@ -250,7 +250,7 @@ const StaffDashboard: React.FC = () => {
       } else {
         streamMessage("Demographic distributions indicate stable residency trends in Barangay San Isidro. Outstanding blotter disputes require scheduled mediations.", 'ai');
       }
-    } catch (err) {
+    } catch {
       setIsGeneratingInsight(false);
       streamMessage("Demographic distributions indicate stable residency trends in Barangay San Isidro. Outstanding blotter disputes require scheduled mediations.", 'ai');
     }
@@ -333,7 +333,7 @@ const StaffDashboard: React.FC = () => {
       const res = await api.ai.chat(fullPrompt);
       setIsSending(false);
       streamMessage(res.response, 'ai');
-    } catch (err) {
+    } catch {
       setIsSending(false);
       streamMessage("I'm sorry, I couldn't reach the local AI service. Please try again later.", 'ai');
     }
