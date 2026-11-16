@@ -756,16 +756,33 @@ export const api = {
 
 
   blotters: {
-    list: (params?: any) =>
-      withFallback(
+    list: (params?: any) => {
+      // Privacy safeguard: Residents are never permitted to view confidential blotter records
+      try {
+        const u = localStorage.getItem('lingkodbrgai_user');
+        if (u && JSON.parse(u)?.role === 'Resident') {
+          return Promise.resolve([] as Blotter[]);
+        }
+      } catch {}
+
+      return withFallback(
         () => client.get<Blotter[]>('/blotters', { params }).then(r => r.data),
         () => mockState.blotters
-      ),
-    get: (id: string) =>
-      withFallback(
+      );
+    },
+    get: (id: string) => {
+      try {
+        const u = localStorage.getItem('lingkodbrgai_user');
+        if (u && JSON.parse(u)?.role === 'Resident') {
+          return Promise.reject(new Error('Confidential record: Blotter access restricted to authorized personnel.'));
+        }
+      } catch {}
+
+      return withFallback(
         () => client.get<Blotter>(`/blotters/${id}`).then(r => r.data),
         () => mockState.blotters[0]
-      ),
+      );
+    },
     create: (data: Partial<Blotter>) =>
       withFallback(
         () => client.post<Blotter>('/blotters', data).then(r => r.data),

@@ -67,9 +67,10 @@ export const Appointments: React.FC = () => {
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Privacy safeguard: Only authorized barangay staff are permitted to fetch and view blotter hearing schedules
       const [appRes, blotterRes] = await Promise.allSettled([
         api.appointments.list(),
-        api.blotters.list()
+        isStaff ? api.blotters.list() : Promise.resolve([])
       ]);
 
       if (appRes.status === 'fulfilled') {
@@ -83,7 +84,7 @@ export const Appointments: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isStaff]);
 
   const fetchCongestion = async () => {
     try {
@@ -139,59 +140,61 @@ export const Appointments: React.FC = () => {
       });
     });
 
-    // 2. Process Blotter Peace Mediation Hearings
-    blotters.forEach((caseItem) => {
-      if (!caseItem.hearing_schedules) return;
-      let schedules: any[] = [];
-      try {
-        schedules = typeof caseItem.hearing_schedules === 'string'
-          ? JSON.parse(caseItem.hearing_schedules)
-          : caseItem.hearing_schedules;
-      } catch (_) {
-        schedules = [];
-      }
-      if (!Array.isArray(schedules)) return;
+    // 2. Process Blotter Peace Mediation Hearings (Staff Only - Strictly Confidential)
+    if (isStaff) {
+      blotters.forEach((caseItem) => {
+        if (!caseItem.hearing_schedules) return;
+        let schedules: any[] = [];
+        try {
+          schedules = typeof caseItem.hearing_schedules === 'string'
+            ? JSON.parse(caseItem.hearing_schedules)
+            : caseItem.hearing_schedules;
+        } catch (_) {
+          schedules = [];
+        }
+        if (!Array.isArray(schedules)) return;
 
-      schedules.forEach((sched, idx) => {
-        const rawDate = sched.hearing_date || sched.hearingDate || sched.date;
-        if (!rawDate) return;
+        schedules.forEach((sched, idx) => {
+          const rawDate = sched.hearing_date || sched.hearingDate || sched.date;
+          if (!rawDate) return;
 
-        const d = new Date(rawDate);
-        const isValid = !isNaN(d.getTime());
-        const dateIso = isValid ? d.toISOString().split('T')[0] : String(rawDate).split('T')[0];
-        const dateDisplay = isValid
-          ? d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
-          : String(rawDate).split('T')[0];
-        const timeDisplay = isValid
-          ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-          : '05:00 PM';
+          const d = new Date(rawDate);
+          const isValid = !isNaN(d.getTime());
+          const dateIso = isValid ? d.toISOString().split('T')[0] : String(rawDate).split('T')[0];
+          const dateDisplay = isValid
+            ? d.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })
+            : String(rawDate).split('T')[0];
+          const timeDisplay = isValid
+            ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+            : '05:00 PM';
 
-        const sessionTitle = `Session ${idx + 1}`;
-        const remarks = sched.remarks || 'Scheduled Peace Hearing';
+          const sessionTitle = `Session ${idx + 1}`;
+          const remarks = sched.remarks || 'Scheduled Peace Hearing';
 
-        list.push({
-          id: `blotter-${caseItem.id}-${idx}`,
-          source: 'blotter',
-          queue_number: caseItem.case_number,
-          resident_name: `${caseItem.complainant} vs ${caseItem.respondent}`,
-          complainant: caseItem.complainant,
-          respondent: caseItem.respondent,
-          purpose: `Peace Mediation (${sessionTitle}) - ${remarks}`,
-          date_iso: dateIso,
-          date_display: dateDisplay,
-          time_display: timeDisplay,
-          status: caseItem.status === 'Settled' ? 'Settled' : caseItem.status === 'Dismissed' ? 'Dismissed' : 'Scheduled',
-          rawDate: isValid ? d : new Date(),
-          blotterCaseNumber: caseItem.case_number,
-          blotterCaseId: caseItem.id,
-          session_title: sessionTitle,
+          list.push({
+            id: `blotter-${caseItem.id}-${idx}`,
+            source: 'blotter',
+            queue_number: caseItem.case_number,
+            resident_name: `${caseItem.complainant} vs ${caseItem.respondent}`,
+            complainant: caseItem.complainant,
+            respondent: caseItem.respondent,
+            purpose: `Peace Mediation (${sessionTitle}) - ${remarks}`,
+            date_iso: dateIso,
+            date_display: dateDisplay,
+            time_display: timeDisplay,
+            status: caseItem.status === 'Settled' ? 'Settled' : caseItem.status === 'Dismissed' ? 'Dismissed' : 'Scheduled',
+            rawDate: isValid ? d : new Date(),
+            blotterCaseNumber: caseItem.case_number,
+            blotterCaseId: caseItem.id,
+            session_title: sessionTitle,
+          });
         });
       });
-    });
+    }
 
     // Sort chronologically
     return list.sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime());
-  }, [appointments, blotters]);
+  }, [appointments, blotters, isStaff]);
 
   // Combined 7-Day Congestion Forecast (incorporating appointments + peace mediation hearings)
   const dynamicCongestion = useMemo(() => {
@@ -306,24 +309,30 @@ export const Appointments: React.FC = () => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight uppercase">
-              Appointments & Queue
+              {isStaff ? 'Appointments & Queue' : 'My Appointments'}
             </h2>
-            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gov-blue-50 text-gov-blue-700 dark:bg-gov-blue-950/60 dark:text-gov-blue-300 border border-gov-blue-200 dark:border-gov-blue-800">
-              <Sparkles size={11} /> Unified Schedule Sync
-            </span>
+            {isStaff && (
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-gov-blue-50 text-gov-blue-700 dark:bg-gov-blue-950/60 dark:text-gov-blue-300 border border-gov-blue-200 dark:border-gov-blue-800">
+                <Sparkles size={11} /> Unified Schedule Sync
+              </span>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium">
-            Book community visits, document pickups, or mediations, powered by crowd congestion forecasting
+            {isStaff 
+              ? 'Manage community visits, document pickups, and Lupon peace mediation hearings' 
+              : 'Book and manage your personal barangay appointments and document pickup slots'}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            to="/blotter"
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs transition-colors"
-          >
-            <Scale size={15} className="text-amber-500" />
-            <span>Open Blotter</span>
-          </Link>
+          {isStaff && (
+            <Link
+              to="/blotter"
+              className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl font-bold text-xs transition-colors"
+            >
+              <Scale size={15} className="text-amber-500" />
+              <span>Open Blotter</span>
+            </Link>
+          )}
           <button
             onClick={() => {
               setAppointmentDate(new Date().toISOString().split('T')[0]);
@@ -355,7 +364,9 @@ export const Appointments: React.FC = () => {
           )}
         </div>
         <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-normal mb-4">
-          Below is the projected daily queue levels based on current reservation volumes (including peace hearings and scheduled barangay appointments). Click any day to filter schedules.
+          {isStaff
+            ? 'Below is the projected daily queue levels based on current reservation volumes (including peace hearings and scheduled barangay appointments). Click any day to filter schedules.'
+            : 'Below is the projected daily counter queue levels. Select a day with lower volume for faster in-person processing.'}
         </p>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3">
@@ -403,10 +414,10 @@ export const Appointments: React.FC = () => {
           <div className="space-y-1">
             <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-200 tracking-widest flex items-center gap-2">
               <CalendarIcon size={14} className="text-gov-blue-600" />
-              {isStaff ? 'Barangay Appointment Ledger & Hearing Schedule' : 'My Scheduled Bookings & Hearings'}
+              {isStaff ? 'Barangay Appointment Ledger & Hearing Schedule' : 'My Scheduled Bookings'}
             </h4>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Showing {filteredSchedules.length} scheduled session{filteredSchedules.length !== 1 ? 's' : ''}
+              Showing {filteredSchedules.length} scheduled {isStaff ? 'session' : 'appointment'}{filteredSchedules.length !== 1 ? 's' : ''}
               {selectedDateFilter && ` on ${new Date(selectedDateFilter).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
             </p>
           </div>
@@ -436,18 +447,20 @@ export const Appointments: React.FC = () => {
               >
                 Appointments ({appointmentsCount})
               </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('blotters')}
-                className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
-                  activeTab === 'blotters'
-                    ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                <Scale size={13} />
-                <span>Peace Hearings ({blottersCount})</span>
-              </button>
+              {isStaff && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('blotters')}
+                  className={`px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 ${
+                    activeTab === 'blotters'
+                      ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Scale size={13} />
+                  <span>Peace Hearings ({blottersCount})</span>
+                </button>
+              )}
             </div>
 
             {/* Search Input */}
@@ -467,13 +480,21 @@ export const Appointments: React.FC = () => {
         {/* Desktop Table View */}
         <div className="hidden md:block overflow-x-auto">
           {isLoading ? (
-            <div className="p-10 text-center text-xs font-bold text-slate-500 dark:text-slate-400">Loading appointment logs & blotter hearings...</div>
+            <div className="p-10 text-center text-xs font-bold text-slate-500 dark:text-slate-400">
+              {isStaff ? 'Loading appointment logs & blotter hearings...' : 'Loading your appointments...'}
+            </div>
           ) : filteredSchedules.length === 0 ? (
             <div className="p-12 text-center text-slate-400 dark:text-slate-500 space-y-2">
               <CalendarIcon size={32} className="mx-auto opacity-30" />
-              <p className="text-xs font-bold">No appointments or peace hearings scheduled.</p>
+              <p className="text-xs font-bold">
+                {isStaff ? 'No appointments or peace hearings scheduled.' : 'You have no scheduled appointments.'}
+              </p>
               <p className="text-[11px]">
-                {selectedDateFilter ? 'Try clearing the date filter or booking a new slot.' : 'Scheduled peace hearings from Blotter and booked appointments will appear here automatically.'}
+                {selectedDateFilter 
+                  ? 'Try clearing the date filter or booking a new slot.' 
+                  : isStaff 
+                    ? 'Scheduled peace hearings from Blotter and booked appointments will appear here automatically.'
+                    : 'Click "Book Appointment" above to schedule a document pickup or barangay consultation.'}
               </p>
               {selectedDateFilter && (
                 <button
@@ -649,9 +670,13 @@ export const Appointments: React.FC = () => {
         {/* Mobile Card View */}
         <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
           {isLoading ? (
-            <div className="p-8 text-center text-xs font-bold text-slate-500">Loading schedule logs...</div>
+            <div className="p-8 text-center text-xs font-bold text-slate-500">
+              {isStaff ? 'Loading schedule logs...' : 'Loading your appointments...'}
+            </div>
           ) : filteredSchedules.length === 0 ? (
-            <div className="p-8 text-center text-xs font-bold text-slate-500">No appointments or hearings scheduled.</div>
+            <div className="p-8 text-center text-xs font-bold text-slate-500">
+              {isStaff ? 'No appointments or hearings scheduled.' : 'You have no scheduled appointments.'}
+            </div>
           ) : (
             filteredSchedules.map((item) => {
               const isBlotter = item.source === 'blotter';
