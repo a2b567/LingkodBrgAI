@@ -20,9 +20,9 @@ var DB *gorm.DB
 var CloudDB *gorm.DB
 
 type DBStatusResponse struct {
-	LocalDB  DBInfo `json:"local_database"`
-	CloudDB  DBInfo `json:"cloud_database"`
-	Synced   bool   `json:"is_synced"`
+	LocalDB DBInfo `json:"local_database"`
+	CloudDB DBInfo `json:"cloud_database"`
+	Synced  bool   `json:"is_synced"`
 }
 
 type DBInfo struct {
