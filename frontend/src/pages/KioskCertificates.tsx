@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
+import {
   Signature, Loader2, Pointer, Maximize2, Minimize2, Languages,
   Award, HeartHandshake, Home, Building2, CreditCard, UserCheck, CheckCircle2,
   Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool, Lock
@@ -9,7 +9,7 @@ import { KioskAdminLockModal } from '../components/KioskAdminLockModal';
 import './KioskCertificates.css';
 
 export const KioskCertificates: React.FC = () => {
-  const [step, setStep] = useState(0); 
+  const [step, setStep] = useState(0);
   const [lang, setLang] = useState<'en' | 'tl'>('en');
   const [certType, setCertType] = useState('Clearance');
   const [fee, setFee] = useState(150);
@@ -100,10 +100,10 @@ export const KioskCertificates: React.FC = () => {
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+      document.documentElement.requestFullscreen().catch(() => { });
       setIsFullscreen(true);
     } else {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
       setIsFullscreen(false);
     }
   };
@@ -202,26 +202,26 @@ export const KioskCertificates: React.FC = () => {
     api.settings.getFees().then(data => {
       if (data && typeof data === 'object') {
         setCertFees(prev => ({ ...prev, ...data }));
-        try { localStorage.setItem('cert_fees', JSON.stringify(data)); } catch {}
+        try { localStorage.setItem('cert_fees', JSON.stringify(data)); } catch { }
       }
-    }).catch(() => {});
+    }).catch(() => { });
 
     api.settings.getKioskWallpaper().then((cfg: any) => {
       if (cfg) {
         if (typeof cfg.image_url === 'string') {
           setKioskWallpaper(cfg.image_url);
-          try { localStorage.setItem('kiosk_wallpaper', cfg.image_url); } catch {}
+          try { localStorage.setItem('kiosk_wallpaper', cfg.image_url); } catch { }
         }
         if (typeof cfg.overlay === 'number') {
           setWallpaperOverlay(cfg.overlay);
-          try { localStorage.setItem('kiosk_wallpaper_overlay', String(cfg.overlay)); } catch {}
+          try { localStorage.setItem('kiosk_wallpaper_overlay', String(cfg.overlay)); } catch { }
         }
         if (typeof cfg.blur === 'number') {
           setWallpaperBlur(cfg.blur);
-          try { localStorage.setItem('kiosk_wallpaper_blur', String(cfg.blur)); } catch {}
+          try { localStorage.setItem('kiosk_wallpaper_blur', String(cfg.blur)); } catch { }
         }
       }
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -399,7 +399,7 @@ export const KioskCertificates: React.FC = () => {
       }) as any;
       const tNo = res.queue_number || `Q-${Math.floor(100 + Math.random() * 900)}`;
       setQueueNumber(tNo);
-      
+
       const applicantName = `${firstName.trim()} ${lastName.trim()}`.trim() || 'Kiosk Applicant';
 
       // Sync to live shared queue slots localStorage
@@ -428,7 +428,7 @@ export const KioskCertificates: React.FC = () => {
       console.error('Kiosk submission error:', err);
       const fallbackTicket = `Q-${Math.floor(100 + Math.random() * 900)}`;
       setQueueNumber(fallbackTicket);
-      
+
       const applicantName = `${firstName.trim()} ${lastName.trim()}`.trim() || 'Kiosk Applicant';
 
       try {
@@ -447,7 +447,7 @@ export const KioskCertificates: React.FC = () => {
         const updatedQueue = [...existing, newQueueSlot];
         localStorage.setItem('lingkod_queue_slots', JSON.stringify(updatedQueue));
         window.dispatchEvent(new Event('storage'));
-      } catch {}
+      } catch { }
 
       setStep(4);
     } finally {
@@ -456,55 +456,55 @@ export const KioskCertificates: React.FC = () => {
   };
 
   const docOptions = [
-    { 
-      type: 'Clearance', 
-      name: 'Barangay Clearance', 
-      desc: lang === 'tl' ? 'Para sa trabaho, negosyo, at lisensya' : 'For employment, business, & background checks', 
+    {
+      type: 'Clearance',
+      name: 'Barangay Clearance',
+      desc: lang === 'tl' ? 'Para sa trabaho, negosyo, at lisensya' : 'For employment, business, & background checks',
       cost: certFees['Clearance'] !== undefined ? (certFees['Clearance'] > 0 ? `₱${certFees['Clearance']}` : 'Free') : '₱150',
       icon: <Award size={32} className="text-blue-400" />,
       accent: 'from-blue-500/20 via-indigo-500/10 to-transparent',
       borderColor: 'hover:border-blue-400'
     },
-    { 
-      type: 'Indigency', 
-      name: 'Indigency Certificate', 
-      desc: lang === 'tl' ? 'Para sa tulong medikal, financial, o edukasyon' : 'For medical, financial, or educational assistance', 
+    {
+      type: 'Indigency',
+      name: 'Indigency Certificate',
+      desc: lang === 'tl' ? 'Para sa tulong medikal, financial, o edukasyon' : 'For medical, financial, or educational assistance',
       cost: 'Free',
       icon: <HeartHandshake size={32} className="text-emerald-400" />,
       accent: 'from-emerald-500/20 via-teal-500/10 to-transparent',
       borderColor: 'hover:border-emerald-400'
     },
-    { 
-      type: 'Residency', 
-      name: 'Residency Certificate', 
-      desc: lang === 'tl' ? 'Katibayan ng tirahan para sa bangko at pag-ibig' : 'Proof of address for banks & valid IDs', 
+    {
+      type: 'Residency',
+      name: 'Residency Certificate',
+      desc: lang === 'tl' ? 'Katibayan ng tirahan para sa bangko at pag-ibig' : 'Proof of address for banks & valid IDs',
       cost: certFees['Residency'] !== undefined ? (certFees['Residency'] > 0 ? `₱${certFees['Residency']}` : 'Free') : '₱100',
       icon: <Home size={32} className="text-sky-400" />,
       accent: 'from-sky-500/20 via-blue-500/10 to-transparent',
       borderColor: 'hover:border-sky-400'
     },
-    { 
-      type: 'Business', 
-      name: 'Business Clearance', 
-      desc: lang === 'tl' ? 'Para sa mga negosyo at komersyal na permit' : 'For commercial permits & business operation', 
+    {
+      type: 'Business',
+      name: 'Business Clearance',
+      desc: lang === 'tl' ? 'Para sa mga negosyo at komersyal na permit' : 'For commercial permits & business operation',
       cost: certFees['Business'] !== undefined ? (certFees['Business'] > 0 ? `₱${certFees['Business']}` : 'Free') : '₱300',
       icon: <Building2 size={32} className="text-amber-400" />,
       accent: 'from-amber-500/20 via-orange-500/10 to-transparent',
       borderColor: 'hover:border-amber-400'
     },
-    { 
-      type: 'Cedula', 
-      name: 'Cedula (CTC)', 
-      desc: lang === 'tl' ? 'Opisyal na sertipiko ng buwis sa komunidad' : 'Official community tax certificate', 
+    {
+      type: 'Cedula',
+      name: 'Cedula (CTC)',
+      desc: lang === 'tl' ? 'Opisyal na sertipiko ng buwis sa komunidad' : 'Official community tax certificate',
       cost: certFees['Cedula'] !== undefined ? (certFees['Cedula'] > 0 ? `₱${certFees['Cedula']}` : 'Free') : '₱50',
       icon: <CreditCard size={32} className="text-purple-400" />,
       accent: 'from-purple-500/20 via-indigo-500/10 to-transparent',
       borderColor: 'hover:border-purple-400'
     },
-    { 
-      type: 'Barangay ID', 
-      name: 'Barangay ID', 
-      desc: lang === 'tl' ? 'Opisyal na kard ng pagkakakilanlan ng residente' : 'Official resident identity verification card', 
+    {
+      type: 'Barangay ID',
+      name: 'Barangay ID',
+      desc: lang === 'tl' ? 'Opisyal na kard ng pagkakakilanlan ng residente' : 'Official resident identity verification card',
       cost: certFees['Barangay ID'] !== undefined ? (certFees['Barangay ID'] > 0 ? `₱${certFees['Barangay ID']}` : 'Free') : '₱100',
       icon: <UserCheck size={32} className="text-rose-400" />,
       accent: 'from-rose-500/20 via-pink-500/10 to-transparent',
@@ -548,14 +548,14 @@ export const KioskCertificates: React.FC = () => {
             }}
           />
           {/* Dark Overlay for High Contrast & Touchscreen Readability */}
-          <div 
+          <div
             className="absolute inset-0 bg-slate-950 transition-opacity duration-300"
             style={{ opacity: Math.max(0.3, wallpaperOverlay / 100) }}
           />
         </div>
       ) : (
         <>
-          <div 
+          <div
             className="absolute inset-0 pointer-events-none opacity-25 z-0"
             style={{
               backgroundImage: 'radial-gradient(rgba(59, 130, 246, 0.25) 1px, transparent 0)',
@@ -631,7 +631,7 @@ export const KioskCertificates: React.FC = () => {
         {step > 0 && step !== 4 && renderStepIndicator()}
 
         {step === 0 && (
-          <div 
+          <div
             className="flex-1 flex flex-col items-center justify-center cursor-pointer text-center group py-8 select-none"
             onClick={() => setStep(1)}
           >
@@ -644,7 +644,7 @@ export const KioskCertificates: React.FC = () => {
               <div className="absolute w-72 h-72 rounded-full border border-blue-500/20 animate-ping opacity-60 pointer-events-none" />
               <div className="absolute w-56 h-56 rounded-full border border-blue-400/40 animate-pulse pointer-events-none" />
               <div className="absolute w-44 h-44 rounded-full border border-blue-500/30 pointer-events-none" />
-              
+
               <div className="w-36 h-36 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-full flex flex-col items-center justify-center text-white shadow-[0_0_80px_rgba(59,130,246,0.6)] group-hover:scale-110 group-hover:shadow-[0_0_100px_rgba(59,130,246,0.8)] transition-all duration-500 border-4 border-blue-300/40">
                 <Pointer size={52} className="animate-bounce text-amber-300" />
                 <span className="text-[10px] font-black uppercase tracking-widest mt-1 text-blue-100">TAP HERE</span>
@@ -655,8 +655,8 @@ export const KioskCertificates: React.FC = () => {
               {lang === 'tl' ? 'Pindutin Kahit Saan Upang Magsimula' : 'Tap Anywhere to Start'}
             </h2>
             <p className="text-base sm:text-lg text-slate-300 font-semibold max-w-lg leading-relaxed drop-shadow-md">
-              {lang === 'tl' 
-                ? 'Maligayang pagdating sa Barangay Document Self-Service Kiosk. Mabilis na kumuha ng sertipiko at clearance.' 
+              {lang === 'tl'
+                ? 'Maligayang pagdating sa Barangay Document Self-Service Kiosk. Mabilis na kumuha ng sertipiko at clearance.'
                 : 'Welcome to the Barangay Document Self-Service Kiosk. Request clearances, certificates, & IDs fast.'}
             </p>
 
@@ -702,11 +702,10 @@ export const KioskCertificates: React.FC = () => {
                 <button
                   key={doc.type}
                   onClick={() => { setCertType(doc.type); setStep(2); }}
-                  className={`p-6 rounded-3xl border text-left transition-all duration-300 relative overflow-hidden group cursor-pointer bg-gradient-to-b ${doc.accent} bg-slate-900/90 hover:bg-slate-800/90 shadow-xl backdrop-blur-xl ${doc.borderColor} hover:scale-[1.02] hover:shadow-2xl ${
-                    certType === doc.type 
-                      ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-blue-500/20' 
+                  className={`p-6 rounded-3xl border text-left transition-all duration-300 relative overflow-hidden group cursor-pointer bg-gradient-to-b ${doc.accent} bg-slate-900/90 hover:bg-slate-800/90 shadow-xl backdrop-blur-xl ${doc.borderColor} hover:scale-[1.02] hover:shadow-2xl ${certType === doc.type
+                      ? 'border-blue-500 ring-2 ring-blue-500/50 shadow-blue-500/20'
                       : 'border-slate-800/80'
-                  }`}
+                    }`}
                 >
                   <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                     {doc.icon}
@@ -716,11 +715,10 @@ export const KioskCertificates: React.FC = () => {
                     <div className="p-3 bg-slate-950/80 border border-slate-700/60 rounded-2xl shadow-inner group-hover:scale-110 transition-transform">
                       {doc.icon}
                     </div>
-                    <span className={`font-black text-xs px-3.5 py-1.5 rounded-full border shadow-md ${
-                      doc.cost === 'Free'
+                    <span className={`font-black text-xs px-3.5 py-1.5 rounded-full border shadow-md ${doc.cost === 'Free'
                         ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                         : 'bg-amber-500/15 text-amber-300 border-amber-500/40'
-                    }`}>
+                      }`}>
                       {doc.cost}
                     </span>
                   </div>
@@ -742,9 +740,8 @@ export const KioskCertificates: React.FC = () => {
         )}
 
         {step === 2 && (
-          <div className={`space-y-6 bg-slate-900/90 p-6 sm:p-10 rounded-3xl border border-slate-700/80 shadow-2xl backdrop-blur-xl mx-auto transition-all ${
-            certType === 'Cedula' || certType === 'Business' || certType === 'Residency' || certType === 'Indigency' || certType === 'Clearance' || certType === 'Barangay ID' ? 'max-w-4xl' : 'max-w-2xl'
-          }`}>
+          <div className={`space-y-6 bg-slate-900/90 p-6 sm:p-10 rounded-3xl border border-slate-700/80 shadow-2xl backdrop-blur-xl mx-auto transition-all ${certType === 'Cedula' || certType === 'Business' || certType === 'Residency' || certType === 'Indigency' || certType === 'Clearance' || certType === 'Barangay ID' ? 'max-w-4xl' : 'max-w-2xl'
+            }`}>
             <div>
               <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-500/20 text-blue-400 border border-blue-500/30">
                 {certType} Request
@@ -756,19 +753,19 @@ export const KioskCertificates: React.FC = () => {
                 {certType === 'Cedula'
                   ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa iyong Cedula (CTC Form 175).' : 'Please fill in your official details for your Community Tax Certificate (Cedula).')
                   : certType === 'Business'
-                  ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Business Clearance Application.' : 'Please fill in business and owner details for Barangay Business Clearance Application.')
-                  : certType === 'Residency'
-                  ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Certificate of Residency.' : 'Please fill in details for Barangay Certificate of Residency Application.')
-                  : certType === 'Indigency'
-                  ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Certificate of Indigency.' : 'Please fill in details for Barangay Certificate of Indigency Application.')
-                  : certType === 'Clearance'
-                  ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa Barangay Clearance.' : 'Please fill in details for Barangay Clearance Application.')
-                  : certType === 'Barangay ID'
-                  ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa Barangay ID.' : 'Please fill in details for Barangay Identification Card Application.')
-                  : (lang === 'tl' ? 'Mangyaring punan ang iyong buong pangalan at dahilan sa paghiling.' : 'Please fill in your legal full name and purpose for document processing.')}
+                    ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Business Clearance Application.' : 'Please fill in business and owner details for Barangay Business Clearance Application.')
+                    : certType === 'Residency'
+                      ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Certificate of Residency.' : 'Please fill in details for Barangay Certificate of Residency Application.')
+                      : certType === 'Indigency'
+                        ? (lang === 'tl' ? 'Mangyaring punan ang impormasyon para sa Barangay Certificate of Indigency.' : 'Please fill in details for Barangay Certificate of Indigency Application.')
+                        : certType === 'Clearance'
+                          ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa Barangay Clearance.' : 'Please fill in details for Barangay Clearance Application.')
+                          : certType === 'Barangay ID'
+                            ? (lang === 'tl' ? 'Mangyaring punan ang opisyal na impormasyon para sa Barangay ID.' : 'Please fill in details for Barangay Identification Card Application.')
+                            : (lang === 'tl' ? 'Mangyaring punan ang iyong buong pangalan at dahilan sa paghiling.' : 'Please fill in your legal full name and purpose for document processing.')}
               </p>
             </div>
-            
+
             {certType === 'Cedula' ? (
               <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                 {/* Personal Information */}
@@ -784,9 +781,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Juan" 
+                      <input
+                        type="text"
+                        placeholder="Juan"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -796,9 +793,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Mercado" 
+                      <input
+                        type="text"
+                        placeholder="Mercado"
                         value={middleName}
                         onChange={(e) => setMiddleName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -808,9 +805,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Dela Cruz" 
+                      <input
+                        type="text"
+                        placeholder="Dela Cruz"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -824,8 +821,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Kasarian' : 'Gender'}
                       </label>
-                      <select 
-                        value={gender} 
+                      <select
+                        value={gender}
                         onChange={(e) => setGender(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -837,8 +834,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
                       </label>
-                      <select 
-                        value={civilStatus} 
+                      <select
+                        value={civilStatus}
                         onChange={(e) => setCivilStatus(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -852,9 +849,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Pagkamamamayan' : 'Citizenship'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Filipino" 
+                      <input
+                        type="text"
+                        placeholder="Filipino"
                         value={citizenship}
                         onChange={(e) => setCitizenship(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -868,8 +865,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
                       </label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         value={birthdate}
                         onChange={(e) => setBirthdate(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
@@ -879,9 +876,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="City / Municipality" 
+                      <input
+                        type="text"
+                        placeholder="City / Municipality"
                         value={placeOfBirth}
                         onChange={(e) => setPlaceOfBirth(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -894,9 +891,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Kumpletong Tirahan (Bahay, Kalye, Barangay, Lungsod, Lalawigan)' : 'Complete Address'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="House No., Street Name, Barangay, City, Province" 
+                    <input
+                      type="text"
+                      placeholder="House No., Street Name, Barangay, City, Province"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -908,9 +905,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Pangalan ng Asawa (kung kasal)' : 'Spouse Name (if married)'}
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="Buong pangalan ng asawa" 
+                    <input
+                      type="text"
+                      placeholder="Buong pangalan ng asawa"
                       value={spouseName}
                       onChange={(e) => setSpouseName(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -930,9 +927,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Hanapbuhay / Propesyon' : 'Occupation / Profession'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="E.g., Employee, Merchant, Driver" 
+                      <input
+                        type="text"
+                        placeholder="E.g., Employee, Merchant, Driver"
                         value={occupation}
                         onChange={(e) => setOccupation(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
@@ -942,9 +939,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Pangalan ng Employer / Negosyo' : 'Employer / Business Name'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Company or Business name" 
+                      <input
+                        type="text"
+                        placeholder="Company or Business name"
                         value={employerName}
                         onChange={(e) => setEmployerName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
@@ -957,9 +954,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Kabuuang Kita noong Nakaraang Taon (₱)' : 'Gross Annual Earnings (₱)'}
                       </label>
-                      <input 
-                        type="number" 
-                        placeholder="0.00" 
+                      <input
+                        type="number"
+                        placeholder="0.00"
                         value={grossAnnualIncome}
                         onChange={(e) => setGrossAnnualIncome(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
@@ -969,9 +966,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Halaga ng Ari-arian (Lupa / Gusali) (₱)' : 'Real Property Assessed Value (₱)'}
                       </label>
-                      <input 
-                        type="number" 
-                        placeholder="0.00" 
+                      <input
+                        type="number"
+                        placeholder="0.00"
                         value={propertyValuation}
                         onChange={(e) => setPropertyValuation(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
@@ -991,9 +988,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       TIN (Tax Identification Number) — {lang === 'tl' ? 'kung mayroon' : 'Optional'}
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="XXX-XXX-XXX-000" 
+                    <input
+                      type="text"
+                      placeholder="XXX-XXX-XXX-000"
                       value={tin}
                       onChange={(e) => setTin(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1021,22 +1018,20 @@ export const KioskCertificates: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setBizAppType('New')}
-                    className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
-                      bizAppType === 'New'
+                    className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${bizAppType === 'New'
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                         : 'text-slate-400 hover:text-slate-200'
-                    }`}
+                      }`}
                   >
                     {lang === 'tl' ? 'Bagong Negosyo (New)' : 'New Business'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setBizAppType('Renewal')}
-                    className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${
-                      bizAppType === 'Renewal'
+                    className={`flex-1 py-3 text-xs font-black uppercase tracking-wider rounded-xl transition-all ${bizAppType === 'Renewal'
                         ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                         : 'text-slate-400 hover:text-slate-200'
-                    }`}
+                      }`}
                   >
                     {lang === 'tl' ? 'Pababago / Renewal' : 'Renewal'}
                   </button>
@@ -1054,9 +1049,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Pangalan ng Negosyo' : 'Business Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="E.g., Dela Cruz Trading & General Merchandise" 
+                      <input
+                        type="text"
+                        placeholder="E.g., Dela Cruz Trading & General Merchandise"
                         value={bizName}
                         onChange={(e) => setBizName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1066,8 +1061,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Uri ng Negosyo' : 'Business Organization Type'}
                       </label>
-                      <select 
-                        value={bizType} 
+                      <select
+                        value={bizType}
                         onChange={(e) => setBizType(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -1083,9 +1078,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Linya ng Negosyo / Business Activity' : 'Line of Business'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="E.g., Sari-Sari Store, Eatery, Hardware, IT Consultancy" 
+                    <input
+                      type="text"
+                      placeholder="E.g., Sari-Sari Store, Eatery, Hardware, IT Consultancy"
                       value={bizLine}
                       onChange={(e) => setBizLine(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1096,9 +1091,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Kumpletong Address ng Negosyo' : 'Complete Business Address'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="Bldg No., Street, Barangay, City, Province, Zip Code" 
+                    <input
+                      type="text"
+                      placeholder="Bldg No., Street, Barangay, City, Province, Zip Code"
                       value={bizAddress}
                       onChange={(e) => setBizAddress(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1110,9 +1105,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Numero ng Telepono' : 'Business Contact No.'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="09XX-XXX-XXXX / (02) 8XXX-XXXX" 
+                      <input
+                        type="text"
+                        placeholder="09XX-XXX-XXXX / (02) 8XXX-XXXX"
                         value={bizPhone}
                         onChange={(e) => setBizPhone(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1122,9 +1117,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Email Address ng Negosyo' : 'Business Email Address'}
                       </label>
-                      <input 
-                        type="email" 
-                        placeholder="business@example.com" 
+                      <input
+                        type="email"
+                        placeholder="business@example.com"
                         value={bizEmail}
                         onChange={(e) => setBizEmail(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1137,9 +1132,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Puhunan / Capitalization (₱)' : 'Capitalization (₱)'}
                       </label>
-                      <input 
-                        type="number" 
-                        placeholder="50000.00" 
+                      <input
+                        type="number"
+                        placeholder="50000.00"
                         value={bizCapital}
                         onChange={(e) => setBizCapital(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1149,9 +1144,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Bilang ng Empleyado' : 'No. of Employees'}
                       </label>
-                      <input 
-                        type="number" 
-                        placeholder="1" 
+                      <input
+                        type="number"
+                        placeholder="1"
                         value={bizEmployees}
                         onChange={(e) => setBizEmployees(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1161,9 +1156,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Delivery Vehicles' : 'Delivery Vehicles'}
                       </label>
-                      <input 
-                        type="number" 
-                        placeholder="0" 
+                      <input
+                        type="number"
+                        placeholder="0"
                         value={bizVehicles}
                         onChange={(e) => setBizVehicles(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1177,9 +1172,9 @@ export const KioskCertificates: React.FC = () => {
                         <label className="text-xs font-bold uppercase tracking-wider text-amber-300">
                           {lang === 'tl' ? 'Dating Permit / OR No.' : 'Previous Permit / OR No.'}
                         </label>
-                        <input 
-                          type="text" 
-                          placeholder="BP-2025-XXXXX" 
+                        <input
+                          type="text"
+                          placeholder="BP-2025-XXXXX"
                           value={prevPermitNo}
                           onChange={(e) => setPrevPermitNo(e.target.value)}
                           className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/40 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1189,9 +1184,9 @@ export const KioskCertificates: React.FC = () => {
                         <label className="text-xs font-bold uppercase tracking-wider text-amber-300">
                           {lang === 'tl' ? 'Gross Sales / Kita (₱)' : 'Gross Sales Last Year (₱)'}
                         </label>
-                        <input 
-                          type="number" 
-                          placeholder="0.00" 
+                        <input
+                          type="number"
+                          placeholder="0.00"
                           value={grossSales}
                           onChange={(e) => setGrossSales(e.target.value)}
                           className="w-full text-sm p-3.5 bg-slate-900 border border-amber-500/40 text-white rounded-xl focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1213,9 +1208,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Unang Pangalan ng May-ari' : 'Owner First Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Juan" 
+                      <input
+                        type="text"
+                        placeholder="Juan"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1225,9 +1220,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Mercado" 
+                      <input
+                        type="text"
+                        placeholder="Mercado"
                         value={middleName}
                         onChange={(e) => setMiddleName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1237,9 +1232,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Apelyido' : 'Owner Last Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Dela Cruz" 
+                      <input
+                        type="text"
+                        placeholder="Dela Cruz"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1252,9 +1247,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Tirahan ng May-ari' : 'Owner Personal Address'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="House No., Street, Barangay, City" 
+                      <input
+                        type="text"
+                        placeholder="House No., Street, Barangay, City"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1264,9 +1259,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Pagkamamamayan' : 'Citizenship'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Filipino" 
+                      <input
+                        type="text"
+                        placeholder="Filipino"
                         value={citizenship}
                         onChange={(e) => setCitizenship(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1279,9 +1274,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         TIN (Tax Identification Number)
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="XXX-XXX-XXX-000" 
+                      <input
+                        type="text"
+                        placeholder="XXX-XXX-XXX-000"
                         value={tin}
                         onChange={(e) => setTin(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1291,9 +1286,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Cedula (CTC) Number' : 'Cedula (CTC) Number'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="CTC-2026-XXXXX" 
+                      <input
+                        type="text"
+                        placeholder="CTC-2026-XXXXX"
                         value={cedulaNo}
                         onChange={(e) => setCedulaNo(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder-slate-500 transition-all font-mono"
@@ -1343,9 +1338,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Juan" 
+                      <input
+                        type="text"
+                        placeholder="Juan"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1355,9 +1350,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Mercado" 
+                      <input
+                        type="text"
+                        placeholder="Mercado"
                         value={middleName}
                         onChange={(e) => setMiddleName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1367,9 +1362,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Dela Cruz" 
+                      <input
+                        type="text"
+                        placeholder="Dela Cruz"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1383,8 +1378,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Kasarian' : 'Gender'}
                       </label>
-                      <select 
-                        value={gender} 
+                      <select
+                        value={gender}
                         onChange={(e) => setGender(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -1396,8 +1391,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
                       </label>
-                      <select 
-                        value={civilStatus} 
+                      <select
+                        value={civilStatus}
                         onChange={(e) => setCivilStatus(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -1415,8 +1410,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
                       </label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         value={birthdate}
                         onChange={(e) => setBirthdate(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
@@ -1426,9 +1421,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="City / Municipality" 
+                      <input
+                        type="text"
+                        placeholder="City / Municipality"
                         value={placeOfBirth}
                         onChange={(e) => setPlaceOfBirth(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1442,9 +1437,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Kumpletong Tirahan sa Barangay' : 'Complete Barangay Address'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="House No., Street Name, Barangay, City, Province" 
+                      <input
+                        type="text"
+                        placeholder="House No., Street Name, Barangay, City, Province"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1454,9 +1449,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Tagal ng Paninirahan' : 'Length of Residency'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="E.g., 5 Taon / 5 Years" 
+                      <input
+                        type="text"
+                        placeholder="E.g., 5 Taon / 5 Years"
                         value={yearsOfResidency}
                         onChange={(e) => setYearsOfResidency(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1559,9 +1554,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Juan" 
+                      <input
+                        type="text"
+                        placeholder="Juan"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1571,9 +1566,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Mercado" 
+                      <input
+                        type="text"
+                        placeholder="Mercado"
                         value={middleName}
                         onChange={(e) => setMiddleName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1583,9 +1578,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Dela Cruz" 
+                      <input
+                        type="text"
+                        placeholder="Dela Cruz"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1598,9 +1593,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Kumpletong Tirahan sa Barangay' : 'Complete Barangay Address'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="House No., Street Name, Barangay, City, Province" 
+                    <input
+                      type="text"
+                      placeholder="House No., Street Name, Barangay, City, Province"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1696,9 +1691,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Juan" 
+                      <input
+                        type="text"
+                        placeholder="Juan"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1708,9 +1703,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Mercado" 
+                      <input
+                        type="text"
+                        placeholder="Mercado"
                         value={middleName}
                         onChange={(e) => setMiddleName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1720,9 +1715,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Dela Cruz" 
+                      <input
+                        type="text"
+                        placeholder="Dela Cruz"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1736,8 +1731,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Kasarian' : 'Gender'}
                       </label>
-                      <select 
-                        value={gender} 
+                      <select
+                        value={gender}
                         onChange={(e) => setGender(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -1749,8 +1744,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
                       </label>
-                      <select 
-                        value={civilStatus} 
+                      <select
+                        value={civilStatus}
                         onChange={(e) => setCivilStatus(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -1764,9 +1759,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Pagkamamamayan' : 'Citizenship'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Filipino" 
+                      <input
+                        type="text"
+                        placeholder="Filipino"
                         value={citizenship}
                         onChange={(e) => setCitizenship(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1780,8 +1775,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
                       </label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         value={birthdate}
                         onChange={(e) => setBirthdate(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
@@ -1791,9 +1786,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="City / Municipality" 
+                      <input
+                        type="text"
+                        placeholder="City / Municipality"
                         value={placeOfBirth}
                         onChange={(e) => setPlaceOfBirth(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1806,9 +1801,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Kumpletong Tirahan (Bahay, Kalye, Barangay, Lungsod)' : 'Complete Address'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="House No., Street Name, Barangay, City, Province" 
+                    <input
+                      type="text"
+                      placeholder="House No., Street Name, Barangay, City, Province"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1821,9 +1816,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Numero ng Telepono / Mobile' : 'Contact / Mobile No.'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="09XX-XXX-XXXX" 
+                      <input
+                        type="text"
+                        placeholder="09XX-XXX-XXXX"
                         value={contactNo}
                         onChange={(e) => setContactNo(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1833,9 +1828,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Hanapbuhay / Trabaho' : 'Occupation'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="E.g., Private Employee, Driver, Self-Employed" 
+                      <input
+                        type="text"
+                        placeholder="E.g., Private Employee, Driver, Self-Employed"
                         value={occupation}
                         onChange={(e) => setOccupation(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1921,9 +1916,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Juan" 
+                      <input
+                        type="text"
+                        placeholder="Juan"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1933,9 +1928,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Mercado" 
+                      <input
+                        type="text"
+                        placeholder="Mercado"
                         value={middleName}
                         onChange={(e) => setMiddleName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1945,9 +1940,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Dela Cruz" 
+                      <input
+                        type="text"
+                        placeholder="Dela Cruz"
                         value={lastName}
                         onChange={(e) => setLastName(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -1961,8 +1956,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Kasarian' : 'Gender'}
                       </label>
-                      <select 
-                        value={gender} 
+                      <select
+                        value={gender}
                         onChange={(e) => setGender(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -1974,8 +1969,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Katayuang Sibil' : 'Civil Status'}
                       </label>
-                      <select 
-                        value={civilStatus} 
+                      <select
+                        value={civilStatus}
                         onChange={(e) => setCivilStatus(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -1993,8 +1988,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Petsa ng Kapanganakan' : 'Birthdate'} *
                       </label>
-                      <input 
-                        type="date" 
+                      <input
+                        type="date"
                         value={birthdate}
                         onChange={(e) => setBirthdate(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
@@ -2004,9 +1999,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Lugar ng Kapanganakan' : 'Place of Birth'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="City / Municipality" 
+                      <input
+                        type="text"
+                        placeholder="City / Municipality"
                         value={placeOfBirth}
                         onChange={(e) => setPlaceOfBirth(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -2019,9 +2014,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Kumpletong Tirahan sa Barangay' : 'Complete Barangay Address'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="House No., Street Name, Barangay, City, Province" 
+                    <input
+                      type="text"
+                      placeholder="House No., Street Name, Barangay, City, Province"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -2034,9 +2029,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Numero ng Telepono / Mobile' : 'Contact / Mobile No.'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="09XX-XXX-XXXX" 
+                      <input
+                        type="text"
+                        placeholder="09XX-XXX-XXXX"
                         value={contactNo}
                         onChange={(e) => setContactNo(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -2046,9 +2041,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Ipaalam sa Oras ng Sakuna (Pangalan at No.)' : 'Emergency Contact (Name & Phone)'} *
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="Pangalan - 09XX-XXX-XXXX" 
+                      <input
+                        type="text"
+                        placeholder="Pangalan - 09XX-XXX-XXXX"
                         value={emergencyContact}
                         onChange={(e) => setEmergencyContact(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-medium"
@@ -2062,8 +2057,8 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'Uri ng Dugo (Blood Type)' : 'Blood Type (Optional)'}
                       </label>
-                      <select 
-                        value={bloodType} 
+                      <select
+                        value={bloodType}
                         onChange={(e) => setBloodType(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                       >
@@ -2082,9 +2077,9 @@ export const KioskCertificates: React.FC = () => {
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                         {lang === 'tl' ? 'TIN / SSS / GSIS No. (kung mayroon)' : 'TIN / SSS / GSIS No. (Optional)'}
                       </label>
-                      <input 
-                        type="text" 
-                        placeholder="XXX-XXX-XXX-000" 
+                      <input
+                        type="text"
+                        placeholder="XXX-XXX-XXX-000"
                         value={tin}
                         onChange={(e) => setTin(e.target.value)}
                         className="w-full text-sm p-3.5 bg-slate-900 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder-slate-500 transition-all font-mono"
@@ -2149,9 +2144,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-black uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Unang Pangalan' : 'First Name'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="Juan" 
+                    <input
+                      type="text"
+                      placeholder="Juan"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
                       className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
@@ -2162,9 +2157,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-black uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Gitnang Pangalan' : 'Middle Name'}
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="Mercado" 
+                    <input
+                      type="text"
+                      placeholder="Mercado"
                       value={middleName}
                       onChange={(e) => setMiddleName(e.target.value)}
                       className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
@@ -2175,9 +2170,9 @@ export const KioskCertificates: React.FC = () => {
                     <label className="text-xs font-black uppercase tracking-wider text-slate-300">
                       {lang === 'tl' ? 'Apelyido' : 'Last Name'} *
                     </label>
-                    <input 
-                      type="text" 
-                      placeholder="Dela Cruz" 
+                    <input
+                      type="text"
+                      placeholder="Dela Cruz"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
                       className="w-full text-base p-4 bg-slate-950/80 border border-slate-700 text-white rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 placeholder-slate-500 transition-all font-medium"
@@ -2201,24 +2196,24 @@ export const KioskCertificates: React.FC = () => {
             )}
 
             <div className="flex gap-4 pt-4 border-t border-slate-800/80">
-              <button 
-                onClick={clearAll} 
-                className="flex-1 py-4 text-sm font-black bg-rose-500/15 text-rose-300 border border-rose-500/30 rounded-2xl hover:bg-rose-500/25 transition-colors disabled:opacity-40 uppercase tracking-wider cursor-pointer" 
+              <button
+                onClick={clearAll}
+                className="flex-1 py-4 text-sm font-black bg-rose-500/15 text-rose-300 border border-rose-500/30 rounded-2xl hover:bg-rose-500/25 transition-colors disabled:opacity-40 uppercase tracking-wider cursor-pointer"
                 disabled={!firstName && !lastName && !purpose && !bizName && !birthdate && !yearsOfResidency && !contactNo && !emergencyContact}
               >
                 {lang === 'tl' ? 'Ilinis' : 'Clear All'}
               </button>
-              <button 
-                onClick={() => setStep(1)} 
+              <button
+                onClick={() => setStep(1)}
                 className="flex-1 py-4 text-sm font-black bg-slate-800 text-slate-200 border border-slate-700 rounded-2xl hover:bg-slate-700 transition-colors uppercase tracking-wider cursor-pointer"
               >
                 {lang === 'tl' ? 'Bumalik' : 'Back'}
               </button>
-              <button 
-                onClick={() => setStep(3)} 
+              <button
+                onClick={() => setStep(3)}
                 disabled={
-                  !firstName.trim() || 
-                  !lastName.trim() || 
+                  !firstName.trim() ||
+                  !lastName.trim() ||
                   (certType === 'Cedula' && (!birthdate || !address.trim() || !purpose.trim())) ||
                   (certType === 'Business' && (!bizName.trim() || !bizLine.trim() || !bizAddress.trim())) ||
                   (certType === 'Residency' && (!birthdate || !address.trim() || !yearsOfResidency.trim() || !purpose.trim())) ||
@@ -2226,7 +2221,7 @@ export const KioskCertificates: React.FC = () => {
                   (certType === 'Clearance' && (!birthdate || !address.trim() || !purpose.trim())) ||
                   (certType === 'Barangay ID' && (!birthdate || !placeOfBirth.trim() || !address.trim() || !contactNo.trim() || !emergencyContact.trim())) ||
                   (certType !== 'Cedula' && certType !== 'Business' && certType !== 'Residency' && certType !== 'Indigency' && certType !== 'Clearance' && certType !== 'Barangay ID' && !purpose.trim())
-                } 
+                }
                 className="flex-1 py-4 text-sm font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl disabled:opacity-40 transition-all shadow-xl shadow-blue-600/30 uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2"
               >
                 {lang === 'tl' ? 'Magpatuloy sa Lagda' : 'Continue to Sign'}
@@ -2249,7 +2244,7 @@ export const KioskCertificates: React.FC = () => {
                 {lang === 'tl' ? 'Mangyaring pumirma sa kahon gamit ang daliri o stylus.' : 'Please sign in the box below using your finger or stylus touch screen.'}
               </p>
             </div>
-            
+
             <div className="border-2 border-slate-700/80 rounded-3xl overflow-hidden bg-slate-50 touch-none relative shadow-inner">
               <canvas
                 ref={canvasRef}
@@ -2268,10 +2263,10 @@ export const KioskCertificates: React.FC = () => {
                 SIGNATURE PAD
               </div>
             </div>
-            
+
             <div className="flex justify-between items-center">
-              <button 
-                onClick={clearCanvas} 
+              <button
+                onClick={clearCanvas}
                 className="text-rose-400 font-black uppercase tracking-wider text-xs hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <RotateCcw size={12} />
@@ -2328,15 +2323,15 @@ export const KioskCertificates: React.FC = () => {
             </div>
 
             <div className="flex gap-4 pt-2">
-              <button 
-                onClick={() => setStep(2)} 
+              <button
+                onClick={() => setStep(2)}
                 className="flex-1 py-4 text-sm font-black bg-slate-800 text-slate-200 border border-slate-700 rounded-2xl hover:bg-slate-700 transition-colors uppercase tracking-wider cursor-pointer"
               >
                 {lang === 'tl' ? 'Bumalik' : 'Back'}
               </button>
-              <button 
-                onClick={handleSubmit} 
-                disabled={isSubmitting || !acceptedTerms} 
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !acceptedTerms}
                 className="flex-1 py-4 text-sm font-black bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl disabled:opacity-40 transition-all shadow-xl shadow-blue-600/30 uppercase tracking-wider flex justify-center items-center gap-2 cursor-pointer"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" /> : <Signature />}
@@ -2369,8 +2364,8 @@ export const KioskCertificates: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-300 font-semibold leading-relaxed">
-              {lang === 'tl' 
-                ? 'Mangyaring maghintay na tawagin ang iyong numero sa Counter 1.' 
+              {lang === 'tl'
+                ? 'Mangyaring maghintay na tawagin ang iyong numero sa Counter 1.'
                 : 'Please wait for your queue number to be called at Counter 1.'}
             </p>
 

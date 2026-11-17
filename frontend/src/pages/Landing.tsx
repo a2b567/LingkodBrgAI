@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { 
-  FileText, Calendar, AlertOctagon, Briefcase, Sun, Moon, 
-  ArrowRight, Search, ShieldCheck, Sparkles, MessageSquareCode, 
+import {
+  FileText, Calendar, AlertOctagon, Briefcase, Sun, Moon,
+  ArrowRight, Search, ShieldCheck, Sparkles, MessageSquareCode,
   ChevronRight, MapPin, Phone, Mail, Clock, CheckCircle2, QrCode, Camera, X, Upload, Menu
 } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
@@ -77,7 +77,7 @@ export const Landing: React.FC = () => {
     try {
       const saved = localStorage.getItem('lingkod_landing_announcements');
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch { }
     return defaultAnnouncements;
   });
 
@@ -103,7 +103,7 @@ export const Landing: React.FC = () => {
       try {
         const savedAnn = localStorage.getItem('lingkod_landing_announcements');
         if (savedAnn) setAnnouncements(JSON.parse(savedAnn));
-      } catch {}
+      } catch { }
       setContactAddress(localStorage.getItem('brgy_address') || 'Brgy. Hall, Main Road, Laguna');
       setContactHotline(localStorage.getItem('brgy_hotline') || '(049) 123-4567');
       setContactEmail(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');
@@ -329,7 +329,7 @@ export const Landing: React.FC = () => {
       {!heroBg && (
         <div className="fixed inset-0 z-0 bg-slate-50 dark:bg-slate-950" />
       )}
-      
+
       {/* Dynamic Background Ambience / Glowing Orbs adapted to light & dark mode */}
       <div className="absolute top-[5%] left-[-15%] w-[45vw] h-[45vw] bg-gov-blue-500/10 dark:bg-gov-blue-500/15 rounded-full blur-[140px] pointer-events-none z-0"></div>
       <div className="absolute top-[40%] right-[-15%] w-[45vw] h-[45vw] bg-gov-gold-500/10 dark:bg-gov-gold-500/15 rounded-full blur-[140px] pointer-events-none z-0"></div>
@@ -338,7 +338,7 @@ export const Landing: React.FC = () => {
       {/* 1. Header Navigation */}
       <header className="sticky top-0 z-50 w-full bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800/80 backdrop-blur-md transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 h-20 flex items-center justify-between gap-3 sm:gap-4">
-          
+
           {/* Logo Letterhead */}
           <div className="flex items-center gap-2.5 sm:gap-3.5 select-none cursor-pointer shrink-0" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="w-10 h-10 bg-gradient-to-tr from-gov-blue-700 to-indigo-800 rounded-2xl shadow-md shadow-gov-blue-600/20 flex items-center justify-center text-white flex-shrink-0">
@@ -440,7 +440,7 @@ export const Landing: React.FC = () => {
       {/* 2. Hero Section */}
       <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 pt-12 md:pt-20 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          
+
           {/* Left Text Block */}
           <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
             <span className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full bg-gov-blue-500/10 dark:bg-gov-blue-500/20 text-gov-blue-700 dark:text-gov-blue-300 border border-gov-blue-500/25 shadow-xs">
@@ -498,13 +498,13 @@ export const Landing: React.FC = () => {
 
           {/* Right Visual Dashboard Mockup (Glow Glass Panel) */}
           <div className="lg:col-span-6 relative z-10 select-none flex justify-center">
-            
+
             {/* Glowing Backdrop behind mockup */}
             <div className="absolute inset-0 bg-gradient-to-tr from-gov-blue-500/20 to-gov-gold-500/15 dark:from-gov-blue-600/30 dark:to-gov-gold-500/20 rounded-[3rem] blur-3xl scale-95 pointer-events-none"></div>
 
             {/* Dashboard Mockup Panel Container */}
             <div className="relative w-full max-w-lg aspect-[4/3] bg-white/80 dark:bg-slate-900/80 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl dark:shadow-slate-950/90 p-6 glass-panel overflow-hidden animate-pulse-subtle">
-              
+
               {/* Fake Menu bar */}
               <div className="flex items-center justify-between border-b border-slate-200/60 dark:border-slate-800/60 pb-4 mb-4 flex-shrink-0">
                 <div className="flex gap-1.5">
@@ -520,7 +520,7 @@ export const Landing: React.FC = () => {
 
               {/* Fake Content Grid */}
               <div className="grid grid-cols-12 gap-4">
-                
+
                 {/* Visual Widget 1: Total Residents */}
                 <div className="col-span-8 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/60 p-4 rounded-3xl shadow-xs space-y-2">
                   <div className="flex items-center gap-2">
@@ -553,7 +553,7 @@ export const Landing: React.FC = () => {
                     <span className="text-[9px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">Public Announcements</span>
                     <span className="text-[8px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20 uppercase tracking-wide">Emergency Alert</span>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 bg-white dark:bg-slate-900/80 p-2.5 rounded-2xl border border-slate-200/50 dark:border-slate-700/50">
                       <div className="w-1.5 h-1.5 bg-gov-blue-500 rounded-full flex-shrink-0"></div>
@@ -581,7 +581,7 @@ export const Landing: React.FC = () => {
 
       {/* 3. Core Services Grid Section */}
       <section id="services" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-t border-slate-200/80 dark:border-slate-800/80">
-        
+
         <div className="text-center space-y-3 mb-16">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-gov-gold-500/10 dark:bg-gov-gold-500/20 text-gov-gold-700 dark:text-gov-gold-400 border border-gov-gold-500/25">
             Digital Services
@@ -595,7 +595,7 @@ export const Landing: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          
+
           {/* Card 1: E-Certificates */}
           <div className="bg-white dark:bg-slate-900/80 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800/80 shadow-md dark:shadow-slate-950/50 hover:border-gov-blue-500/50 dark:hover:border-gov-blue-400/50 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
             <div className="space-y-4">
@@ -690,13 +690,13 @@ export const Landing: React.FC = () => {
 
       {/* 4. Real-time stats & portal block */}
       <section id="stats" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 bg-gradient-to-br from-gov-blue-900 via-gov-blue-950 to-slate-900 dark:from-slate-900 dark:via-slate-950 dark:to-gov-blue-950 text-white rounded-[3rem] shadow-2xl overflow-hidden border border-gov-blue-800/40 dark:border-slate-800 select-none">
-        
+
         {/* Glow Effects */}
         <div className="absolute top-[-20%] right-[-10%] w-[35vw] h-[35vw] bg-gov-gold-500/15 rounded-full blur-[140px] pointer-events-none"></div>
         <div className="absolute bottom-[-20%] left-[-10%] w-[35vw] h-[35vw] bg-gov-blue-500/20 rounded-full blur-[140px] pointer-events-none"></div>
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
+
           {/* Left stats panel */}
           <div className="lg:col-span-5 space-y-6">
             <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full bg-white/10 text-gov-gold-300 border border-white/15 backdrop-blur-xs">
@@ -721,7 +721,7 @@ export const Landing: React.FC = () => {
 
           {/* Right counters grid */}
           <div className="lg:col-span-7 grid grid-cols-2 gap-4">
-            
+
             {/* Stat 1 */}
             <div className="bg-white/10 dark:bg-slate-900/60 border border-white/15 dark:border-slate-800/80 p-6 rounded-3xl backdrop-blur-md space-y-2 hover:bg-white/15 dark:hover:bg-slate-800/60 transition-colors">
               <p className="text-4xl font-black font-display text-gov-gold-400">
@@ -769,9 +769,9 @@ export const Landing: React.FC = () => {
 
       {/* 5. Interactive simulated AI Assistant Teaser Widget */}
       <section id="ai-assistant" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-b border-slate-200/80 dark:border-slate-800/80">
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-          
+
           {/* Left Text Block */}
           <div className="lg:col-span-5 space-y-6 text-center lg:text-left">
             <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-gov-blue-500/10 dark:bg-gov-blue-500/20 text-gov-blue-700 dark:text-gov-blue-300 border border-gov-blue-500/25">
@@ -783,7 +783,7 @@ export const Landing: React.FC = () => {
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
               Get immediate, automated answers regarding local guidelines, registration rules, business requirements, and certificate fees.
             </p>
-            
+
             <div className="space-y-3 pt-2">
               <p className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Select a query to test the AI Advisor:</p>
               <div className="flex flex-col gap-2">
@@ -791,11 +791,10 @@ export const Landing: React.FC = () => {
                   <button
                     key={idx}
                     onClick={() => handleAskAI(p)}
-                    className={`w-full text-left p-3.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
-                      activeQuestion === p.question
+                    className={`w-full text-left p-3.5 rounded-2xl border text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${activeQuestion === p.question
                         ? 'border-gov-blue-500 bg-gov-blue-50 dark:bg-gov-blue-950/80 text-gov-blue-900 dark:text-gov-blue-200 shadow-sm'
                         : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60 shadow-xs'
-                    }`}
+                      }`}
                   >
                     <span className="truncate pr-4">{p.question}</span>
                     <MessageSquareCode size={14} className="flex-shrink-0 text-slate-400 dark:text-slate-500" />
@@ -807,9 +806,9 @@ export const Landing: React.FC = () => {
 
           {/* Right simulated Chat UI panel */}
           <div className="lg:col-span-7 flex justify-center">
-            
+
             <div className="w-full max-w-xl h-[420px] rounded-[2.5rem] p-5 flex flex-col justify-between overflow-hidden glass-panel">
-              
+
               {/* Fake Chat Header */}
               <div className="flex items-center gap-3 border-b border-slate-200/80 dark:border-slate-800/80 pb-3 flex-shrink-0">
                 <div className="w-9 h-9 bg-gradient-to-tr from-gov-blue-600 to-gov-blue-800 text-white rounded-xl flex items-center justify-center shadow-md">
@@ -875,7 +874,7 @@ export const Landing: React.FC = () => {
 
       {/* 6. Document & Resident Account E-Verification Information Segment */}
       <section id="verify" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-b border-slate-200/80 dark:border-slate-800/80 text-center space-y-6">
-        
+
         <div className="space-y-3">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
             Secure Auditing & QR Scanner
@@ -889,7 +888,7 @@ export const Landing: React.FC = () => {
         </div>
 
         <div className="max-w-2xl mx-auto p-8 rounded-[2.5rem] glass-panel grid grid-cols-1 sm:grid-cols-2 gap-8 items-center text-left">
-          
+
           <div className="space-y-3.5">
             <div className="flex items-center gap-3">
               <div className="w-7 h-7 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center shadow-xs">
@@ -897,7 +896,7 @@ export const Landing: React.FC = () => {
               </div>
               <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">LGU Cryptographic Ledger Check</h4>
             </div>
-            
+
             <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
               Institutions, banks, law enforcement, and government agencies can scan or input any resident QR ID or certificate checksum hash to instantly verify official registration and clearance authenticity.
             </p>
@@ -919,16 +918,16 @@ export const Landing: React.FC = () => {
           </div>
 
           <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center space-y-4">
-            
+
             {/* Interactive QR Scanner Visual */}
-            <div 
+            <div
               onClick={() => setIsScannerOpen(true)}
               className="w-32 h-32 bg-white dark:bg-slate-900 border-4 border-gov-blue-500/20 dark:border-gov-blue-500/40 p-2.5 rounded-2xl relative shadow-inner cursor-pointer group hover:border-gov-blue-500 transition-all"
               title="Click to open QR Camera Scanner"
             >
               {/* Scanning visual overlay */}
               <div className="absolute left-0 right-0 h-0.5 bg-emerald-500 top-1/2 animate-bounce"></div>
-              
+
               {/* Camera overlay hover icon */}
               <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity rounded-xl">
                 <Camera size={24} className="animate-pulse" />
@@ -951,7 +950,7 @@ export const Landing: React.FC = () => {
                 <rect x="15" y="55" width="10" height="10" />
               </svg>
             </div>
-            
+
             <form onSubmit={handleVerifySubmit} className="w-full space-y-2">
               <input
                 type="text"
@@ -986,7 +985,7 @@ export const Landing: React.FC = () => {
 
       {/* 7. Public Announcements Board */}
       <section id="announcements" className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 py-20 border-b border-slate-200/80 dark:border-slate-800/80">
-        
+
         <div className="text-center space-y-3 mb-16">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full bg-gov-red-500/10 dark:bg-gov-red-500/20 text-gov-red-700 dark:text-gov-red-400 border border-gov-red-500/25">
             LGU Bulletin
@@ -1039,7 +1038,7 @@ export const Landing: React.FC = () => {
       {/* 8. Professional Footer */}
       <footer className="relative z-10 bg-white dark:bg-slate-900/90 border-t border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 transition-colors duration-300 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 grid grid-cols-1 md:grid-cols-4 gap-8">
-          
+
           {/* Col 1: LGU Seal Details */}
           <div className="space-y-4 col-span-1 md:col-span-2">
             <div className="flex items-center gap-3 select-none">
@@ -1107,7 +1106,7 @@ export const Landing: React.FC = () => {
       {isScannerOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] max-w-md w-full p-6 shadow-2xl space-y-5 relative">
-            
+
             <button
               onClick={() => setIsScannerOpen(false)}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
@@ -1131,7 +1130,7 @@ export const Landing: React.FC = () => {
 
             {/* Real Camera Scanner Viewport */}
             <div className="relative w-full aspect-square bg-slate-950 rounded-3xl overflow-hidden border-2 border-gov-blue-500/50 shadow-inner">
-              
+
               {/* Hidden canvas for frame analysis */}
               <canvas ref={canvasRef} className="hidden" />
 
@@ -1190,12 +1189,12 @@ export const Landing: React.FC = () => {
 
             {/* Quick Upload QR Photo / Screenshot */}
             <div className="space-y-1.5">
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleImageUpload} 
-                accept="image/*" 
-                className="hidden" 
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+                accept="image/*"
+                className="hidden"
               />
               <button
                 type="button"

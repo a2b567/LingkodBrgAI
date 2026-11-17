@@ -1,7 +1,7 @@
 import axios from 'axios';
-import type { 
-  User, Resident, Household, Certificate, Blotter, Business, 
-  Appointment, Notification, Payment, DashboardStats, PublicCertificateResponse 
+import type {
+  User, Resident, Household, Certificate, Blotter, Business,
+  Appointment, Notification, Payment, DashboardStats, PublicCertificateResponse
 } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api');
@@ -223,12 +223,12 @@ async function withFallback<T>(apiCall: () => Promise<T>, fallbackDataFn: () => 
 
 export const api = {
   auth: {
-    login: (data: { username: string; password?: string }) => 
+    login: (data: { username: string; password?: string }) =>
       withFallback(
         () => client.post<{ token: string; user: User; otp?: string }>('/auth/login', data).then(r => r.data),
         () => {
           const registeredUsers = JSON.parse(localStorage.getItem('lingkodbrgai_registered_users') || '[]');
-          const found = registeredUsers.find((u: any) => 
+          const found = registeredUsers.find((u: any) =>
             (u.username?.toLowerCase() === data.username?.toLowerCase() || u.email?.toLowerCase() === data.username?.toLowerCase()) &&
             (!data.password || u.password === data.password)
           );
@@ -309,7 +309,7 @@ export const api = {
           const cleanLast = String(data.last_name || '').trim().toLowerCase();
 
           // Check if resident with same first and last name already exists in mock/local state
-          const isDuplicate = mockState.residents.some(r => 
+          const isDuplicate = mockState.residents.some(r =>
             r.first_name?.trim().toLowerCase() === cleanFirst &&
             r.last_name?.trim().toLowerCase() === cleanLast
           );
@@ -350,7 +350,7 @@ export const api = {
             updated_at: new Date().toISOString(),
           };
           mockState.residents.push(newResident);
-          
+
           const newUser: User = {
             id: `usr-${Date.now()}`,
             username: data.username || data.email,
@@ -390,7 +390,7 @@ export const api = {
         () => {
           const saved = localStorage.getItem('lingkodbrgai_mock_user');
           if (saved) {
-            try { return JSON.parse(saved); } catch {}
+            try { return JSON.parse(saved); } catch { }
           }
           return getMockUser('captain');
         }
@@ -498,7 +498,7 @@ export const api = {
           const cleanFirst = String(data.first_name || '').trim().toLowerCase();
           const cleanLast = String(data.last_name || '').trim().toLowerCase();
 
-          const isDuplicate = mockState.residents.some(r => 
+          const isDuplicate = mockState.residents.some(r =>
             r.first_name?.trim().toLowerCase() === cleanFirst &&
             r.last_name?.trim().toLowerCase() === cleanLast
           );
@@ -634,7 +634,7 @@ export const api = {
               const pendingLocal = localCerts.filter((c: any) => !remoteIds.has(c.id) && !remoteIds.has(c.document_number));
               return [...pendingLocal, ...list];
             }
-          } catch {}
+          } catch { }
           return list;
         }),
         () => {
@@ -644,7 +644,7 @@ export const api = {
               const remoteIds = new Set(localCerts.map((c: any) => c.id));
               return [...localCerts, ...mockState.certificates.filter(c => !remoteIds.has(c.id))];
             }
-          } catch {}
+          } catch { }
           return mockState.certificates;
         }
       ),
@@ -671,7 +671,7 @@ export const api = {
             const stored = JSON.parse(localStorage.getItem('lingkodbrgai_mock_certs') || '[]');
             stored.unshift(newCert);
             localStorage.setItem('lingkodbrgai_mock_certs', JSON.stringify(stored));
-          } catch {}
+          } catch { }
           return newCert;
         }
       ),
@@ -766,7 +766,7 @@ export const api = {
         if (u && JSON.parse(u)?.role === 'Resident') {
           return Promise.resolve([] as Blotter[]);
         }
-      } catch {}
+      } catch { }
 
       return withFallback(
         () => client.get<Blotter[]>('/blotters', { params }).then(r => r.data),
@@ -779,7 +779,7 @@ export const api = {
         if (u && JSON.parse(u)?.role === 'Resident') {
           return Promise.reject(new Error('Confidential record: Blotter access restricted to authorized personnel.'));
         }
-      } catch {}
+      } catch { }
 
       return withFallback(
         () => client.get<Blotter>(`/blotters/${id}`).then(r => r.data),
@@ -861,7 +861,7 @@ export const api = {
               const pendingLocal = localApps.filter((a: any) => !remoteIds.has(a.id));
               return [...pendingLocal, ...list];
             }
-          } catch {}
+          } catch { }
           return list;
         }),
         () => {
@@ -871,7 +871,7 @@ export const api = {
               const remoteIds = new Set(localApps.map((a: any) => a.id));
               return [...localApps, ...mockState.appointments.filter(a => !remoteIds.has(a.id))];
             }
-          } catch {}
+          } catch { }
           return mockState.appointments;
         }
       ),
@@ -894,7 +894,7 @@ export const api = {
             const stored = JSON.parse(localStorage.getItem('lingkodbrgai_mock_appointments') || '[]');
             stored.unshift(newApp);
             localStorage.setItem('lingkodbrgai_mock_appointments', JSON.stringify(stored));
-          } catch {}
+          } catch { }
           return newApp;
         }
       ),
@@ -1147,7 +1147,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('lingkod_emergency_hotlines');
             if (saved) return JSON.parse(saved);
-          } catch {}
+          } catch { }
           return [
             { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
             { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
@@ -1161,7 +1161,7 @@ export const api = {
     updateHotlines: (hotlines: any[]) => {
       try {
         localStorage.setItem('lingkod_emergency_hotlines', JSON.stringify(hotlines));
-      } catch {}
+      } catch { }
       return withFallback(
         () => client.put('/settings/hotlines', { hotlines }).then(r => r.data),
         () => ({ message: 'Hotlines updated successfully', data: hotlines })
@@ -1176,7 +1176,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('cert_fees');
             if (saved) return { ...defaultFees, ...JSON.parse(saved) };
-          } catch {}
+          } catch { }
           return defaultFees;
         }
       ),
@@ -1184,7 +1184,7 @@ export const api = {
     updateFees: (fees: Record<string, number>) => {
       try {
         localStorage.setItem('cert_fees', JSON.stringify(fees));
-      } catch {}
+      } catch { }
       return withFallback(
         () => client.put('/settings/fees', { fees }).then(r => r.data),
         () => ({ message: 'Fee schedule updated successfully', data: fees })
@@ -1206,7 +1206,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('lingkod_clinic_schedule');
             if (saved) return { ...defaultSched, ...JSON.parse(saved) };
-          } catch {}
+          } catch { }
           return defaultSched;
         }
       ),
@@ -1214,7 +1214,7 @@ export const api = {
     updateClinicSchedule: (data: any) => {
       try {
         localStorage.setItem('lingkod_clinic_schedule', JSON.stringify(data));
-      } catch {}
+      } catch { }
       return withFallback(
         () => client.put('/settings/clinic-schedule', data).then(r => r.data),
         () => ({ message: 'Clinic schedule updated successfully', data })
@@ -1234,7 +1234,7 @@ export const api = {
           try {
             const saved = localStorage.getItem('kiosk_wallpaper_config');
             if (saved) return { ...defaultCfg, ...JSON.parse(saved) };
-          } catch {}
+          } catch { }
           return defaultCfg;
         }
       ),
@@ -1246,7 +1246,7 @@ export const api = {
         localStorage.setItem('kiosk_wallpaper_overlay', String(data.overlay));
         localStorage.setItem('kiosk_wallpaper_blur', String(data.blur));
         if (data.theme_name) localStorage.setItem('kiosk_wallpaper_theme', data.theme_name);
-      } catch {}
+      } catch { }
       return withFallback(
         () => client.put<{ message: string; data: any }>('/settings/kiosk-wallpaper', data).then(r => r.data),
         () => ({ message: 'Matagumpay na na-save ang Kiosk Wallpaper!', data })

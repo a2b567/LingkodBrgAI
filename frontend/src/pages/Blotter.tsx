@@ -14,18 +14,18 @@ const formatHearingSchedule = (sched: any): string => {
     const dateVal = sched.hearing_date || sched.hearingDate;
     const remarksVal = sched.remarks || '';
     if (!dateVal) return JSON.stringify(sched);
-    
+
     try {
       const d = new Date(dateVal);
       if (!isNaN(d.getTime())) {
-        const dateStr = d.toLocaleDateString(undefined, { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
+        const dateStr = d.toLocaleDateString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
         });
-        const timeStr = d.toLocaleTimeString(undefined, { 
-          hour: 'numeric', 
-          minute: '2-digit' 
+        const timeStr = d.toLocaleTimeString(undefined, {
+          hour: 'numeric',
+          minute: '2-digit'
         });
         return `${dateStr} @ ${timeStr}${remarksVal ? ` - ${remarksVal}` : ''}`;
       }
@@ -41,11 +41,11 @@ const convertToISODateTime = (dateStr: string, timeStr: string): string => {
   try {
     if (!timeStr) return `${dateStr}T09:00:00Z`;
     const clean = timeStr.trim().toLowerCase();
-    
+
     const isPM = clean.includes('pm');
     const isAM = clean.includes('am');
     const numOnly = clean.replace(/[^\d:]/g, '');
-    
+
     if (numOnly.includes(':')) {
       const [hStr, mStr] = numOnly.split(':');
       let h = parseInt(hStr, 10) || 9;
@@ -193,7 +193,7 @@ export const BlotterPage: React.FC = () => {
           content: `Peace Hearing session scheduled on ${new Date(isoDateTime).toLocaleDateString()} at ${hearingTime}. Naka-sync na ito sa Appointments & Queue calendar.`,
           type: 'Blotter'
         });
-      } catch {}
+      } catch { }
 
       setIsHearingModalOpen(false);
       setHearingDate('');
@@ -313,7 +313,7 @@ export const BlotterPage: React.FC = () => {
 
   return (
     <div className="space-y-6 relative z-10">
-      
+
       {/* 1. Header Title & Actions */}
       <div className="flex items-center justify-between flex-wrap gap-4 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md">
         <div className="space-y-1">
@@ -415,11 +415,10 @@ export const BlotterPage: React.FC = () => {
               <button
                 key={status}
                 onClick={() => setStatusFilter(status)}
-                className={`px-3.5 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider border transition-all cursor-pointer ${
-                  statusFilter === status 
-                    ? 'bg-rose-600 border-rose-600 text-white shadow-sm' 
+                className={`px-3.5 py-1.5 rounded-xl text-[10px] font-extrabold uppercase tracking-wider border transition-all cursor-pointer ${statusFilter === status
+                    ? 'bg-rose-600 border-rose-600 text-white shadow-sm'
                     : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
+                  }`}
               >
                 {status || 'All Status'}
               </button>
@@ -475,15 +474,14 @@ export const BlotterPage: React.FC = () => {
                             Incident Date: {new Date(c.incident_date).toLocaleDateString()} • Filed: {new Date(c.filing_date).toLocaleDateString()}
                           </span>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          c.status === 'Settled'
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${c.status === 'Settled'
                             ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
                             : c.status === 'Active'
-                            ? 'bg-gov-blue-500/10 text-gov-blue-700 dark:text-gov-blue-400 border border-gov-blue-500/20'
-                            : c.status === 'Pending'
-                            ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
-                            : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                        }`}>
+                              ? 'bg-gov-blue-500/10 text-gov-blue-700 dark:text-gov-blue-400 border border-gov-blue-500/20'
+                              : c.status === 'Pending'
+                                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                                : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                          }`}>
                           {c.status}
                         </span>
                       </div>
