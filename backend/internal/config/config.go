@@ -8,18 +8,18 @@ import (
 )
 
 type Config struct {
-	Port         string
-	DatabaseURL  string
-	DBHost       string
-	DBUser       string
-	DBPassword   string
-	DBName       string
-	DBPort       string
-	DBSSLMode    string
-	JWTSecret    string
-	OpenAIKey    string
-	GroqAPIKey   string
-	UploadDir    string
+	Port        string
+	DatabaseURL string
+	DBHost      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	DBPort      string
+	DBSSLMode   string
+	JWTSecret   string
+	OpenAIKey   string
+	GroqAPIKey  string
+	UploadDir   string
 }
 
 func LoadConfig() *Config {
@@ -43,18 +43,18 @@ func LoadConfig() *Config {
 	openAIKey := getEnv("OPENAI_API_KEY", groqKey)
 
 	return &Config{
-		Port:         getEnv("PORT", "8080"),
-		DatabaseURL:  dbURL,
-		DBHost:       dbHost,
-		DBUser:       dbUser,
-		DBPassword:   dbPassword,
-		DBName:       dbName,
-		DBPort:       dbPort,
-		DBSSLMode:    dbSSL,
-		JWTSecret:    getEnv("JWT_SECRET", "super_secret_barangay_key_2026"),
-		OpenAIKey:    openAIKey,
-		GroqAPIKey:   groqKey,
-		UploadDir:    getEnv("UPLOAD_DIR", "./uploads"),
+		Port:        getEnv("PORT", "8080"),
+		DatabaseURL: dbURL,
+		DBHost:      dbHost,
+		DBUser:      dbUser,
+		DBPassword:  dbPassword,
+		DBName:      dbName,
+		DBPort:      dbPort,
+		DBSSLMode:   dbSSL,
+		JWTSecret:   getEnv("JWT_SECRET", "super_secret_barangay_key_2026"),
+		OpenAIKey:   openAIKey,
+		GroqAPIKey:  groqKey,
+		UploadDir:   getEnv("UPLOAD_DIR", "./uploads"),
 	}
 }
 
@@ -69,5 +69,3 @@ func getEnv(key, fallback string) string {
 func GetEnvPublic(key, fallback string) string {
 	return getEnv(key, fallback)
 }
-
-
