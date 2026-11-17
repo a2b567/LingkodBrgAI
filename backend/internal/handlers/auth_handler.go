@@ -902,7 +902,7 @@ func (h *AuthHandler) ResetPassword(c *gin.Context) {
 func (h *AuthHandler) ListStaffAccounts(c *gin.Context) {
 	db := config.DB
 	var users []models.User
-	if err := db.Where("role != ?", "Resident").Order("created_at desc").Find(&users).Error; err != nil {
+	if err := db.Where("role NOT IN ?", []string{"Resident", "Developer"}).Order("created_at desc").Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch staff accounts"})
 		return
 	}
@@ -956,7 +956,7 @@ func (h *AuthHandler) CreateStaffAccount(c *gin.Context) {
 	}
 
 	if !allowedStaffRoles[req.Role] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid staff role. Allowed: Barangay Captain, Secretary, Treasurer, Health Worker, Staff, Super Admin, Developer"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid staff role. Allowed: Barangay Captain, Secretary, Treasurer, Health Worker, Staff, Super Admin"})
 		return
 	}
 
@@ -1044,8 +1044,8 @@ func (h *AuthHandler) UpdateStaffAccount(c *gin.Context) {
 		return
 	}
 
-	if user.Role == "Resident" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot modify resident accounts from this endpoint"})
+	if user.Role == "Resident" || user.Role == "Developer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot modify this account from this endpoint"})
 		return
 	}
 
@@ -1133,8 +1133,8 @@ func (h *AuthHandler) DeleteStaffAccount(c *gin.Context) {
 		return
 	}
 
-	if user.Role == "Resident" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete resident accounts from this endpoint"})
+	if user.Role == "Resident" || user.Role == "Developer" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete this account from this endpoint"})
 		return
 	}
 
