@@ -12,29 +12,34 @@ import (
 )
 
 var (
-	client *redis.Client
-	once   sync.Once
-	ctx    = context.Background()
+	client    *redis.Client
+	available bool
+	once      sync.Once
+	ctx       = context.Background()
 )
 
-// InitRedis initializes a singleton Redis client using REDIS_URL or host/port configuration.
+// InitRedis initializes a singleton Redis client when REDIS_URL or REDIS_HOST is configured.
 func InitRedis() *redis.Client {
 	once.Do(func() {
 		redisURL := os.Getenv("REDIS_URL")
-		var opts *redis.Options
+		host := os.Getenv("REDIS_HOST")
 
+		// Skip Redis connection attempt if no Redis server is configured (zero latency fail-open)
+		if redisURL == "" && host == "" {
+			available = false
+			return
+		}
+
+		var opts *redis.Options
 		if redisURL != "" {
 			var err error
 			opts, err = redis.ParseURL(redisURL)
 			if err != nil {
-				log.Printf("CRITICAL: Invalid REDIS_URL '%s': %v. Falling back to default localhost:6379", redisURL, err)
-				opts = &redis.Options{Addr: "localhost:6379"}
+				log.Printf("WARNING: Invalid REDIS_URL: %v. Security limiters will fail-open.", err)
+				available = false
+				return
 			}
 		} else {
-			host := os.Getenv("REDIS_HOST")
-			if host == "" {
-				host = "localhost"
-			}
 			port := os.Getenv("REDIS_PORT")
 			if port == "" {
 				port = "6379"
@@ -48,21 +53,23 @@ func InitRedis() *redis.Client {
 			}
 		}
 
-		// Configure timeouts
-		opts.DialTimeout = 3 * time.Second
-		opts.ReadTimeout = 2 * time.Second
-		opts.WriteTimeout = 2 * time.Second
+		opts.DialTimeout = 1 * time.Second
+		opts.ReadTimeout = 1 * time.Second
+		opts.WriteTimeout = 1 * time.Second
 
-		client = redis.NewClient(opts)
+		c := redis.NewClient(opts)
 
-		// Test Ping
-		pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		pingCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 		defer cancel()
 
-		if err := client.Ping(pingCtx).Err(); err != nil {
+		if err := c.Ping(pingCtx).Err(); err != nil {
 			log.Printf("WARNING: Redis connection failed: %v. Security limiters will fail-open.", err)
+			available = false
+			_ = c.Close()
 		} else {
 			log.Println("SUCCESS: Connected to Redis server successfully.")
+			client = c
+			available = true
 		}
 	})
 
@@ -71,18 +78,12 @@ func InitRedis() *redis.Client {
 
 // GetClient returns the initialized singleton Redis client instance.
 func GetClient() *redis.Client {
-	if client == nil {
-		return InitRedis()
-	}
+	InitRedis()
 	return client
 }
 
-// IsAvailable checks if the Redis server is currently responding to ping commands.
+// IsAvailable returns true in O(1) memory time only when a Redis server is connected.
 func IsAvailable() bool {
-	if client == nil {
-		return false
-	}
-	pingCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
-	defer cancel()
-	return client.Ping(pingCtx).Err() == nil
+	InitRedis()
+	return available && client != nil
 }

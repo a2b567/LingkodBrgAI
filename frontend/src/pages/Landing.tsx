@@ -109,10 +109,13 @@ export const Landing: React.FC = () => {
       setContactEmail(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');
       setContactHours(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
       setHeroBg(localStorage.getItem('brgy_hero_bg') || null);
-      fetchLiveStats();
     };
-    const timer = setInterval(syncData, 3000);
-    return () => clearInterval(timer);
+    const timer = setInterval(syncData, 5000);
+    const statsTimer = setInterval(fetchLiveStats, 30000);
+    return () => {
+      clearInterval(timer);
+      clearInterval(statsTimer);
+    };
   }, []);
 
   // Automatic redirect if already logged in

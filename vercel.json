@@ -2,6 +2,7 @@
   "framework": "vite",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
+  "regions": ["sin1"],
   "rewrites": [
     {
       "source": "/api/(.*)",

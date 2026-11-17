@@ -17,9 +17,8 @@ func RedisSlidingWindowRateLimiter(rateKeyPrefix string, limit int, window time.
 	return func(c *gin.Context) {
 		rClient := rediscache.GetClient()
 
-		// Fail-Open Check: If Redis is unavailable, log error and allow request
+		// Fail-Open Check: If Redis is unavailable, allow request without blocking
 		if !rediscache.IsAvailable() {
-			log.Printf("CRITICAL [FAIL-OPEN]: Redis unavailable for rate limiter %s. Request allowed.", rateKeyPrefix)
 			c.Next()
 			return
 		}

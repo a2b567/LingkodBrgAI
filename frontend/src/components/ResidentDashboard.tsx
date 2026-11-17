@@ -72,8 +72,9 @@ export const ResidentDashboard: React.FC = () => {
     } catch {
       setClinicQueue([]);
     }
+  };
 
-    // Also check clinic schedule
+  const fetchClinicSchedule = () => {
     api.settings.getClinicSchedule().then(s => {
       if (s && typeof s === 'object') {
         setClinicSchedule(prev => ({ ...prev, ...s }));
@@ -83,8 +84,13 @@ export const ResidentDashboard: React.FC = () => {
 
   useEffect(() => {
     syncClinicQueue();
-    const interval = setInterval(syncClinicQueue, 2000);
-    return () => clearInterval(interval);
+    fetchClinicSchedule();
+    const queueInterval = setInterval(syncClinicQueue, 2000);
+    const schedInterval = setInterval(fetchClinicSchedule, 30000);
+    return () => {
+      clearInterval(queueInterval);
+      clearInterval(schedInterval);
+    };
   }, []);
 
   const fetchData = async () => {
