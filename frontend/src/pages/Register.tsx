@@ -235,7 +235,7 @@ export const Register: React.FC = () => {
     setShowCaptchaModal(true);
   };
 
-  const handleCaptchaSuccess = async (_token: string) => {
+  const handleCaptchaSuccess = async () => {
     setShowCaptchaModal(false);
     setIsLoading(true);
     try {

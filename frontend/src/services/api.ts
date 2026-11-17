@@ -1059,7 +1059,7 @@ export const api = {
       try {
         const backendRes = await client.post<{ response: string }>('/ai/chat', { prompt });
         return { response: sanitizeBrgyText(backendRes.data.response) };
-      } catch (_) {
+      } catch {
         // Backend unavailable, try Groq API
       }
 

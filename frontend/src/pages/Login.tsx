@@ -46,7 +46,6 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [, setSandboxOtp] = useState('');
   const [isResending, setIsResending] = useState(false);
   
   const loginStore = useAuthStore(state => state.login);
@@ -79,9 +78,6 @@ export const Login: React.FC = () => {
       // Residente lamang ang kailangang mag-OTP kung hindi pa verified
       if (!data.user.is_verified && !isStaffUser) {
         setOtpMode(true);
-        if ((data as any).otp) {
-          setSandboxOtp((data as any).otp);
-        }
         const emailHint = data.user.email ? `sa ${data.user.email}` : 'sa iyong email';
         setInfo(`Isang 6-digit verification code ang ipinadala ${emailHint}. Pakitingnan ang iyong inbox o gamitin ang code sa ibaba.`);
         setIsLoading(false);
@@ -125,7 +121,7 @@ export const Login: React.FC = () => {
     setShowCaptchaModal(true);
   };
 
-  const handleCaptchaSuccess = async (_token: string) => {
+  const handleCaptchaSuccess = async () => {
     setShowCaptchaModal(false);
     await executeAuthentication();
   };
@@ -138,7 +134,6 @@ export const Login: React.FC = () => {
     try {
       await api.auth.verifyOtp({ username, otp: otpCode });
       setOtpMode(false);
-      setSandboxOtp('');
       setInfo('Account verified successfully. You can now log in.');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Invalid OTP code. Please try again.');
@@ -151,10 +146,7 @@ export const Login: React.FC = () => {
     setIsResending(true);
     setError('');
     try {
-      const data = await api.auth.forgotPassword({ email: username.trim().toLowerCase() });
-      if (data?.otp) {
-        setSandboxOtp(data.otp);
-      }
+      await api.auth.forgotPassword({ email: username.trim().toLowerCase() });
       setInfo('Bagong verification code ang na-generate para sa iyong account. Pakitingnan muli.');
     } catch {
       setError('Hindi maipadala ang OTP. Pakisubukang muli.');
@@ -168,10 +160,7 @@ export const Login: React.FC = () => {
     setError('');
     try {
       const cleanEmail = forgotEmail.trim().toLowerCase();
-      const data = await api.auth.forgotPassword({ email: cleanEmail });
-      if (data.otp) {
-        setSandboxOtp(data.otp);
-      }
+      await api.auth.forgotPassword({ email: cleanEmail });
       setInfo('Bagong verification OTP ang naipadala sa iyong Gmail inbox via SMTP. Pakitingnan muli.');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Hindi maipadala ang OTP. Pakisubukang muli.');
@@ -189,9 +178,6 @@ export const Login: React.FC = () => {
     const cleanEmail = forgotEmail.trim().toLowerCase();
     try {
       const data = await api.auth.forgotPassword({ email: cleanEmail });
-      if (data.otp) {
-        setSandboxOtp(data.otp);
-      }
       setForgotStep(2);
       setInfo(data.message || 'OTP reset code has been sent to your email.');
     } catch (err: any) {
@@ -230,7 +216,6 @@ export const Login: React.FC = () => {
       setForgotOtp('');
       setNewPassword('');
       setConfirmPassword('');
-      setSandboxOtp('');
       setInfo(data.message || 'Password reset successfully. You can now log in.');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to reset password.');
