@@ -92,7 +92,6 @@ func SetupRouter() *gin.Engine {
 			auth.POST("/verify-otp", authHandler.VerifyOTP)
 			auth.POST("/forgot-password", authHandler.ForgotPassword)
 			auth.POST("/reset-password", authHandler.ResetPassword)
-			auth.POST("/refresh", authHandler.RefreshToken)
 		}
 		api.POST("/auth/refresh", authHandler.RefreshToken)
 		api.POST("/reset-password", middleware.KioskPublicRateLimiter(), authHandler.ResetPassword)
