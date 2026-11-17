@@ -4,11 +4,7 @@ import type {
   Appointment, Notification, Payment, DashboardStats, PublicCertificateResponse 
 } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || (
-  typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
-    ? 'https://lingkodbrgai.onrender.com/api'
-    : (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api')
-);
+const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:8080/api');
 
 const client = axios.create({
   baseURL: API_URL,
@@ -57,9 +53,9 @@ client.interceptors.response.use(
         const userStr = localStorage.getItem('lingkodbrgai_user');
         const user = userStr ? JSON.parse(userStr) : null;
 
-        if (currentToken && !currentToken.startsWith('mock_')) {
+        if (currentToken || user?.username) {
           const res = await axios.post(`${API_URL}/auth/refresh`, {
-            token: currentToken,
+            token: currentToken || '',
             username: user?.username,
             user_id: user?.id,
           }, { timeout: 25000 });
@@ -67,6 +63,9 @@ client.interceptors.response.use(
           const newToken = res.data?.token;
           if (newToken) {
             localStorage.setItem('lingkodbrgai_token', newToken);
+            if (res.data?.user) {
+              localStorage.setItem('lingkodbrgai_user', JSON.stringify(res.data.user));
+            }
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return client(originalRequest);
           }
@@ -402,14 +401,14 @@ export const api = {
       const userStr = localStorage.getItem('lingkodbrgai_user');
       const user = userStr ? JSON.parse(userStr) : null;
 
-      if (!token || token.startsWith('mock_')) return null;
+      if (!token && !user?.username) return null;
 
       try {
         const res = await axios.post(`${API_URL}/auth/refresh`, {
-          token,
+          token: token || '',
           username: user?.username,
           user_id: user?.id,
-        }, { timeout: 8000 });
+        }, { timeout: 25000 });
         if (res.data?.token) {
           localStorage.setItem('lingkodbrgai_token', res.data.token);
           if (res.data.user) {
@@ -418,7 +417,7 @@ export const api = {
           return res.data;
         }
       } catch (err) {
-        console.warn('Silent token renewal error:', err);
+        console.debug('Silent token renewal error:', err);
       }
       return null;
     },

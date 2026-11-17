@@ -28,25 +28,15 @@ func LoadConfig() *Config {
 		log.Println("No .env file found or reading from existing environment variables")
 	}
 
-	dbURL := getEnv("DATABASE_URL", getEnv("POSTGRES_URL", getEnv("POSTGRES_PRISMA_URL", getEnv("POSTGRES_URL_NON_POOLING", ""))))
-
-	dbHost := getEnv("DB_HOST", getEnv("POSTGRES_HOST", getEnv("POSTGRES_PGHOST", "")))
-	if dbHost == "" && dbURL == "" {
-		dbHost = "localhost"
-	}
-
-	dbUser := getEnv("DB_USER", getEnv("POSTGRES_USER", getEnv("POSTGRES_PGUSER", "postgres")))
-	dbPassword := getEnv("DB_PASSWORD", getEnv("POSTGRES_PASSWORD", getEnv("POSTGRES_PGPASSWORD", "postgres")))
-	dbName := getEnv("DB_NAME", getEnv("POSTGRES_DATABASE", getEnv("POSTGRES_PGDATABASE", "lingkodbrgai")))
-	dbPort := getEnv("DB_PORT", getEnv("POSTGRES_PORT", "5432"))
-
-	dbSSL := getEnv("DB_SSLMODE", "")
-	if dbSSL == "" {
-		if dbHost != "localhost" && dbHost != "sqlite" && dbHost != "" {
-			dbSSL = "require"
-		} else {
-			dbSSL = "disable"
-		}
+	dbURL := getEnv("DATABASE_URL", "")
+	dbHost := getEnv("DB_HOST", "aws-0-ap-southeast-2.pooler.supabase.com")
+	dbUser := getEnv("DB_USER", "postgres.axqnnlrtyjkmjsseizfz")
+	dbPassword := getEnv("DB_PASSWORD", "NIKEniaranas")
+	dbName := getEnv("DB_NAME", "postgres")
+	dbPort := getEnv("DB_PORT", "6543")
+	dbSSL := getEnv("DB_SSLMODE", "require")
+	if dbHost == "localhost" || dbHost == "sqlite" {
+		dbSSL = "disable"
 	}
 
 	groqKey := getEnv("GROQ_API_KEY", getEnv("VITE_GROQ_API_KEY", ""))

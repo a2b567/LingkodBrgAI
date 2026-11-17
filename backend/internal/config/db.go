@@ -99,8 +99,8 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 		}
 	}
 
-	// Auto-Migrate Cloud Database only if fresh database (skip on warm start for fast speed)
-	if CloudDB != nil && os.Getenv("SKIP_MIGRATE") != "1" {
+	// Auto-Migrate Cloud Database only if fresh database (skip on serverless warm/cold starts for sub-second speed)
+	if CloudDB != nil && os.Getenv("SKIP_MIGRATE") != "1" && os.Getenv("VERCEL") != "1" {
 		if !CloudDB.Migrator().HasTable(&models.User{}) {
 			log.Println("[CLOUD DB] Initializing fresh schema tables...")
 			_ = CloudDB.AutoMigrate(&models.Household{})
@@ -131,11 +131,7 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 				}
 			}
 		} else {
-			// Ensure incremental columns and new tables are safely migrated without dropping data
-			if incErr := CloudDB.AutoMigrate(&models.Resident{}, &models.Household{}, &models.SystemSetting{}); incErr != nil {
-				log.Printf("[CLOUD DB WARNING] Incremental migration notice: %v", incErr)
-			}
-			log.Println("[CLOUD DB] ✅ Schema tables checked. Incremental columns verified.")
+			log.Println("[CLOUD DB] ✅ Schema tables verified.")
 		}
 	}
 

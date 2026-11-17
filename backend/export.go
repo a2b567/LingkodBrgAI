@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"backend/internal/config"
-	"backend/internal/models"
 	"backend/internal/routes"
 	"backend/internal/services"
 )
@@ -30,13 +29,6 @@ func initAll() {
 		// Initialize Database
 		if _, err := config.InitDB(cfg); err != nil {
 			log.Printf("Warning: DB init failed in serverless context: %v", err)
-		}
-
-		// Seed Database only on first initialization if empty
-		if config.DB != nil && !config.DB.Migrator().HasTable(&models.User{}) {
-			if err := config.SeedDatabase(config.DB); err != nil {
-				log.Printf("Warning: Seeding database failed: %v", err)
-			}
 		}
 
 		// Initialize WebSocket Hub

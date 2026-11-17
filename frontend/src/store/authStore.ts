@@ -45,8 +45,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     try {
-      // Auto-refresh token if server is accessible to ensure session remains perpetually active
-      if (!token.startsWith('mock_')) {
+      // Auto-refresh token (and upgrade any temporary mock_token into a real signed JWT)
+      if (token.startsWith('mock_')) {
+        await api.auth.refreshToken().catch(() => {});
+      } else {
         api.auth.refreshToken().catch(() => {});
       }
 
