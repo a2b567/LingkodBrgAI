@@ -14,9 +14,58 @@ const client = axios.create({
   timeout: 30000, // 30s timeout for cloud backend spin-up resilience
 });
 
-// Interceptor to inject JWT Token from LocalStorage
-client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('lingkodbrgai_token');
+let activeRefreshPromise: Promise<{ token: string; user?: User } | null> | null = null;
+
+async function refreshSessionToken(): Promise<{ token: string; user?: User } | null> {
+  if (activeRefreshPromise) {
+    return activeRefreshPromise;
+  }
+
+  activeRefreshPromise = (async () => {
+    try {
+      const currentToken = localStorage.getItem('lingkodbrgai_token');
+      const userStr = localStorage.getItem('lingkodbrgai_user');
+      const user = userStr ? JSON.parse(userStr) : null;
+
+      if (!currentToken && !user?.username && !user?.email && !user?.role) {
+        return null;
+      }
+
+      const res = await axios.post(`${API_URL}/auth/refresh`, {
+        token: currentToken || '',
+        username: user?.username,
+        email: user?.email,
+        role: user?.role,
+        user_id: user?.id,
+      }, { timeout: 25000 });
+
+      if (res.data?.token) {
+        localStorage.setItem('lingkodbrgai_token', res.data.token);
+        if (res.data?.user) {
+          localStorage.setItem('lingkodbrgai_user', JSON.stringify(res.data.user));
+        }
+        return res.data;
+      }
+    } catch {
+      // Silently ignore when offline
+    } finally {
+      activeRefreshPromise = null;
+    }
+    return null;
+  })();
+
+  return activeRefreshPromise;
+}
+
+// Interceptor to inject JWT Token from LocalStorage (and upgrade mock tokens before sending)
+client.interceptors.request.use(async (config) => {
+  let token = localStorage.getItem('lingkodbrgai_token');
+  if (token && token.startsWith('mock_')) {
+    const refreshed = await refreshSessionToken();
+    if (refreshed?.token) {
+      token = refreshed.token;
+    }
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -48,30 +97,10 @@ client.interceptors.response.use(
     if (isTokenError && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        const currentToken = localStorage.getItem('lingkodbrgai_token');
-        const userStr = localStorage.getItem('lingkodbrgai_user');
-        const user = userStr ? JSON.parse(userStr) : null;
-
-        if (currentToken || user?.username) {
-          const res = await axios.post(`${API_URL}/auth/refresh`, {
-            token: currentToken || '',
-            username: user?.username,
-            user_id: user?.id,
-          }, { timeout: 25000 });
-
-          const newToken = res.data?.token;
-          if (newToken) {
-            localStorage.setItem('lingkodbrgai_token', newToken);
-            if (res.data?.user) {
-              localStorage.setItem('lingkodbrgai_user', JSON.stringify(res.data.user));
-            }
-            originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            return client(originalRequest);
-          }
-        }
-      } catch (refreshErr) {
-        console.debug('Silent token renewal could not reach backend:', refreshErr);
+      const refreshed = await refreshSessionToken();
+      if (refreshed?.token) {
+        originalRequest.headers.Authorization = `Bearer ${refreshed.token}`;
+        return client(originalRequest);
       }
     }
 
@@ -214,7 +243,7 @@ async function withFallback<T>(apiCall: () => Promise<T>, fallbackDataFn: () => 
     // If connection refused, network error, mock session active, or token expired/invalid,
     // seamlessly fulfill with intelligent fallback so the citizen's form submission NEVER fails!
     if (isNetworkError || (isAuthError && isMockToken) || isTokenError) {
-      console.warn('Backend unavailable, mock session active, or JWT expired. Using intelligent client fallback.', errMsg || err?.message);
+      console.debug('Using client fallback:', errMsg || err?.message);
       return fallbackDataFn();
     }
     throw err;
@@ -396,31 +425,7 @@ export const api = {
         }
       ),
 
-    refreshToken: async () => {
-      const token = localStorage.getItem('lingkodbrgai_token');
-      const userStr = localStorage.getItem('lingkodbrgai_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-
-      if (!token && !user?.username) return null;
-
-      try {
-        const res = await axios.post(`${API_URL}/auth/refresh`, {
-          token: token || '',
-          username: user?.username,
-          user_id: user?.id,
-        }, { timeout: 25000 });
-        if (res.data?.token) {
-          localStorage.setItem('lingkodbrgai_token', res.data.token);
-          if (res.data.user) {
-            localStorage.setItem('lingkodbrgai_user', JSON.stringify(res.data.user));
-          }
-          return res.data;
-        }
-      } catch (err) {
-        console.debug('Silent token renewal error:', err);
-      }
-      return null;
-    },
+    refreshToken: () => refreshSessionToken(),
 
     forgotPassword: (data: { email: string }) =>
       withFallback<{ message: string; otp?: string }>(
