@@ -54,7 +54,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 			db.Preload("Resident").Where("payment_status = ?", "Unpaid").Limit(10).Find(&unpaidCerts)
 			contextData += "UNPAID DOCUMENT FEE RECORDS:\n"
 			for _, c := range unpaidCerts {
-				contextData += fmt.Sprintf("- Doc: %s, Type: %s, Resident: %s %s, Fee: PHP %.2f\n", 
+				contextData += fmt.Sprintf("- Doc: %s, Type: %s, Resident: %s %s, Fee: PHP %.2f\n",
 					c.DocumentNumber, c.Type, c.Resident.FirstName, c.Resident.LastName, c.Fee)
 			}
 		}
@@ -65,7 +65,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 			db.Where("birthdate <= ?", seniorBday).Limit(10).Find(&seniors)
 			contextData += "SENIOR CITIZENS REGISTRY:\n"
 			for _, r := range seniors {
-				contextData += fmt.Sprintf("- Name: %s %s, Birthdate: %s, Address: %s, Contact: %s\n", 
+				contextData += fmt.Sprintf("- Name: %s %s, Birthdate: %s, Address: %s, Contact: %s\n",
 					r.FirstName, r.LastName, r.Birthdate.Format("2006-01-02"), r.Address, r.ContactNumber)
 			}
 		}
@@ -79,7 +79,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 				if h.Head != nil {
 					headName = h.Head.FirstName + " " + h.Head.LastName
 				}
-				contextData += fmt.Sprintf("- Household No: %s, Head: %s, Address: %s\n", 
+				contextData += fmt.Sprintf("- Household No: %s, Head: %s, Address: %s\n",
 					h.HouseholdNumber, headName, h.Address)
 			}
 		}
@@ -89,7 +89,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 			db.Limit(10).Find(&cases)
 			contextData += "BLOTTER CASES:\n"
 			for _, c := range cases {
-				contextData += fmt.Sprintf("- Case No: %s, Complainant: %s, Respondent: %s, Status: %s, Details: %s\n", 
+				contextData += fmt.Sprintf("- Case No: %s, Complainant: %s, Respondent: %s, Status: %s, Details: %s\n",
 					c.CaseNumber, c.Complainant, c.Respondent, c.Status, c.Details)
 			}
 		}
@@ -100,7 +100,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 			if err := db.Preload("Resident").First(&user, "id = ?", userID).Error; err == nil && user.ResidentID != nil {
 				contextData += fmt.Sprintf("CURRENT LOGGED-IN RESIDENT CONTEXT:\n- Name: %s %s\n- Birthdate: %s\n- Address: %s\n- Voter Status: %s\n",
 					user.Resident.FirstName, user.Resident.LastName, user.Resident.Birthdate.Format("2006-01-02"), user.Resident.Address, user.Resident.VoterStatus)
-				
+
 				var personalCerts []models.Certificate
 				db.Where("resident_id = ?", user.ResidentID).Limit(5).Find(&personalCerts)
 				contextData += "YOUR REQUESTED DOCUMENTS:\n"
@@ -147,12 +147,10 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 	modelsToTry := []string{
 		"openai/gpt-oss-120b",
 		"openai/gpt-oss-20b",
-		"qwen/qwen3.6-27b",
 		"qwen/qwen3.8-27b",
-		"groq/compound",
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 12 * time.Second}
 
 	for _, model := range modelsToTry {
 		reqBody := ChatCompletionRequest{

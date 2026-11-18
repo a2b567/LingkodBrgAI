@@ -165,7 +165,7 @@ export const callGroqAI = async (prompt: string, systemContext?: string): Promis
     } catch (err2) {
       console.warn('Fallback 1 failed, trying fallback 2:', err2);
       try {
-        return await makeRequest('qwen/qwen3.6-27b');
+        return await makeRequest('qwen/qwen3.8-27b');
       } catch (err3) {
         console.warn('All Groq models failed:', err3);
         throw err3;
@@ -1063,7 +1063,10 @@ export const api = {
       // Try Go backend first
       try {
         const backendRes = await client.post<{ response: string }>('/ai/chat', { prompt });
-        return { response: sanitizeBrgyText(backendRes.data.response) };
+        const reply = sanitizeBrgyText(backendRes.data?.response || '');
+        if (reply && !reply.includes('Offline Sandbox Mode')) {
+          return { response: reply };
+        }
       } catch {
         // Backend unavailable, try Groq API
       }
