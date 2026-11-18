@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"backend/internal/config"
@@ -71,7 +72,10 @@ func (h *AIHandler) SummarizeCase(c *gin.Context) {
 		return
 	}
 
-	prompt := "Please write a concise 2-3 sentence summary of the following dispute: " + kase.Details
+	prompt := fmt.Sprintf(
+		"Write a formal, concise 2-3 sentence Katarungang Pambarangay AI Case Digest and recommended mediation action for this barangay blotter record (do not ask follow-up questions; summarize directly based on the provided record): Case Number: %s | Complainant: %s | Respondent: %s | Incident Date: %s | Status: %s | Incident Narrative: %s",
+		kase.CaseNumber, kase.Complainant, kase.Respondent, kase.IncidentDate.Format("2006-01-02"), kase.Status, kase.Details,
+	)
 	response, _, err := h.aiService.ProcessQuery(prompt, "Secretary", nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate summary"})

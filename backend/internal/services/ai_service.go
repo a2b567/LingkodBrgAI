@@ -49,10 +49,36 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 
 	// Fetch data depending on prompt keywords to feed to LLM context
 	if isStaff {
+		var resCount, hhCount, indCount, certCount, blotterCount, bizCount int64
+		db.Model(&models.Resident{}).Count(&resCount)
+		db.Model(&models.Household{}).Count(&hhCount)
+		db.Model(&models.Household{}).Where("poverty_level = ?", "Indigent").Count(&indCount)
+		db.Model(&models.Certificate{}).Count(&certCount)
+		db.Model(&models.Blotter{}).Count(&blotterCount)
+		db.Model(&models.Business{}).Count(&bizCount)
+		contextData += fmt.Sprintf("LIVE BARANGAY DATABASE SUMMARY:\n- Total Registered Residents: %d\n- Total Households: %d (Indigent Households: %d)\n- Total Certificates/Clearances: %d\n- Total Blotter Cases: %d\n- Total Registered Businesses: %d\n\n",
+			resCount, hhCount, indCount, certCount, blotterCount, bizCount)
+
+		if strings.Contains(lowerPrompt, "resident") || strings.Contains(lowerPrompt, "citizen") || strings.Contains(lowerPrompt, "list") {
+			var residents []models.Resident
+			db.Limit(15).Find(&residents)
+			contextData += "REGISTERED RESIDENTS:\n"
+			if len(residents) == 0 {
+				contextData += "- None (0 resident records currently in the database)\n"
+			}
+			for _, r := range residents {
+				contextData += fmt.Sprintf("- Name: %s %s, Gender: %s, Voter: %s, Address: %s\n",
+					r.FirstName, r.LastName, r.Gender, r.VoterStatus, r.Address)
+			}
+		}
+
 		if strings.Contains(lowerPrompt, "unpaid") || strings.Contains(lowerPrompt, "fee") {
 			var unpaidCerts []models.Certificate
 			db.Preload("Resident").Where("payment_status = ?", "Unpaid").Limit(10).Find(&unpaidCerts)
 			contextData += "UNPAID DOCUMENT FEE RECORDS:\n"
+			if len(unpaidCerts) == 0 {
+				contextData += "- None (0 unpaid document fee records currently in the database)\n"
+			}
 			for _, c := range unpaidCerts {
 				contextData += fmt.Sprintf("- Doc: %s, Type: %s, Resident: %s %s, Fee: PHP %.2f\n",
 					c.DocumentNumber, c.Type, c.Resident.FirstName, c.Resident.LastName, c.Fee)
@@ -62,18 +88,24 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 		if strings.Contains(lowerPrompt, "senior") || strings.Contains(lowerPrompt, "elder") {
 			var seniors []models.Resident
 			seniorBday := time.Now().AddDate(-60, 0, 0)
-			db.Where("birthdate <= ?", seniorBday).Limit(10).Find(&seniors)
+			db.Where("birthdate <= ? OR is_senior = ?", seniorBday, true).Limit(10).Find(&seniors)
 			contextData += "SENIOR CITIZENS REGISTRY:\n"
+			if len(seniors) == 0 {
+				contextData += "- None (0 senior citizens currently registered in the database)\n"
+			}
 			for _, r := range seniors {
 				contextData += fmt.Sprintf("- Name: %s %s, Birthdate: %s, Address: %s, Contact: %s\n",
 					r.FirstName, r.LastName, r.Birthdate.Format("2006-01-02"), r.Address, r.ContactNumber)
 			}
 		}
 
-		if strings.Contains(lowerPrompt, "indigent") || strings.Contains(lowerPrompt, "poor") {
+		if strings.Contains(lowerPrompt, "indigent") || strings.Contains(lowerPrompt, "poor") || strings.Contains(lowerPrompt, "household") {
 			var indigentHouseholds []models.Household
 			db.Preload("Head").Where("poverty_level = ?", "Indigent").Limit(10).Find(&indigentHouseholds)
 			contextData += "INDIGENT HOUSEHOLDS:\n"
+			if len(indigentHouseholds) == 0 {
+				contextData += "- None (0 households are currently marked as Indigent in the database)\n"
+			}
 			for _, h := range indigentHouseholds {
 				headName := "None"
 				if h.Head != nil {
@@ -88,6 +120,9 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 			var cases []models.Blotter
 			db.Limit(10).Find(&cases)
 			contextData += "BLOTTER CASES:\n"
+			if len(cases) == 0 {
+				contextData += "- None (0 blotter cases currently in the database)\n"
+			}
 			for _, c := range cases {
 				contextData += fmt.Sprintf("- Case No: %s, Complainant: %s, Respondent: %s, Status: %s, Details: %s\n",
 					c.CaseNumber, c.Complainant, c.Respondent, c.Status, c.Details)
