@@ -755,8 +755,8 @@ const StaffDashboard: React.FC = () => {
                 {lowStockCount} Items Low
               </span>
             </div>
-            <div className="h-64 flex-1 min-w-0">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <div className="w-full h-64 min-h-[256px] min-w-0">
+              <ResponsiveContainer width="100%" height={256} minWidth={100} minHeight={200} initialDimension={{ width: 480, height: 256 }}>
                 <BarChart data={stockChartData}>
                   <defs>
                     <linearGradient id="stockBarGrad" x1="0" y1="0" x2="0" y2="1">
@@ -785,8 +785,8 @@ const StaffDashboard: React.FC = () => {
               <Activity size={16} className="text-emerald-500" />
               Patient Health Status Distribution
             </h4>
-            <div className="h-56 flex-grow relative min-w-0">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <div className="w-full h-56 min-h-[224px] relative min-w-0">
+              <ResponsiveContainer width="100%" height={224} minWidth={100} minHeight={200} initialDimension={{ width: 280, height: 224 }}>
                 <PieChart>
                   <Pie
                     data={healthStatusPieData}
@@ -831,8 +831,8 @@ const StaffDashboard: React.FC = () => {
           {/* Age demographics (Bar Chart) */}
           <div className="lg:col-span-2 glass-card p-6 flex flex-col">
             <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Population Age Demographics</h4>
-            <div className="h-64 flex-1 min-w-0">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <div className="w-full h-64 min-h-[256px] min-w-0">
+              <ResponsiveContainer width="100%" height={256} minWidth={100} minHeight={200} initialDimension={{ width: 480, height: 256 }}>
                 <BarChart data={ageData}>
                   <defs>
                     <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -870,8 +870,8 @@ const StaffDashboard: React.FC = () => {
           {/* Gender Demographics (Pie Chart) */}
           <div className="glass-card p-6 flex flex-col">
             <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Gender Demographics</h4>
-            <div className="h-56 flex-grow relative min-w-0">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <div className="w-full h-56 min-h-[224px] relative min-w-0">
+              <ResponsiveContainer width="100%" height={224} minWidth={100} minHeight={200} initialDimension={{ width: 280, height: 224 }}>
                 <PieChart>
                   <Pie
                     data={genderData}
@@ -1032,8 +1032,8 @@ const StaffDashboard: React.FC = () => {
           {/* Monthly certificate revenues */}
           <div className="lg:col-span-2 glass-card p-6 flex flex-col">
             <h4 className="text-xs font-extrabold tracking-wider uppercase text-slate-700 dark:text-slate-200 mb-6">Certificate & Permit Revenues (PHP)</h4>
-            <div className="h-64 flex-1 min-w-0">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <div className="w-full h-64 min-h-[256px] min-w-0">
+              <ResponsiveContainer width="100%" height={256} minWidth={100} minHeight={200} initialDimension={{ width: 480, height: 256 }}>
                 <LineChart data={stats.revenue_history}>
                   <defs>
                     <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
