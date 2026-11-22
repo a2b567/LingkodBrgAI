@@ -218,21 +218,33 @@ func (h *DevHandler) GetAllUsers(c *gin.Context) {
 		return
 	}
 
-	// Batch-fetch latest audit log for all returned users in 1 query instead of N+1 per user
+	// Batch-fetch only the single latest audit log per user in 1 lightweight query (at most N rows)
 	userIDs := make([]uuid.UUID, 0, len(users))
 	for _, u := range users {
 		userIDs = append(userIDs, u.ID)
 	}
-	lastLogByUser := make(map[uuid.UUID]models.AuditLog, len(users))
+	type latestUserAudit struct {
+		UserID    uuid.UUID
+		Action    string
+		IPAddress string
+		CreatedAt time.Time
+	}
+	lastLogByUser := make(map[uuid.UUID]latestUserAudit, len(users))
 	if len(userIDs) > 0 {
-		var userLogs []models.AuditLog
-		if err := db.Where("user_id IN ?", userIDs).Order("created_at desc").Find(&userLogs).Error; err == nil {
+		var userLogs []latestUserAudit
+		if err := db.Raw(`
+			SELECT a.user_id, a.action, a.ip_address, a.created_at
+			FROM audit_logs a
+			INNER JOIN (
+				SELECT user_id, MAX(created_at) AS max_created
+				FROM audit_logs
+				WHERE deleted_at IS NULL AND user_id IN ?
+				GROUP BY user_id
+			) latest ON a.user_id = latest.user_id AND a.created_at = latest.max_created
+			WHERE a.deleted_at IS NULL
+		`, userIDs).Scan(&userLogs).Error; err == nil {
 			for _, l := range userLogs {
-				if l.UserID != nil {
-					if _, exists := lastLogByUser[*l.UserID]; !exists {
-						lastLogByUser[*l.UserID] = l
-					}
-				}
+				lastLogByUser[l.UserID] = l
 			}
 		}
 	}
