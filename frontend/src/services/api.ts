@@ -74,9 +74,58 @@ client.interceptors.request.use(async (config) => {
   return Promise.reject(error);
 });
 
-// Interceptor to capture auto-renewed token headers and handle silent 401 recovery
+// ── In-Flight GET Request Deduplication & Short-TTL Micro-Cache ──────────────
+// Prevents simultaneous duplicate API calls (e.g. Layout + Dashboard calling /notifications
+// or multiple modules calling /residents, /settings/*, /certificates at the exact same moment).
+const inFlightGets = new Map<string, Promise<any>>();
+const getResponseCache = new Map<string, { data: any; timestamp: number }>();
+const GET_MICRO_CACHE_TTL_MS = 2500;
+
+function buildGetCacheKey(url: string, config?: any): string {
+  const token = localStorage.getItem('lingkodbrgai_token') || '';
+  const paramsStr = config?.params ? JSON.stringify(config.params) : '';
+  return `${token.slice(-16)}::${url}::${paramsStr}`;
+}
+
+export function clearApiMicroCache(): void {
+  getResponseCache.clear();
+}
+
+const rawClientGet = client.get.bind(client);
+(client as any).get = function <T = any>(url: string, config?: any): Promise<any> {
+  const key = buildGetCacheKey(url, config);
+  const now = Date.now();
+
+  const cached = getResponseCache.get(key);
+  if (cached && now - cached.timestamp < GET_MICRO_CACHE_TTL_MS) {
+    return Promise.resolve(cached.data);
+  }
+
+  const existingInFlight = inFlightGets.get(key);
+  if (existingInFlight) {
+    return existingInFlight;
+  }
+
+  const reqPromise = rawClientGet<T>(url, config)
+    .then((res) => {
+      getResponseCache.set(key, { data: res, timestamp: Date.now() });
+      return res;
+    })
+    .finally(() => {
+      inFlightGets.delete(key);
+    });
+
+  inFlightGets.set(key, reqPromise);
+  return reqPromise;
+};
+
+// Interceptor to capture auto-renewed token headers, invalidate GET micro-cache on mutations, and handle silent 401 recovery
 client.interceptors.response.use(
   (response) => {
+    const method = (response.config?.method || 'get').toLowerCase();
+    if (method !== 'get' && method !== 'head' && method !== 'options') {
+      getResponseCache.clear();
+    }
     // If backend auto-renewed token in response header, persist it immediately
     const refreshedToken = response.headers?.['x-refreshed-token'] || response.headers?.['X-Refreshed-Token'];
     if (refreshedToken) {

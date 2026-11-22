@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"backend/internal/models"
+
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -42,45 +44,34 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 	}
 
 	if hasCloudConfig {
-		if cfg.DatabaseURL != "" {
-			log.Printf("[CLOUD DB] Connecting to Remote PostgreSQL using Database URL...")
-			for i := 1; i <= 3; i++ {
-				CloudDB, err = gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{
-					Logger:                                   logger.Default.LogMode(logger.Warn),
-					DisableForeignKeyConstraintWhenMigrating: true,
-				})
-				if err == nil {
-					break
-				}
-				log.Printf("[CLOUD DB] Connection attempt %d/3 failed: %v. Retrying in 2s...", i, err)
-				time.Sleep(2 * time.Second)
-			}
-		} else {
-			dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Manila",
+		dsn := cfg.DatabaseURL
+		if dsn == "" {
+			dsn = fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=Asia/Manila",
 				cfg.DBHost, cfg.DBUser, cfg.DBPassword, cfg.DBName, cfg.DBPort, cfg.DBSSLMode)
+		}
 
-			log.Printf("[CLOUD DB] Connecting to Remote PostgreSQL Cloud Database (%s:%s)...", cfg.DBHost, cfg.DBPort)
-			for i := 1; i <= 3; i++ {
-				CloudDB, err = gorm.Open(postgres.New(postgres.Config{
-					DSN:                  dsn,
-					PreferSimpleProtocol: true,
-				}), &gorm.Config{
-					Logger:                                   logger.Default.LogMode(logger.Warn),
-					DisableForeignKeyConstraintWhenMigrating: true,
-					PrepareStmt:                              false,
-				})
-				if err == nil {
-					if sqlDB, poolErr := CloudDB.DB(); poolErr == nil {
-						sqlDB.SetMaxIdleConns(10)
-						sqlDB.SetMaxOpenConns(30)
-						sqlDB.SetConnMaxLifetime(1 * time.Hour)
-						sqlDB.SetConnMaxIdleTime(10 * time.Minute)
-					}
-					break
+		log.Printf("[CLOUD DB] Connecting to Remote PostgreSQL Cloud Database (%s:%s)...", cfg.DBHost, cfg.DBPort)
+		for i := 1; i <= 3; i++ {
+			CloudDB, err = gorm.Open(postgres.New(postgres.Config{
+				DSN:                  dsn,
+				PreferSimpleProtocol: true,
+			}), &gorm.Config{
+				Logger:                                   logger.Default.LogMode(logger.Warn),
+				DisableForeignKeyConstraintWhenMigrating: true,
+				PrepareStmt:                              false,
+				SkipDefaultTransaction:                   true,
+			})
+			if err == nil {
+				if sqlDB, poolErr := CloudDB.DB(); poolErr == nil {
+					sqlDB.SetMaxIdleConns(10)
+					sqlDB.SetMaxOpenConns(25)
+					sqlDB.SetConnMaxLifetime(30 * time.Minute)
+					sqlDB.SetConnMaxIdleTime(5 * time.Minute)
 				}
-				log.Printf("[CLOUD DB] Connection attempt %d/3 failed: %v. Retrying in 2s...", i, err)
-				time.Sleep(2 * time.Second)
+				break
 			}
+			log.Printf("[CLOUD DB] Connection attempt %d/3 failed: %v. Retrying in 2s...", i, err)
+			time.Sleep(2 * time.Second)
 		}
 
 		if err != nil {
@@ -195,7 +186,8 @@ func InitDB(cfg *Config) (*gorm.DB, error) {
 
 // SyncToCloud asynchronously syncs/saves entities to the Cloud DB in the background
 func SyncToCloud(value interface{}) {
-	if CloudDB == nil {
+	// Skip duplicate write when CloudDB is already operating as the primary DB
+	if CloudDB == nil || CloudDB == DB {
 		return
 	}
 	go func() {
@@ -207,26 +199,45 @@ func SyncToCloud(value interface{}) {
 	}()
 }
 
-// GetDBStatus returns the current health status of both local and cloud databases
+var (
+	dbStatusMu       sync.RWMutex
+	cachedDBStatus   *DBStatusResponse
+	dbStatusCachedAt time.Time
+)
+
+// GetDBStatus returns the current health status of both local and cloud databases (cached for 30s to avoid concurrent Ping storms)
 func GetDBStatus() DBStatusResponse {
+	dbStatusMu.RLock()
+	if cachedDBStatus != nil && time.Since(dbStatusCachedAt) < 30*time.Second {
+		res := *cachedDBStatus
+		dbStatusMu.RUnlock()
+		return res
+	}
+	dbStatusMu.RUnlock()
+
 	localStatus := "offline"
+	cloudStatus := "offline"
+	cloudTarget := "lingkodbrgai_cloud.db"
+
 	if DB != nil {
 		sqlDB, err := DB.DB()
 		if err == nil && sqlDB.Ping() == nil {
 			localStatus = "online (Primary)"
+			if CloudDB == DB {
+				cloudStatus = "online (Primary Cloud Pooler)"
+				cloudTarget = "Supabase PostgreSQL"
+			}
 		}
 	}
 
-	cloudStatus := "offline"
-	cloudTarget := "lingkodbrgai_cloud.db"
-	if CloudDB != nil {
+	if CloudDB != nil && CloudDB != DB {
 		sqlDB, err := CloudDB.DB()
 		if err == nil && sqlDB.Ping() == nil {
 			cloudStatus = "online (Secondary Sync)"
 		}
 	}
 
-	return DBStatusResponse{
+	res := DBStatusResponse{
 		LocalDB: DBInfo{
 			Type:   "SQLite (Offline-First)",
 			Target: "lingkodbrgai.db",
@@ -239,4 +250,11 @@ func GetDBStatus() DBStatusResponse {
 		},
 		Synced: DB != nil && CloudDB != nil,
 	}
+
+	dbStatusMu.Lock()
+	cachedDBStatus = &res
+	dbStatusCachedAt = time.Now()
+	dbStatusMu.Unlock()
+
+	return res
 }

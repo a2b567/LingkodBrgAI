@@ -3,12 +3,58 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 
 	"backend/internal/config"
 	"backend/internal/models"
 	"github.com/gin-gonic/gin"
 )
+
+type settingCacheEntry struct {
+	value     string
+	fetchedAt time.Time
+}
+
+var (
+	settingsCacheMu sync.RWMutex
+	settingsCache   = make(map[string]settingCacheEntry)
+)
+
+const settingsCacheTTL = 2 * time.Minute
+
+func getCachedSettingValue(key string) (string, bool) {
+	settingsCacheMu.RLock()
+	entry, ok := settingsCache[key]
+	settingsCacheMu.RUnlock()
+	if ok && time.Since(entry.fetchedAt) < settingsCacheTTL {
+		return entry.value, true
+	}
+
+	db := config.DB
+	if db == nil {
+		return "", false
+	}
+
+	var setting models.SystemSetting
+	if err := db.First(&setting, "key = ?", key).Error; err != nil {
+		settingsCacheMu.Lock()
+		settingsCache[key] = settingCacheEntry{value: "", fetchedAt: time.Now()}
+		settingsCacheMu.Unlock()
+		return "", false
+	}
+
+	settingsCacheMu.Lock()
+	settingsCache[key] = settingCacheEntry{value: setting.Value, fetchedAt: time.Now()}
+	settingsCacheMu.Unlock()
+	return setting.Value, setting.Value != ""
+}
+
+func setCachedSettingValue(key, val string) {
+	settingsCacheMu.Lock()
+	settingsCache[key] = settingCacheEntry{value: val, fetchedAt: time.Now()}
+	settingsCacheMu.Unlock()
+}
 
 type SettingsHandler struct{}
 
@@ -30,21 +76,14 @@ var defaultEmergencyHotlines = []HotlineItem{
 
 // GetHotlines returns the official barangay emergency hotlines
 func (h *SettingsHandler) GetHotlines(c *gin.Context) {
-	db := config.DB
-	if db == nil {
-		c.JSON(http.StatusOK, gin.H{"data": defaultEmergencyHotlines})
-		return
-	}
-
-	var setting models.SystemSetting
-	if err := db.First(&setting, "key = ?", "emergency_hotlines").Error; err != nil {
-		// Not yet configured; return defaults
+	val, ok := getCachedSettingValue("emergency_hotlines")
+	if !ok {
 		c.JSON(http.StatusOK, gin.H{"data": defaultEmergencyHotlines})
 		return
 	}
 
 	var items []HotlineItem
-	if err := json.Unmarshal([]byte(setting.Value), &items); err != nil || len(items) == 0 {
+	if err := json.Unmarshal([]byte(val), &items); err != nil || len(items) == 0 {
 		c.JSON(http.StatusOK, gin.H{"data": defaultEmergencyHotlines})
 		return
 	}
@@ -97,6 +136,8 @@ func (h *SettingsHandler) UpdateHotlines(c *gin.Context) {
 		}
 	}
 
+	setCachedSettingValue("emergency_hotlines", setting.Value)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Matagumpay na na-update ang mga Emergency SOS Hotlines!",
 		"data":    req.Hotlines,
@@ -112,22 +153,16 @@ var DefaultCertFees = map[string]float64{
 	"Barangay ID":  100.00,
 }
 
-// GetFeeScheduleFromDB retrieves the active fee schedule from DB or fallback
+// GetFeeScheduleFromDB retrieves the active fee schedule from in-memory cache or DB
 func GetFeeScheduleFromDB() map[string]float64 {
 	fees := make(map[string]float64)
 	for k, v := range DefaultCertFees {
 		fees[k] = v
 	}
 
-	db := config.DB
-	if db == nil {
-		return fees
-	}
-
-	var setting models.SystemSetting
-	if err := db.First(&setting, "key = ?", "cert_fees").Error; err == nil && setting.Value != "" {
+	if val, ok := getCachedSettingValue("cert_fees"); ok {
 		var custom map[string]float64
-		if err := json.Unmarshal([]byte(setting.Value), &custom); err == nil {
+		if err := json.Unmarshal([]byte(val), &custom); err == nil {
 			for k, v := range custom {
 				fees[k] = v
 			}
@@ -199,6 +234,8 @@ func (h *SettingsHandler) UpdateFees(c *gin.Context) {
 		}
 	}
 
+	setCachedSettingValue("cert_fees", setting.Value)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Matagumpay na na-update ang Certificate & Permit Fee Schedule sa buong barangay!",
 		"data":    merged,
@@ -227,14 +264,8 @@ var DefaultClinicSchedule = ClinicSchedule{
 
 func GetClinicScheduleFromDB() ClinicSchedule {
 	sched := DefaultClinicSchedule
-	db := config.DB
-	if db == nil {
-		return sched
-	}
-
-	var setting models.SystemSetting
-	if err := db.First(&setting, "key = ?", "clinic_schedule").Error; err == nil && setting.Value != "" {
-		_ = json.Unmarshal([]byte(setting.Value), &sched)
+	if val, ok := getCachedSettingValue("clinic_schedule"); ok {
+		_ = json.Unmarshal([]byte(val), &sched)
 	}
 	return sched
 }
@@ -296,6 +327,8 @@ func (h *SettingsHandler) UpdateClinicSchedule(c *gin.Context) {
 		}
 	}
 
+	setCachedSettingValue("clinic_schedule", setting.Value)
+
 	statusText := "BUKAS (OPEN)"
 	if !req.IsOpen {
 		statusText = "SARADO (CLOSED)"
@@ -325,20 +358,14 @@ var defaultKioskWallpaper = KioskWallpaperSetting{
 
 // GetKioskWallpaper returns the official kiosk wallpaper configuration
 func (h *SettingsHandler) GetKioskWallpaper(c *gin.Context) {
-	db := config.DB
-	if db == nil {
-		c.JSON(http.StatusOK, gin.H{"data": defaultKioskWallpaper})
-		return
-	}
-
-	var setting models.SystemSetting
-	if err := db.First(&setting, "key = ?", "kiosk_wallpaper").Error; err != nil {
+	val, ok := getCachedSettingValue("kiosk_wallpaper")
+	if !ok {
 		c.JSON(http.StatusOK, gin.H{"data": defaultKioskWallpaper})
 		return
 	}
 
 	var configData KioskWallpaperSetting
-	if err := json.Unmarshal([]byte(setting.Value), &configData); err != nil {
+	if err := json.Unmarshal([]byte(val), &configData); err != nil {
 		c.JSON(http.StatusOK, gin.H{"data": defaultKioskWallpaper})
 		return
 	}
@@ -398,6 +425,8 @@ func (h *SettingsHandler) UpdateKioskWallpaper(c *gin.Context) {
 			return
 		}
 	}
+
+	setCachedSettingValue("kiosk_wallpaper", setting.Value)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Matagumpay na na-update ang Kiosk Wallpaper at Display!",

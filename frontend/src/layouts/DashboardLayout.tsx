@@ -82,10 +82,10 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchNotifications();
     }
-  }, [user]);
+  }, [user?.id, user?.role]);
 
   const handleMarkRead = async (id: string) => {
     try {
@@ -189,7 +189,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
     return () => {
       if (ws) ws.close();
     };
-  }, [user]);
+  }, [user?.id, user?.role]);
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} />, roles: ['all'] },

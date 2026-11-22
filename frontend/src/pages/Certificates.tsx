@@ -319,7 +319,11 @@ export const Certificates: React.FC = () => {
   useEffect(() => {
     fetchCerts(false); // initial — show spinner
     fetchResidents();
-    const interval = setInterval(() => fetchCerts(true), 10000); // silent poll every 10s
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        fetchCerts(true);
+      }
+    }, 30000); // silent poll every 30s when tab is active
     return () => clearInterval(interval);
   }, [statusFilter]);
 

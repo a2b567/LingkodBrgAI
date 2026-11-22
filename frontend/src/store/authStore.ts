@@ -45,11 +45,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     try {
-      // Auto-refresh token (and upgrade any temporary mock_token into a real signed JWT)
+      // If using a temporary mock_ token, upgrade it first (refreshToken returns both token and user)
       if (token.startsWith('mock_')) {
-        await api.auth.refreshToken().catch(() => {});
-      } else {
-        api.auth.refreshToken().catch(() => {});
+        const refreshed = await api.auth.refreshToken().catch(() => null);
+        if (refreshed?.user && refreshed.user.id) {
+          localStorage.setItem('lingkodbrgai_user', JSON.stringify(refreshed.user));
+          set({ user: refreshed.user, token: refreshed.token || token, isLoading: false });
+          return;
+        }
       }
 
       const user = await api.auth.getMe();

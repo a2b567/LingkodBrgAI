@@ -3,29 +3,33 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"backend/internal/config"
 	"backend/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type DevHandler struct{}
+
+var sanitizeErrorLogsOnce sync.Once
 
 // GetErrorLogs returns paginated system error logs (backend HTTP errors + frontend JS exceptions)
 func (h *DevHandler) GetErrorLogs(c *gin.Context) {
 	db := config.DB
 
-	// Sanitize historical error logs:
-	// 1. Downgrade standard HTTP 500 logs misclassified as panic to error
-	db.Model(&models.ErrorLog{}).
-		Where("level = ? AND LOWER(message) NOT LIKE ? AND LOWER(message) NOT LIKE ?", "panic", "%panic%", "%runtime error%").
-		Update("level", "error")
+	// Run historical error log classification cleanup only once per server lifecycle instead of on every GET request
+	sanitizeErrorLogsOnce.Do(func() {
+		db.Model(&models.ErrorLog{}).
+			Where("level = ? AND LOWER(message) NOT LIKE ? AND LOWER(message) NOT LIKE ?", "panic", "%panic%", "%runtime error%").
+			Update("level", "error")
 
-	// 2. Classify client HTTP 4xx (bad request / not found / validation) as warning
-	db.Model(&models.ErrorLog{}).
-		Where("status_code >= 400 AND status_code < 500 AND level = ?", "error").
-		Update("level", "warning")
+		db.Model(&models.ErrorLog{}).
+			Where("status_code >= 400 AND status_code < 500 AND level = ?", "error").
+			Update("level", "warning")
+	})
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "50"))
@@ -115,21 +119,31 @@ func (h *DevHandler) GetAuditLogs(c *gin.Context) {
 		return
 	}
 
-	// Enrich with usernames
+	// Batch-enrich with usernames in 1 single query instead of N+1 queries
 	userCache := map[string]string{}
+	var userIDs []uuid.UUID
+	seenIDs := map[uuid.UUID]bool{}
+	for _, l := range logs {
+		if l.UserID != nil && !seenIDs[*l.UserID] {
+			seenIDs[*l.UserID] = true
+			userIDs = append(userIDs, *l.UserID)
+		}
+	}
+	if len(userIDs) > 0 {
+		var users []models.User
+		if err := db.Select("id, username").Where("id IN ?", userIDs).Find(&users).Error; err == nil {
+			for _, u := range users {
+				userCache[u.ID.String()] = u.Username
+			}
+		}
+	}
+
 	result := make([]AuditRow, 0, len(logs))
 	for _, l := range logs {
 		username := "System"
 		if l.UserID != nil {
-			uid := l.UserID.String()
-			if cached, ok := userCache[uid]; ok {
+			if cached, ok := userCache[l.UserID.String()]; ok {
 				username = cached
-			} else {
-				var u models.User
-				if err := db.Select("username").First(&u, "id = ?", l.UserID).Error; err == nil {
-					username = u.Username
-					userCache[uid] = username
-				}
 			}
 		}
 
@@ -204,6 +218,25 @@ func (h *DevHandler) GetAllUsers(c *gin.Context) {
 		return
 	}
 
+	// Batch-fetch latest audit log for all returned users in 1 query instead of N+1 per user
+	userIDs := make([]uuid.UUID, 0, len(users))
+	for _, u := range users {
+		userIDs = append(userIDs, u.ID)
+	}
+	lastLogByUser := make(map[uuid.UUID]models.AuditLog, len(users))
+	if len(userIDs) > 0 {
+		var userLogs []models.AuditLog
+		if err := db.Where("user_id IN ?", userIDs).Order("created_at desc").Find(&userLogs).Error; err == nil {
+			for _, l := range userLogs {
+				if l.UserID != nil {
+					if _, exists := lastLogByUser[*l.UserID]; !exists {
+						lastLogByUser[*l.UserID] = l
+					}
+				}
+			}
+		}
+	}
+
 	result := make([]UserRow, 0, len(users))
 	for _, u := range users {
 		row := UserRow{
@@ -215,9 +248,7 @@ func (h *DevHandler) GetAllUsers(c *gin.Context) {
 			CreatedAt:  u.CreatedAt.Format(time.RFC3339),
 		}
 
-		// Get last audit log entry for this user
-		var lastLog models.AuditLog
-		if err := db.Where("user_id = ?", u.ID).Order("created_at desc").First(&lastLog).Error; err == nil {
+		if lastLog, ok := lastLogByUser[u.ID]; ok {
 			action := lastLog.Action
 			ip := lastLog.IPAddress
 			seen := lastLog.CreatedAt.Format(time.RFC3339)
@@ -241,12 +272,24 @@ func (h *DevHandler) GetAllUsers(c *gin.Context) {
 func (h *DevHandler) GetSystemStats(c *gin.Context) {
 	db := config.DB
 
-	var totalUsers, totalResidents, totalStaff, totalAuditLogs, totalAILogs int64
-	db.Model(&models.User{}).Count(&totalUsers)
-	db.Model(&models.User{}).Where("role = ?", "Resident").Count(&totalResidents)
-	db.Model(&models.User{}).Where("role != ?", "Resident").Count(&totalStaff)
-	db.Model(&models.AuditLog{}).Count(&totalAuditLogs)
-	db.Model(&models.AILog{}).Count(&totalAILogs)
+	since := time.Now().Add(-24 * time.Hour)
+	var counts struct {
+		TotalUsers     int64
+		TotalResidents int64
+		TotalStaff     int64
+		TotalAuditLogs int64
+		TotalAILogs    int64
+		RecentLogins   int64
+	}
+	db.Raw(`
+		SELECT
+			(SELECT COUNT(*) FROM users WHERE deleted_at IS NULL) AS total_users,
+			(SELECT COUNT(*) FROM users WHERE deleted_at IS NULL AND role = 'Resident') AS total_residents,
+			(SELECT COUNT(*) FROM users WHERE deleted_at IS NULL AND role != 'Resident') AS total_staff,
+			(SELECT COUNT(*) FROM audit_logs WHERE deleted_at IS NULL) AS total_audit_logs,
+			(SELECT COUNT(*) FROM ai_logs WHERE deleted_at IS NULL) AS total_ai_logs,
+			(SELECT COUNT(*) FROM audit_logs WHERE deleted_at IS NULL AND action = 'LOGIN' AND created_at >= ?) AS recent_logins
+	`, since).Scan(&counts)
 
 	// Top actions breakdown
 	type ActionCount struct {
@@ -261,21 +304,14 @@ func (h *DevHandler) GetSystemStats(c *gin.Context) {
 		Limit(10).
 		Scan(&topActions)
 
-	// Recent errors / failed logins in last 24h
-	var recentLogins int64
-	since := time.Now().Add(-24 * time.Hour)
-	db.Model(&models.AuditLog{}).
-		Where("action = ? AND created_at >= ?", "LOGIN", since).
-		Count(&recentLogins)
-
 	c.JSON(http.StatusOK, gin.H{
-		"total_users":       totalUsers,
-		"total_residents":   totalResidents,
-		"total_staff":       totalStaff,
-		"total_audit_logs":  totalAuditLogs,
-		"total_ai_queries":  totalAILogs,
-		"top_actions":       topActions,
-		"logins_last_24h":   recentLogins,
+		"total_users":      counts.TotalUsers,
+		"total_residents":  counts.TotalResidents,
+		"total_staff":      counts.TotalStaff,
+		"total_audit_logs": counts.TotalAuditLogs,
+		"total_ai_queries": counts.TotalAILogs,
+		"top_actions":      topActions,
+		"logins_last_24h":  counts.RecentLogins,
 	})
 }
 

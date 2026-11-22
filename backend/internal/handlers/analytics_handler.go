@@ -68,10 +68,7 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 		return
 	}
 
-	var (
-		stats DashboardStats
-		wg    sync.WaitGroup
-	)
+	var stats DashboardStats
 
 	now := time.Now()
 	seniorThreshold := now.AddDate(-60, 0, 0)
@@ -79,79 +76,84 @@ func (h *AnalyticsHandler) GetStats(c *gin.Context) {
 	youthThreshold := now.AddDate(-24, 0, 0)
 	adultThreshold := now.AddDate(-59, 0, 0)
 
-	// Goroutine 1: Resident demographics in 1 single fast query
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		type residentDemographics struct {
-			Gender      string
-			Birthdate   time.Time
-			CivilStatus string
-			VoterStatus string
+	// Query 1: Resident demographics in 1 single fast query
+	type residentDemographics struct {
+		Gender      string
+		Birthdate   time.Time
+		CivilStatus string
+		VoterStatus string
+		IsPWD       bool
+	}
+	var list []residentDemographics
+	db.Model(&models.Resident{}).
+		Select("gender, birthdate, civil_status, voter_status, is_pwd").
+		Find(&list)
+
+	var males, females, voters, soloParents, seniors, children, youth, adults, pwds int64
+	for _, r := range list {
+		if strings.EqualFold(r.Gender, "Male") {
+			males++
+		} else if strings.EqualFold(r.Gender, "Female") {
+			females++
 		}
-		var list []residentDemographics
-		db.Model(&models.Resident{}).
-			Select("gender, birthdate, civil_status, voter_status").
-			Find(&list)
-
-		var males, females, voters, soloParents, seniors, children, youth, adults int64
-		for _, r := range list {
-			if strings.EqualFold(r.Gender, "Male") {
-				males++
-			} else if strings.EqualFold(r.Gender, "Female") {
-				females++
+		if strings.EqualFold(r.VoterStatus, "Registered") || strings.EqualFold(r.VoterStatus, "Registered Voter") {
+			voters++
+		}
+		if strings.EqualFold(r.CivilStatus, "Single Parent") {
+			soloParents++
+		}
+		if r.IsPWD {
+			pwds++
+		}
+		if !r.Birthdate.IsZero() {
+			if r.Birthdate.Before(seniorThreshold) || r.Birthdate.Equal(seniorThreshold) {
+				seniors++
 			}
-			if strings.EqualFold(r.VoterStatus, "Registered") {
-				voters++
-			}
-			if strings.EqualFold(r.CivilStatus, "Single Parent") {
-				soloParents++
-			}
-			if !r.Birthdate.IsZero() {
-				if r.Birthdate.Before(seniorThreshold) || r.Birthdate.Equal(seniorThreshold) {
-					seniors++
-				}
-				if r.Birthdate.After(childThreshold) {
-					children++
-				} else if r.Birthdate.After(youthThreshold) {
-					youth++
-				} else if r.Birthdate.After(adultThreshold) {
-					adults++
-				}
+			if r.Birthdate.After(childThreshold) {
+				children++
+			} else if r.Birthdate.After(youthThreshold) {
+				youth++
+			} else if r.Birthdate.After(adultThreshold) {
+				adults++
 			}
 		}
+	}
 
-		stats.TotalResidents = int64(len(list))
-		stats.VotersCount = voters
-		stats.SoloParentsCount = soloParents
-		stats.SeniorCount = seniors
-		stats.GenderRatio = map[string]int64{"Male": males, "Female": females}
-		stats.AgeDemographics = AgeDemographics{
-			Children: children,
-			Youth:    youth,
-			Adults:   adults,
-			Seniors:  seniors,
-		}
-	}()
+	stats.TotalResidents = int64(len(list))
+	stats.VotersCount = voters
+	stats.SoloParentsCount = soloParents
+	stats.SeniorCount = seniors
+	stats.PWDsCount = pwds
+	stats.GenderRatio = map[string]int64{"Male": males, "Female": females}
+	stats.AgeDemographics = AgeDemographics{
+		Children: children,
+		Youth:    youth,
+		Adults:   adults,
+		Seniors:  seniors,
+	}
 
-	// Goroutine 2: Households
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		db.Model(&models.Household{}).Count(&stats.TotalHouseholds)
-		db.Model(&models.Household{}).Where("poverty_level = ?", "Indigent").Count(&stats.IndigentCount)
-	}()
+	// Query 2: Fetch all 5 aggregate counts in a single SQL round-trip to prevent connection pool contention
+	var aggCounts struct {
+		TotalHouseholds  int64
+		IndigentCount    int64
+		ActiveIncidents  int64
+		ActiveBusinesses int64
+		TotalClearances  int64
+	}
+	db.Raw(`
+		SELECT
+			(SELECT COUNT(*) FROM households WHERE deleted_at IS NULL) AS total_households,
+			(SELECT COUNT(*) FROM households WHERE deleted_at IS NULL AND poverty_level = 'Indigent') AS indigent_count,
+			(SELECT COUNT(*) FROM blotters WHERE deleted_at IS NULL AND status IN ('Pending', 'Active')) AS active_incidents,
+			(SELECT COUNT(*) FROM businesses WHERE deleted_at IS NULL AND status = 'Active') AS active_businesses,
+			(SELECT COUNT(*) FROM certificates WHERE deleted_at IS NULL) AS total_clearances
+	`).Scan(&aggCounts)
 
-	// Goroutine 3: Blotters, Businesses, Certificates
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		db.Model(&models.Blotter{}).Where("status IN ?", []string{"Pending", "Active"}).Count(&stats.ActiveIncidents)
-		db.Model(&models.Business{}).Where("status = ?", "Active").Count(&stats.ActiveBusinesses)
-		db.Model(&models.Certificate{}).Count(&stats.TotalClearances)
-	}()
-
-	wg.Wait()
+	stats.TotalHouseholds = aggCounts.TotalHouseholds
+	stats.IndigentCount = aggCounts.IndigentCount
+	stats.ActiveIncidents = aggCounts.ActiveIncidents
+	stats.ActiveBusinesses = aggCounts.ActiveBusinesses
+	stats.TotalClearances = aggCounts.TotalClearances
 
 	// Default revenue structure
 	stats.RevenueHistory = []RevenueMonth{
@@ -181,21 +183,27 @@ func (h *AnalyticsHandler) GetPublicStats(c *gin.Context) {
 	publicCacheMutex.RUnlock()
 
 	db := config.DB
-	var totalResidents int64
-	var totalClearances int64
-	var activeIncidents int64
-	var totalBusinesses int64
-
-	db.Model(&models.Resident{}).Count(&totalResidents)
-	db.Model(&models.Certificate{}).Count(&totalClearances)
-	db.Model(&models.Blotter{}).Where("status IN ?", []string{"Pending", "Active"}).Count(&activeIncidents)
-	db.Model(&models.Business{}).Where("status = ?", "Active").Count(&totalBusinesses)
+	var pubCounts struct {
+		TotalResidents  int64
+		TotalClearances int64
+		ActiveIncidents int64
+		TotalBusinesses int64
+	}
+	if db != nil {
+		db.Raw(`
+			SELECT
+				(SELECT COUNT(*) FROM residents WHERE deleted_at IS NULL) AS total_residents,
+				(SELECT COUNT(*) FROM certificates WHERE deleted_at IS NULL) AS total_clearances,
+				(SELECT COUNT(*) FROM blotters WHERE deleted_at IS NULL AND status IN ('Pending', 'Active')) AS active_incidents,
+				(SELECT COUNT(*) FROM businesses WHERE deleted_at IS NULL AND status = 'Active') AS total_businesses
+		`).Scan(&pubCounts)
+	}
 
 	res := gin.H{
-		"total_residents":  totalResidents,
-		"total_clearances": totalClearances,
-		"active_incidents": activeIncidents,
-		"total_businesses": totalBusinesses,
+		"total_residents":  pubCounts.TotalResidents,
+		"total_clearances": pubCounts.TotalClearances,
+		"active_incidents": pubCounts.ActiveIncidents,
+		"total_businesses": pubCounts.TotalBusinesses,
 		"congestion_risk":  "LOW / OPTIMAL",
 	}
 

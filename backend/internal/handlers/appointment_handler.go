@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 
 	"backend/internal/config"
@@ -10,6 +11,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+type CongestionReport struct {
+	Date           string `json:"date"`
+	BookingsCount  int64  `json:"bookings_count"`
+	CongestionRisk string `json:"congestion_risk"` // Low, Medium, High
+}
+
+var (
+	congestionCacheMu sync.RWMutex
+	cachedCongestion  []CongestionReport
+	congestionAt      time.Time
+)
+
+func invalidateCongestionCache() {
+	congestionCacheMu.Lock()
+	cachedCongestion = nil
+	congestionCacheMu.Unlock()
+}
 
 type AppointmentHandler struct{}
 
@@ -93,6 +112,7 @@ func (h *AppointmentHandler) Book(c *gin.Context) {
 		return
 	}
 
+	invalidateCongestionCache()
 	c.JSON(http.StatusCreated, appointment)
 }
 
@@ -125,18 +145,21 @@ func (h *AppointmentHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
+	invalidateCongestionCache()
 	c.JSON(http.StatusOK, app)
 }
 
 func (h *AppointmentHandler) PredictCongestion(c *gin.Context) {
-	db := config.DB
-	
-	// Check next 7 days congestion rates in 1 single optimized range query
-	type CongestionReport struct {
-		Date           string `json:"date"`
-		BookingsCount  int64  `json:"bookings_count"`
-		CongestionRisk string `json:"congestion_risk"` // Low, Medium, High
+	congestionCacheMu.RLock()
+	if cachedCongestion != nil && time.Since(congestionAt) < 20*time.Second {
+		res := cachedCongestion
+		congestionCacheMu.RUnlock()
+		c.JSON(http.StatusOK, res)
+		return
 	}
+	congestionCacheMu.RUnlock()
+
+	db := config.DB
 
 	now := time.Now()
 	startDate := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -192,6 +215,11 @@ func (h *AppointmentHandler) PredictCongestion(c *gin.Context) {
 			CongestionRisk: risk,
 		})
 	}
+
+	congestionCacheMu.Lock()
+	cachedCongestion = report
+	congestionAt = time.Now()
+	congestionCacheMu.Unlock()
 
 	c.JSON(http.StatusOK, report)
 }
