@@ -28,34 +28,38 @@ var GlobalEmailService *EmailService
 
 // InitEmailService initializes the global email delivery service from environment variables.
 func InitEmailService() *EmailService {
-	host := os.Getenv("SMTP_HOST")
+	host := strings.TrimSpace(os.Getenv("SMTP_HOST"))
 	if host == "" {
 		host = "smtp.gmail.com"
 	}
 
-	portStr := os.Getenv("SMTP_PORT")
+	portStr := strings.TrimSpace(os.Getenv("SMTP_PORT"))
 	port := 587
 	if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
 		port = p
 	}
 
-	user := os.Getenv("SMTP_USER")
+	user := strings.TrimSpace(os.Getenv("SMTP_USER"))
 	if user == "" {
-		user = os.Getenv("SMTP_EMAIL")
+		user = strings.TrimSpace(os.Getenv("SMTP_EMAIL"))
 	}
 	if user == "" {
 		user = "low22708@gmail.com"
 	}
 
-	pass := os.Getenv("SMTP_PASSWORD")
+	pass := strings.TrimSpace(os.Getenv("SMTP_PASSWORD"))
 	if pass == "" {
-		pass = os.Getenv("SMTP_APP_PASSWORD")
+		pass = strings.TrimSpace(os.Getenv("SMTP_APP_PASSWORD"))
+	}
+	if pass == "" {
+		pass = strings.TrimSpace(os.Getenv("SMTP_PASS"))
 	}
 	if pass == "" {
 		pass = "essvxajrwuerzgnc"
 	}
+	pass = strings.ReplaceAll(pass, " ", "")
 
-	fromName := os.Getenv("SMTP_FROM_NAME")
+	fromName := strings.TrimSpace(os.Getenv("SMTP_FROM_NAME"))
 	if fromName == "" {
 		fromName = "LingkodBrgy AI - Barangay San Isidro"
 	}
@@ -85,12 +89,9 @@ func (s *EmailService) IsConfigured() bool {
 
 // SendOTPEmail sends a cryptographically generated 6-digit OTP code to the recipient via Email.
 func (s *EmailService) SendOTPEmail(recipientEmail, recipientName, otpCode, purpose string) error {
-	// In Cloud container environments (such as Render Free Tier) where outbound SMTP ports (25, 465, 587) are firewalled,
-	// dispatching via our Vercel HTTPS Gateway (port 443) delivers the email reliably with zero blocks.
-	if err := sendViaHTTPSGateway(recipientEmail, recipientName, otpCode, purpose); err == nil {
-		return nil
-	} else {
-		log.Printf("[EMAIL GATEWAY] HTTPS gateway attempt bypassed (%v), proceeding to direct SMTP socket...", err)
+	recipientEmail = strings.TrimSpace(recipientEmail)
+	if recipientEmail == "" {
+		return fmt.Errorf("recipient email is empty")
 	}
 
 	var subject string
@@ -199,45 +200,23 @@ LingkodBrgy Secure GovTech System
 </body>
 </html>`, subject, recipientName, purposeText, otpCode)
 
-	return s.SendMail(recipientEmail, subject, htmlBody, textBody)
+	if err := s.SendMail(recipientEmail, subject, htmlBody, textBody); err != nil {
+		// If direct SMTP fails (e.g., on Render Free Tier where outbound SMTP ports are firewalled)
+		// and we are not already inside Vercel, fallback to the Vercel HTTPS Gateway.
+		if os.Getenv("VERCEL") == "" {
+			if gwErr := sendViaHTTPSGateway(recipientEmail, recipientName, otpCode, purpose); gwErr == nil {
+				return nil
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 // SendMail sends an email message via SMTP with MIME multipart/alternative support.
 func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
-	fromHeader := fmt.Sprintf("%s <%s>", s.FromName, s.User)
-	if s.User == "" {
-		fromHeader = fmt.Sprintf("%s <no-reply@lingkodbrgy.gov.ph>", s.FromName)
-	}
-
-	// Boundary for multipart/alternative
-	boundary := fmt.Sprintf("boundary-%d", time.Now().UnixNano())
-
-	var msg strings.Builder
-	msg.WriteString(fmt.Sprintf("From: %s\r\n", fromHeader))
-	msg.WriteString(fmt.Sprintf("To: %s\r\n", to))
-	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
-	msg.WriteString("MIME-Version: 1.0\r\n")
-	msg.WriteString(fmt.Sprintf("Content-Type: multipart/alternative; boundary=\"%s\"\r\n", boundary))
-	msg.WriteString("\r\n")
-
-	// Plain text part
-	msg.WriteString(fmt.Sprintf("--%s\r\n", boundary))
-	msg.WriteString("Content-Type: text/plain; charset=\"UTF-8\"\r\n")
-	msg.WriteString("Content-Transfer-Encoding: 7bit\r\n\r\n")
-	msg.WriteString(textBody)
-	msg.WriteString("\r\n\r\n")
-
-	// HTML part
-	msg.WriteString(fmt.Sprintf("--%s\r\n", boundary))
-	msg.WriteString("Content-Type: text/html; charset=\"UTF-8\"\r\n")
-	msg.WriteString("Content-Transfer-Encoding: 7bit\r\n\r\n")
-	msg.WriteString(htmlBody)
-	msg.WriteString("\r\n\r\n")
-
-	msg.WriteString(fmt.Sprintf("--%s--\r\n", boundary))
-
+	to = strings.TrimSpace(to)
 	if !s.IsConfigured() {
-		// Log clearly to terminal
 		log.Printf("\n=======================================================")
 		log.Printf("[LIVE EMAIL DISPATCH - SIMULATED LOG]")
 		log.Printf("To: %s", to)
@@ -248,22 +227,85 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 		return nil
 	}
 
-	addr := net.JoinHostPort(s.Host, strconv.Itoa(s.Port))
-	auth := smtp.PlainAuth("", s.User, s.Password, s.Host)
+	err := s.dispatchSMTPMessage(to, subject, htmlBody, textBody, s.Host, s.Port, s.User, s.Password)
+	if err == nil {
+		return nil
+	}
+	log.Printf("[EMAIL WARNING] Primary SMTP attempt (%s:%d as %s) failed: %v", s.Host, s.Port, s.User, err)
+
+	// Automatic fallback 1: try alternate TLS port (465 <-> 587) with primary credentials
+	altPort := 465
+	if s.Port == 465 {
+		altPort = 587
+	}
+	if altErr := s.dispatchSMTPMessage(to, subject, htmlBody, textBody, s.Host, altPort, s.User, s.Password); altErr == nil {
+		return nil
+	}
+
+	// Automatic fallback 2: if env var credentials on host were stale, retry with verified system sender
+	const fallbackUser = "low22708@gmail.com"
+	const fallbackPass = "essvxajrwuerzgnc"
+	if s.User != fallbackUser || s.Password != fallbackPass {
+		log.Printf("[EMAIL FALLBACK] Retrying SMTP delivery using verified system relay (%s)...", fallbackUser)
+		if fbErr := s.dispatchSMTPMessage(to, subject, htmlBody, textBody, "smtp.gmail.com", 587, fallbackUser, fallbackPass); fbErr == nil {
+			return nil
+		}
+		if fbErr := s.dispatchSMTPMessage(to, subject, htmlBody, textBody, "smtp.gmail.com", 465, fallbackUser, fallbackPass); fbErr == nil {
+			return nil
+		}
+	}
+
+	return err
+}
+
+func (s *EmailService) dispatchSMTPMessage(to, subject, htmlBody, textBody, host string, port int, user, pass string) error {
+	fromHeader := fmt.Sprintf("%s <%s>", s.FromName, user)
+	if user == "" {
+		fromHeader = fmt.Sprintf("%s <no-reply@lingkodbrgy.gov.ph>", s.FromName)
+	}
+
+	boundary := fmt.Sprintf("boundary-%d", time.Now().UnixNano())
+
+	var msg strings.Builder
+	msg.WriteString(fmt.Sprintf("From: %s\r\n", fromHeader))
+	msg.WriteString(fmt.Sprintf("To: %s\r\n", to))
+	msg.WriteString(fmt.Sprintf("Subject: %s\r\n", subject))
+	msg.WriteString("MIME-Version: 1.0\r\n")
+	msg.WriteString(fmt.Sprintf("Content-Type: multipart/alternative; boundary=\"%s\"\r\n", boundary))
+	msg.WriteString("\r\n")
+
+	msg.WriteString(fmt.Sprintf("--%s\r\n", boundary))
+	msg.WriteString("Content-Type: text/plain; charset=\"UTF-8\"\r\n")
+	msg.WriteString("Content-Transfer-Encoding: 7bit\r\n\r\n")
+	msg.WriteString(textBody)
+	msg.WriteString("\r\n\r\n")
+
+	msg.WriteString(fmt.Sprintf("--%s\r\n", boundary))
+	msg.WriteString("Content-Type: text/html; charset=\"UTF-8\"\r\n")
+	msg.WriteString("Content-Transfer-Encoding: 7bit\r\n\r\n")
+	msg.WriteString(htmlBody)
+	msg.WriteString("\r\n\r\n")
+
+	msg.WriteString(fmt.Sprintf("--%s--\r\n", boundary))
+
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
+	auth := smtp.PlainAuth("", user, pass, host)
 
 	// Port 465 (Direct TLS / SSL)
-	if s.Port == 465 {
+	if port == 465 {
 		tlsconfig := &tls.Config{
-			ServerName: s.Host,
+			ServerName: host,
 		}
-		conn, err := tls.Dial("tcp", addr, tlsconfig)
+		dialer := &net.Dialer{Timeout: 6 * time.Second}
+		conn, err := tls.DialWithDialer(dialer, "tcp", addr, tlsconfig)
 		if err != nil {
 			log.Printf("[EMAIL ERROR] TLS Dial error to %s: %v", addr, err)
 			return fmt.Errorf("TLS Dial failed: %w", err)
 		}
 		defer conn.Close()
+		_ = conn.SetDeadline(time.Now().Add(8 * time.Second))
 
-		c, err := smtp.NewClient(conn, s.Host)
+		c, err := smtp.NewClient(conn, host)
 		if err != nil {
 			log.Printf("[EMAIL ERROR] SMTP Client init error: %v", err)
 			return fmt.Errorf("SMTP client error: %w", err)
@@ -274,7 +316,7 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 			log.Printf("[EMAIL ERROR] SMTP Auth failed: %v", err)
 			return fmt.Errorf("SMTP auth failed: %w", err)
 		}
-		if err = c.Mail(s.User); err != nil {
+		if err = c.Mail(user); err != nil {
 			return fmt.Errorf("SMTP Mail-From failed: %w", err)
 		}
 		if err = c.Rcpt(to); err != nil {
@@ -291,17 +333,19 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 			return fmt.Errorf("SMTP Data close failed: %w", err)
 		}
 
-		log.Printf("[EMAIL DELIVERED] ✅ Successfully sent live email via SSL to %s", to)
+		log.Printf("[EMAIL DELIVERED] ✅ Successfully sent live email via SSL (465) to %s", to)
 		return nil
 	}
 
 	// Port 587 (Standard STARTTLS)
-	conn, err := net.DialTimeout("tcp", addr, 10*time.Second)
+	conn, err := net.DialTimeout("tcp", addr, 6*time.Second)
 	if err != nil {
 		log.Printf("[EMAIL ERROR] TCP Dial error to %s: %v", addr, err)
 		return fmt.Errorf("TCP dial error: %w", err)
 	}
-	client, err := smtp.NewClient(conn, s.Host)
+	_ = conn.SetDeadline(time.Now().Add(8 * time.Second))
+
+	client, err := smtp.NewClient(conn, host)
 	if err != nil {
 		conn.Close()
 		log.Printf("[EMAIL ERROR] SMTP Client init error to %s: %v", addr, err)
@@ -310,7 +354,7 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 	defer client.Quit()
 
 	tlsconfig := &tls.Config{
-		ServerName: s.Host,
+		ServerName: host,
 	}
 	if ok, _ := client.Extension("STARTTLS"); ok {
 		if err = client.StartTLS(tlsconfig); err != nil {
@@ -323,7 +367,7 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 		log.Printf("[EMAIL ERROR] SMTP Authentication error: %v", err)
 		return fmt.Errorf("SMTP Auth error: %w", err)
 	}
-	if err = client.Mail(s.User); err != nil {
+	if err = client.Mail(user); err != nil {
 		return fmt.Errorf("SMTP Mail-From error: %w", err)
 	}
 	if err = client.Rcpt(to); err != nil {
@@ -341,7 +385,7 @@ func (s *EmailService) SendMail(to, subject, htmlBody, textBody string) error {
 		return fmt.Errorf("SMTP Close error: %w", err)
 	}
 
-	log.Printf("[EMAIL DELIVERED] ✅ Successfully sent live email via STARTTLS to %s", to)
+	log.Printf("[EMAIL DELIVERED] ✅ Successfully sent live email via STARTTLS (587) to %s", to)
 	return nil
 }
 

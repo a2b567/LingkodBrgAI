@@ -239,13 +239,16 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			"otp_expiry": expiry,
 		})
 
+		if services.GlobalEmailService == nil {
+			services.InitEmailService()
+		}
 		if services.GlobalEmailService != nil && services.GlobalEmailService.IsConfigured() {
 			recipientName := user.Username
 			if user.Resident != nil && user.Resident.FirstName != "" {
-				recipientName = user.Resident.FirstName + " " + user.Resident.LastName
+				recipientName = strings.TrimSpace(user.Resident.FirstName + " " + user.Resident.LastName)
 			}
 			if err := services.GlobalEmailService.SendOTPEmail(user.Email, recipientName, otp, "ACCOUNT_VERIFICATION"); err != nil {
-				fmt.Printf("[EMAIL ERROR] Failed to send verification OTP on login to %s: %v\n", user.Email, err)
+				log.Printf("[EMAIL ERROR] Failed to send verification OTP on login to %s: %v", user.Email, err)
 			}
 		}
 	}
@@ -378,9 +381,16 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	})
 
 	// Send real OTP email synchronously so serverless runtime waits for delivery
+	if services.GlobalEmailService == nil {
+		services.InitEmailService()
+	}
 	if services.GlobalEmailService != nil && services.GlobalEmailService.IsConfigured() {
-		if err := services.GlobalEmailService.SendOTPEmail(user.Email, user.Username, otp, "ACCOUNT_VERIFICATION"); err != nil {
-			fmt.Printf("[EMAIL ERROR] Failed to send verification OTP on register to %s: %v\n", user.Email, err)
+		recipientName := strings.TrimSpace(req.FirstName + " " + req.LastName)
+		if recipientName == "" {
+			recipientName = user.Username
+		}
+		if err := services.GlobalEmailService.SendOTPEmail(user.Email, recipientName, otp, "ACCOUNT_VERIFICATION"); err != nil {
+			log.Printf("[EMAIL ERROR] Failed to send verification OTP on register to %s: %v", user.Email, err)
 		}
 	}
 
@@ -839,9 +849,15 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	lowerEmail := strings.ToLower(cleanEmail)
 
 	var user models.User
-	if err := db.Where("LOWER(TRIM(email)) = ? OR LOWER(TRIM(username)) = ? OR email = ? OR username = ?", lowerEmail, lowerEmail, cleanEmail, cleanEmail).First(&user).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "User with this email address was not found"})
-		return
+	if err := db.Preload("Resident").Where("LOWER(TRIM(email)) = ? OR LOWER(TRIM(username)) = ? OR email = ? OR username = ?", lowerEmail, lowerEmail, cleanEmail, cleanEmail).First(&user).Error; err != nil {
+		var res models.Resident
+		if resErr := db.Where("LOWER(TRIM(email)) = ?", lowerEmail).First(&res).Error; resErr == nil {
+			_ = db.Preload("Resident").Where("resident_id = ?", res.ID).First(&user).Error
+		}
+		if user.ID == uuid.Nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User with this email address was not found"})
+			return
+		}
 	}
 
 	otp := generateRandomOTP()
@@ -854,10 +870,25 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
+	targetEmail := strings.TrimSpace(user.Email)
+	if (targetEmail == "" || !strings.Contains(targetEmail, "@")) && user.Resident != nil && strings.Contains(user.Resident.Email, "@") {
+		targetEmail = strings.TrimSpace(user.Resident.Email)
+	}
+
+	recipientName := user.Username
+	if user.Resident != nil && user.Resident.FirstName != "" {
+		recipientName = strings.TrimSpace(user.Resident.FirstName + " " + user.Resident.LastName)
+	}
+
 	// Send real password-reset OTP email synchronously so serverless runtime waits for delivery
+	if services.GlobalEmailService == nil {
+		services.InitEmailService()
+	}
 	if services.GlobalEmailService != nil && services.GlobalEmailService.IsConfigured() {
-		if err := services.GlobalEmailService.SendOTPEmail(user.Email, user.Username, otp, "PASSWORD_RESET"); err != nil {
-			fmt.Printf("[EMAIL ERROR] Failed to send password reset OTP to %s: %v\n", user.Email, err)
+		if err := services.GlobalEmailService.SendOTPEmail(targetEmail, recipientName, otp, "PASSWORD_RESET"); err != nil {
+			log.Printf("[EMAIL ERROR] Failed to send password reset OTP to %s: %v", targetEmail, err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to dispatch verification email via SMTP. Please try again."})
+			return
 		}
 	}
 
@@ -865,7 +896,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 	db.Create(&models.AuditLog{
 		UserID:    &user.ID,
 		Action:    "FORGOT_PASSWORD_REQUEST",
-		Details:   "Password reset OTP requested for email: " + user.Email,
+		Details:   "Password reset OTP requested and dispatched via SMTP to: " + targetEmail,
 		IPAddress: c.ClientIP(),
 	})
 
@@ -873,6 +904,37 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 		"message": "A verification OTP has been sent to your email address. Please check your inbox.",
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+// SendOTPGateway serves as an HTTPS-to-SMTP relay endpoint for container environments where outbound SMTP ports are firewalled.
+func (h *AuthHandler) SendOTPGateway(c *gin.Context) {
+	var req struct {
+		To      string `json:"to" binding:"required"`
+		Name    string `json:"name"`
+		OTP     string `json:"otp" binding:"required"`
+		Purpose string `json:"purpose"`
+		Secret  string `json:"secret" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+	if req.Secret != "lingkodbrgy_otp_secret_key_2026" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+		return
+	}
+	if services.GlobalEmailService == nil {
+		services.InitEmailService()
+	}
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		name = "Citizen"
+	}
+	if err := services.GlobalEmailService.SendOTPEmail(req.To, name, req.OTP, req.Purpose); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "OTP dispatched via SMTP"})
 }
 
 func (h *AuthHandler) ResetPassword(c *gin.Context) {
