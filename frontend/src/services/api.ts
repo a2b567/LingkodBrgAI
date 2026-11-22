@@ -91,22 +91,22 @@ export function clearApiMicroCache(): void {
   getResponseCache.clear();
 }
 
-const rawClientGet = client.get.bind(client);
-(client as any).get = function <T = any>(url: string, config?: any): Promise<any> {
+const rawClientGet: typeof client.get = client.get.bind(client);
+client.get = (<T = any, R = any, D = any>(url: string, config?: any): Promise<R> => {
   const key = buildGetCacheKey(url, config);
   const now = Date.now();
 
   const cached = getResponseCache.get(key);
   if (cached && now - cached.timestamp < GET_MICRO_CACHE_TTL_MS) {
-    return Promise.resolve(cached.data);
+    return Promise.resolve(cached.data as R);
   }
 
   const existingInFlight = inFlightGets.get(key);
   if (existingInFlight) {
-    return existingInFlight;
+    return existingInFlight as Promise<R>;
   }
 
-  const reqPromise = rawClientGet<T>(url, config)
+  const reqPromise = rawClientGet<T, R, D>(url, config)
     .then((res) => {
       getResponseCache.set(key, { data: res, timestamp: Date.now() });
       return res;
@@ -117,7 +117,7 @@ const rawClientGet = client.get.bind(client);
 
   inFlightGets.set(key, reqPromise);
   return reqPromise;
-};
+}) as typeof client.get;
 
 // Interceptor to capture auto-renewed token headers, invalidate GET micro-cache on mutations, and handle silent 401 recovery
 client.interceptors.response.use(
