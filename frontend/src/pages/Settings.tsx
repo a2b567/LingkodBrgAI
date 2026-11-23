@@ -370,7 +370,7 @@ export const Settings: React.FC = () => {
   const [annContent, setAnnContent] = useState('');
   const [isBroadcasting, setIsBroadcasting] = useState(false);
 
-  const defaultCertFees = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+  const defaultCertFees = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100, 'First Time Job Seeker': 0 };
   const [certFees, setCertFees] = useState<Record<string, number>>(() => {
     try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
   });
@@ -2103,6 +2103,7 @@ export const Settings: React.FC = () => {
                     { key: 'Business', label: 'Business Clearance', accent: 'from-indigo-500 to-indigo-600', light: 'bg-indigo-50 dark:bg-indigo-950/30 border-indigo-200 dark:border-indigo-800/60' },
                     { key: 'Cedula', label: 'Cedula (CTC)', accent: 'from-rose-500 to-rose-600', light: 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/60' },
                     { key: 'Barangay ID', label: 'Barangay ID Card', accent: 'from-teal-500 to-teal-600', light: 'bg-teal-50 dark:bg-teal-950/30 border-teal-200 dark:border-teal-800/60' },
+                    { key: 'First Time Job Seeker', label: 'Certificate of First Time Job Seeker (RA 11261)', accent: 'from-sky-500 to-cyan-600', light: 'bg-sky-50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800/60' },
                   ].map(({ key, label, accent, light }) => (
                     <div key={key} className={`rounded-xl border ${light} p-4 space-y-3 relative overflow-hidden`}>
                       {/* Top accent bar */}

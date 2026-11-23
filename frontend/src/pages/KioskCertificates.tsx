@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Signature, Loader2, Pointer, Maximize2, Minimize2, Languages,
   Award, HeartHandshake, Home, Building2, CreditCard, UserCheck, CheckCircle2,
-  Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool, Lock
+  Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool, Lock, Briefcase
 } from 'lucide-react';
 import { api } from '../services/api';
 import { KioskAdminLockModal } from '../components/KioskAdminLockModal';
@@ -187,7 +187,7 @@ export const KioskCertificates: React.FC = () => {
     };
   }, [step]);
 
-  const defaultCertFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+  const defaultCertFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100, 'First Time Job Seeker': 0 };
   const [certFees, setCertFees] = useState<Record<string, number>>(() => {
     try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
   });
@@ -509,6 +509,15 @@ export const KioskCertificates: React.FC = () => {
       icon: <UserCheck size={32} className="text-rose-400" />,
       accent: 'from-rose-500/20 via-pink-500/10 to-transparent',
       borderColor: 'hover:border-rose-400'
+    },
+    {
+      type: 'First Time Job Seeker',
+      name: 'First Time Job Seeker',
+      desc: lang === 'tl' ? 'Libreng sertipikasyon sa ilalim ng RA 11261 para sa unang trabaho' : 'Free RA 11261 certification for first-time job applicants',
+      cost: 'Free',
+      icon: <Briefcase size={32} className="text-sky-400" />,
+      accent: 'from-sky-500/20 via-cyan-500/10 to-transparent',
+      borderColor: 'hover:border-sky-400'
     },
   ];
 

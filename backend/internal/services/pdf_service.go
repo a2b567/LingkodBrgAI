@@ -65,6 +65,8 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 		certType = "COMMUNITY TAX CERTIFICATE (CEDULA)"
 	case "Barangay ID":
 		certType = "BARANGAY RESIDENT IDENTIFICATION CERTIFICATE"
+	case "First Time Job Seeker":
+		certType = "BARANGAY CERTIFICATION (FIRST TIME JOB SEEKER - RA 11261)"
 	default:
 		certType = "CERTIFICATION"
 	}
@@ -102,6 +104,10 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, residing at %s, Barangay San Isidro, is an officially registered and verified resident.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
 		bodyText += "\n\nThis certification validates the issuance of the Official Barangay Identification Card under QR Verification ID: " + cert.Resident.QRID + "."
 		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)
+	case "First Time Job Seeker":
+		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a bona fide resident of %s, Barangay San Isidro, Bay, Laguna, and is a qualified availee of Republic Act No. 11261 (First Time Jobseekers Assistance Act).", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
+		bodyText += "\n\nIt is further certified that the holder/bearer was informed of his/her rights, including the duties and responsibilities accorded by RA 11261 through the Oath of Undertaking he/she has signed and executed in the presence of a Barangay Official."
+		bodyText += fmt.Sprintf("\n\nThis certification is issued FREE OF CHARGE pursuant to RA 11261 for the purpose of: %s. Valid for one (1) year from the date of issuance.", cert.Purpose)
 	default:
 		bodyText = fmt.Sprintf("This is to certify that %s is a registered resident of Barangay San Isidro, located in Laguna Province.", residentName)
 		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)

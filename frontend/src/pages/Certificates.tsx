@@ -139,9 +139,15 @@ export const Certificates: React.FC = () => {
       civilStatus: residentCivilStatus,
       citizenship: 'Filipino',
       address: residentAddress,
-      type: cert.type === 'Clearance' ? 'Barangay Clearance' : cert.type,
+      type: cert.type === 'Clearance'
+        ? 'Barangay Clearance'
+        : cert.type === 'First Time Job Seeker'
+        ? 'Barangay Certification (First Time Job Seeker — RA 11261)'
+        : cert.type,
       purpose: cert.purpose || 'Official transactions and record verification',
-      remarks: 'Subject has no derogatory record or pending criminal complaint registered in the Barangay Registry Database as of date of issuance.',
+      remarks: cert.type === 'First Time Job Seeker'
+        ? 'Qualified availee of Republic Act No. 11261 (First Time Jobseekers Assistance Act). Issued FREE OF CHARGE upon execution of the Oath of Undertaking. Valid for one (1) year from date of issuance.'
+        : 'Subject has no derogatory record or pending criminal complaint registered in the Barangay Registry Database as of date of issuance.',
       issueDate: issueDateFormatted,
       orNo: `OR-${Math.floor(100000 + Math.random() * 900000)}`,
       fee: cert.fee || 0,
@@ -271,7 +277,7 @@ export const Certificates: React.FC = () => {
   const [fee, setFee] = useState(150);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const defaultCertFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+  const defaultCertFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100, 'First Time Job Seeker': 0 };
   const [certFees, setCertFees] = useState<Record<string, number>>(() => {
     try { const s = localStorage.getItem('cert_fees'); return s ? { ...defaultCertFees, ...JSON.parse(s) } : defaultCertFees; } catch { return defaultCertFees; }
   });
@@ -585,8 +591,9 @@ export const Certificates: React.FC = () => {
     { type: "Indigency",   name: "Certificate of Indigency", price: certFees['Indigency'],   color: "border-l-emerald-500",  desc: "For medical assistance, scholarships, social welfare requests." },
     { type: "Residency",   name: "Certificate of Residency", price: certFees['Residency'],   color: "border-l-gov-gold-500", desc: "Proof of residence verification, bank accounts setup." },
     { type: "Business",    name: "Business Clearance",       price: certFees['Business'],    color: "border-l-indigo-500",   desc: "Required for municipal business permit operation." },
-    { type: "Cedula",      name: "Cedula (CTC)",             price: certFees['Cedula'],      color: "border-l-rose-500",     desc: "Official proof of community identity and taxes paid." },
-    { type: "Barangay ID", name: "Barangay ID Card",         price: certFees['Barangay ID'], color: "border-l-teal-500",     desc: "Official barangay identification card." }
+    { type: "Cedula",                name: "Cedula (CTC)",                        price: certFees['Cedula'],                color: "border-l-rose-500",     desc: "Official proof of community identity and taxes paid." },
+    { type: "Barangay ID",           name: "Barangay ID Card",                    price: certFees['Barangay ID'],           color: "border-l-teal-500",     desc: "Official barangay identification card." },
+    { type: "First Time Job Seeker", name: "Certificate of First Time Job Seeker", price: certFees['First Time Job Seeker'] ?? 0, color: "border-l-sky-500", desc: "Free barangay certification under RA 11261 for first-time job applicants." }
   ];
 
   return (
@@ -1161,6 +1168,7 @@ export const Certificates: React.FC = () => {
                   <option value="Business">Business Permit Clearance</option>
                   <option value="Cedula">Cedula (CTC)</option>
                   <option value="Barangay ID">Barangay ID</option>
+                  <option value="First Time Job Seeker">Certificate of First Time Job Seeker (RA 11261 — Free)</option>
                 </select>
               </div>
 
@@ -1300,6 +1308,7 @@ export const Certificates: React.FC = () => {
                   <option value="Business">Business Permit Clearance</option>
                   <option value="Cedula">Cedula (CTC)</option>
                   <option value="Barangay ID">Barangay ID</option>
+                  <option value="First Time Job Seeker">Certificate of First Time Job Seeker (RA 11261 — Free)</option>
                 </select>
               </div>
 

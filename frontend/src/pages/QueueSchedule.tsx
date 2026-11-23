@@ -756,6 +756,8 @@ export const QueueSchedule: React.FC = () => {
                   <option value="Residency Certificate">Residency Certificate</option>
                   <option value="Business Clearance">Business Clearance</option>
                   <option value="Cedula (CTC)">Cedula (CTC)</option>
+                  <option value="Barangay ID">Barangay ID</option>
+                  <option value="First Time Job Seeker Certificate">Certificate of First Time Job Seeker (RA 11261)</option>
                 </select>
               </div>
 

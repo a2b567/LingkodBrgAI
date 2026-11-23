@@ -145,12 +145,13 @@ func (h *SettingsHandler) UpdateHotlines(c *gin.Context) {
 }
 
 var DefaultCertFees = map[string]float64{
-	"Clearance":    150.00,
-	"Indigency":    0.00,
-	"Residency":    100.00,
-	"Business":     300.00,
-	"Cedula":       50.00,
-	"Barangay ID":  100.00,
+	"Clearance":             150.00,
+	"Indigency":             0.00,
+	"Residency":             100.00,
+	"Business":              300.00,
+	"Cedula":                50.00,
+	"Barangay ID":           100.00,
+	"First Time Job Seeker": 0.00,
 }
 
 // GetFeeScheduleFromDB retrieves the active fee schedule from in-memory cache or DB
@@ -204,8 +205,9 @@ func (h *SettingsHandler) UpdateFees(c *gin.Context) {
 		merged[k] = v
 	}
 
-	// Indigency must remain 0 by welfare mandate
+	// Indigency and First Time Job Seeker (RA 11261) must remain 0 by law/welfare mandate
 	merged["Indigency"] = 0.00
+	merged["First Time Job Seeker"] = 0.00
 
 	dataBytes, err := json.Marshal(merged)
 	if err != nil {

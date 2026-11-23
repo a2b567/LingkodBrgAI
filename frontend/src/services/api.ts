@@ -791,6 +791,7 @@ export const api = {
             { id: `cert-${Date.now()}-4`, resident_id: 'res-1', type: 'Business', document_number: 'DOC-2026-0004', status: 'Pending', purpose: 'Grocery Store Business Permit', qr_hash: 'samp4', fee: 300, payment_status: 'Unpaid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
             { id: `cert-${Date.now()}-5`, resident_id: 'res-1', type: 'Cedula', document_number: 'DOC-2026-0005', status: 'Issued', purpose: 'Community Tax Certificate 2026', qr_hash: 'samp5', fee: 50, payment_status: 'Paid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
             { id: `cert-${Date.now()}-6`, resident_id: 'res-1', type: 'Barangay ID', document_number: 'DOC-2026-0006', status: 'Pending', purpose: 'Official Resident ID Card', qr_hash: 'samp6', fee: 100, payment_status: 'Unpaid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
+            { id: `cert-${Date.now()}-7`, resident_id: 'res-1', type: 'First Time Job Seeker', document_number: 'DOC-2026-0007', status: 'Issued', purpose: 'First Time Job Seeker Assistance Act (RA 11261)', qr_hash: 'samp7', fee: 0, payment_status: 'Paid', request_date: new Date().toISOString(), created_at: new Date().toISOString() },
           ];
           mockState.certificates.push(...samples);
           return { message: 'Sample certificates created', count: samples.length };
@@ -1229,7 +1230,7 @@ export const api = {
       withFallback(
         () => client.get<{ data: Record<string, number> }>('/settings/fees').then(r => r.data.data || r.data),
         () => {
-          const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100 };
+          const defaultFees: Record<string, number> = { Clearance: 150, Indigency: 0, Residency: 100, Business: 300, Cedula: 50, 'Barangay ID': 100, 'First Time Job Seeker': 0 };
           try {
             const saved = localStorage.getItem('cert_fees');
             if (saved) return { ...defaultFees, ...JSON.parse(saved) };

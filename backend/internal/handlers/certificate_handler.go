@@ -120,9 +120,9 @@ func (h *CertificateHandler) Request(c *gin.Context) {
 	}
 
 	// Default pricing from DB settings if missing
-	if cert.Type == "Indigency" {
+	if cert.Type == "Indigency" || cert.Type == "First Time Job Seeker" {
 		cert.Fee = 0.00
-		cert.PaymentStatus = "Paid" // Indigency is free
+		cert.PaymentStatus = "Paid" // Free by law (Indigency / RA 11261 First Time Jobseekers Assistance Act)
 	} else if cert.Fee == 0 {
 		activeFees := GetFeeScheduleFromDB()
 		if f, exists := activeFees[cert.Type]; exists {
@@ -331,7 +331,7 @@ func (h *CertificateHandler) PublicRequest(c *gin.Context) {
 		RequestDate:    time.Now(),
 	}
 
-	if cert.Type == "Indigency" {
+	if cert.Type == "Indigency" || cert.Type == "First Time Job Seeker" {
 		cert.Fee = 0.00
 		cert.PaymentStatus = "Paid"
 	} else if cert.Fee == 0 {
@@ -591,6 +591,7 @@ func (h *CertificateHandler) SeedSamples(c *gin.Context) {
 		{"Business", "Grocery Store Business Permit", 300.00, "Pending"},
 		{"Cedula", "Community Tax Certificate 2026", 50.00, "Issued"},
 		{"Barangay ID", "Official Barangay Resident ID Card", 100.00, "Pending"},
+		{"First Time Job Seeker", "First Time Job Seeker Assistance Act (RA 11261) - Local Employment", 0.00, "Issued"},
 	}
 
 	var createdCerts []models.Certificate
