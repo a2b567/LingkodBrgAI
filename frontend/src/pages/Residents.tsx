@@ -51,7 +51,7 @@ export const Residents: React.FC = () => {
 
   // Resident Account Management / Recovery modal (para sa staff kung hindi ma-open ang account)
   const [accountModalResident, setAccountModalResident] = useState<Resident | null>(null);
-  const [fixPassword, setFixPassword] = useState('SanIsidro@2026');
+  const [fixPassword, setFixPassword] = useState('SantaCruz@2026');
   const [fixEmail, setFixEmail] = useState('');
   const [isFixingAccount, setIsFixingAccount] = useState(false);
   const [fixSuccessInfo, setFixSuccessInfo] = useState<{ message: string; username: string; email: string; new_password: string } | null>(null);
@@ -71,7 +71,7 @@ export const Residents: React.FC = () => {
 
   const handleOpenAccountFix = (r: Resident) => {
     setAccountModalResident(r);
-    setFixPassword('SanIsidro@2026');
+    setFixPassword('SantaCruz@2026');
     setFixEmail(r.email || '');
     setFixSuccessInfo(null);
     setCopiedCreds(false);
@@ -209,7 +209,7 @@ export const Residents: React.FC = () => {
         'Carpenter',
         '09171234567',
         'juan.delacruz@example.com',
-        'Purok 1, San Isidro, Bay, Laguna',
+        'Purok 1, Santa Cruz, Bay, Laguna',
         'Filipino',
         'Permanent',
         'Registered',
@@ -228,7 +228,7 @@ export const Residents: React.FC = () => {
         'Teacher',
         '09189876543',
         'maria.garcia@example.com',
-        'Purok 2, San Isidro, Bay, Laguna',
+        'Purok 2, Santa Cruz, Bay, Laguna',
         'Filipino',
         'Permanent',
         'Registered',
@@ -247,7 +247,7 @@ export const Residents: React.FC = () => {
         'Retired',
         '09205551234',
         'pedro.mendoza@example.com',
-        'Purok 3, San Isidro, Bay, Laguna',
+        'Purok 3, Santa Cruz, Bay, Laguna',
         'Filipino',
         'Permanent',
         'Registered',
@@ -266,7 +266,7 @@ export const Residents: React.FC = () => {
         'Student',
         '09224445566',
         'ana.bautista@example.com',
-        'Purok 4, San Isidro, Bay, Laguna',
+        'Purok 4, Santa Cruz, Bay, Laguna',
         'Filipino',
         'Permanent',
         'Not Registered',
@@ -390,7 +390,7 @@ export const Residents: React.FC = () => {
           }
         }
 
-        const address = getValue(['address', 'purok', 'zone', 'street']) || 'Barangay San Isidro';
+        const address = getValue(['address', 'purok', 'zone', 'street']) || 'Barangay Santa Cruz';
         const civilStatus = getValue(['civil', 'marital', 'status']) || 'Single';
         const occupation = getValue(['occupation', 'job', 'work']) || 'Resident';
         const contactNumber = getValue(['contact', 'phone', 'mobile']);
@@ -857,7 +857,7 @@ export const Residents: React.FC = () => {
                     {editingId ? 'Edit Resident Profile' : 'Register New Resident'}
                   </h3>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-                    Barangay San Isidro Resident Database Entry
+                    Barangay Santa Cruz Resident Database Entry
                   </p>
                 </div>
               </div>
@@ -1219,7 +1219,7 @@ export const Residents: React.FC = () => {
               </p>
               <div className="flex items-center justify-between text-[11px] text-slate-500">
                 <span>QR ID: <strong className="text-gov-blue-600">{accountModalResident.qr_id}</strong></span>
-                <span>Address: {accountModalResident.address || 'Barangay San Isidro'}</span>
+                <span>Address: {accountModalResident.address || 'Barangay Santa Cruz'}</span>
               </div>
             </div>
 
@@ -1234,11 +1234,11 @@ export const Residents: React.FC = () => {
                     value={fixPassword}
                     onChange={(e) => setFixPassword(e.target.value)}
                     required
-                    placeholder="e.g. SanIsidro@2026"
+                    placeholder="e.g. SantaCruz@2026"
                     className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono focus:outline-none focus:border-amber-500 text-slate-900 dark:text-white"
                   />
                   <p className="text-[9px] text-slate-400">
-                    Default: <span className="font-mono font-bold text-amber-600 dark:text-amber-400">SanIsidro@2026</span> (Maaaring baguhin)
+                    Default: <span className="font-mono font-bold text-amber-600 dark:text-amber-400">SantaCruz@2026</span> (Maaaring baguhin)
                   </p>
                 </div>
 

@@ -311,7 +311,7 @@ export const ClinicQueueView: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 flex flex-wrap items-center gap-x-2">
-              <span>Barangay San Isidro Health & Wellness Center</span>
+              <span>Barangay Santa Cruz Health & Wellness Center</span>
               <span className="text-slate-300 dark:text-slate-700">•</span>
               <span className="font-bold text-slate-700 dark:text-slate-300">
                 {clinicSchedule.operating_hours} ({clinicSchedule.schedule_days})

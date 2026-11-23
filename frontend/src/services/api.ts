@@ -166,12 +166,15 @@ const GROQ_BASE_URL = 'https://api.groq.com';
 export const sanitizeBrgyText = (text: string): string => {
   if (!text) return text;
   return text
-    .replace(/Barangay\s+Lawrence/gi, 'Barangay San Isidro')
-    .replace(/Brgy\.?\s*Lawrence/gi, 'Brgy. San Isidro')
-    .replace(/Lawrence\s+Barangay/gi, 'San Isidro Barangay')
+    .replace(/Barangay\s+Lawrence/gi, 'Barangay Santa Cruz')
+    .replace(/Brgy\.?\s*Lawrence/gi, 'Brgy. Santa Cruz')
+    .replace(/Lawrence\s+Barangay/gi, 'Santa Cruz Barangay')
     .replace(/Municipality\s+of\s+Lawrence/gi, 'Municipality of Bay')
-    .replace(/Lawrence\s+Covered\s+Court/gi, 'San Isidro Covered Court')
-    .replace(/Barangay\s+Lawrence\s+Smart\s+Operations\s+Officer/gi, 'Barangay San Isidro Smart Operations Officer');
+    .replace(/Lawrence\s+Covered\s+Court/gi, 'Santa Cruz Covered Court')
+    .replace(/Barangay\s+Lawrence\s+Smart\s+Operations\s+Officer/gi, 'Barangay Santa Cruz Smart Operations Officer')
+    .replace(/Barangay\s+San\s+Isidro/gi, 'Barangay Santa Cruz')
+    .replace(/Brgy\.?\s*San\s+Isidro/gi, 'Brgy. Santa Cruz')
+    .replace(/San\s+Isidro\s+Covered\s+Court/gi, 'Santa Cruz Covered Court');
 };
 
 export const callGroqAI = async (prompt: string, systemContext?: string): Promise<string> => {
@@ -179,7 +182,7 @@ export const callGroqAI = async (prompt: string, systemContext?: string): Promis
     throw new Error("No Groq API key available");
   }
 
-  const defaultSystem = 'You are LingkodBrgyAI, the intelligent operations assistant for Barangay San Isidro, Bay, Laguna, Philippines. Assist residents and barangay officers politely and accurately in Tagalog, English, or Taglish. Format responses with clean bullet points and markdown bold text where appropriate.';
+  const defaultSystem = 'You are LingkodBrgyAI, the intelligent operations assistant for Barangay Santa Cruz, Bay, Laguna, Philippines. Assist residents and barangay officers politely and accurately in Tagalog, English, or Taglish. Format responses with clean bullet points and markdown bold text where appropriate.';
 
   const makeRequest = async (model: string) => {
     const res = await fetch(`${GROQ_BASE_URL}/openai/v1/chat/completions`, {
@@ -238,26 +241,26 @@ const mockState = {
 function getMockUser(username: string): User {
   const lower = username.toLowerCase();
   let role = 'Resident';
-  let email = `${username || 'user'}@barangay-sanisidro.gov.ph`;
+  let email = `${username || 'user'}@barangay-santacruz.gov.ph`;
 
   if (lower.includes('captain')) {
     role = 'Barangay Captain';
-    email = 'captain@barangay-sanisidro.gov.ph';
+    email = 'captain@barangay-santacruz.gov.ph';
   } else if (lower.includes('admin') || lower.includes('super')) {
     role = 'Super Admin';
-    email = 'admin@barangay-sanisidro.gov.ph';
+    email = 'admin@barangay-santacruz.gov.ph';
   } else if (lower.includes('sec') || lower.includes('secretary')) {
     role = 'Secretary';
-    email = 'secretary@barangay-sanisidro.gov.ph';
+    email = 'secretary@barangay-santacruz.gov.ph';
   } else if (lower.includes('treasurer')) {
     role = 'Treasurer';
-    email = 'treasurer@barangay-sanisidro.gov.ph';
+    email = 'treasurer@barangay-santacruz.gov.ph';
   } else if (lower.includes('health') || lower.includes('nurse')) {
     role = 'Health Worker';
-    email = 'health@barangay-sanisidro.gov.ph';
+    email = 'health@barangay-santacruz.gov.ph';
   } else if (lower.includes('staff')) {
     role = 'Staff';
-    email = 'staff@barangay-sanisidro.gov.ph';
+    email = 'staff@barangay-santacruz.gov.ph';
   }
 
   return {
@@ -414,7 +417,7 @@ export const api = {
             birthdate: data.birthdate || '1995-01-01',
             gender: data.gender || 'Male',
             civil_status: 'Single',
-            address: data.address || 'Barangay San Isidro, Bay, Laguna',
+            address: data.address || 'Barangay Santa Cruz, Bay, Laguna',
             contact_number: data.contact_number || '',
             email: data.email || '',
             citizenship: 'Filipino',
@@ -543,7 +546,7 @@ export const api = {
     get: (id: string) =>
       withFallback(
         () => client.get<Resident>(`/residents/${id}`).then(r => r.data),
-        () => mockState.residents.find(r => r.id === id) || (mockState.residents[0] || { id, first_name: 'System', last_name: 'Resident', address: 'Barangay San Isidro' } as Resident)
+        () => mockState.residents.find(r => r.id === id) || (mockState.residents[0] || { id, first_name: 'System', last_name: 'Resident', address: 'Barangay Santa Cruz' } as Resident)
       ),
     create: (data: Partial<Resident>) =>
       withFallback(
@@ -576,7 +579,7 @@ export const api = {
             birthdate: data.birthdate || '1995-01-01',
             gender: data.gender || 'Male',
             civil_status: data.civil_status || 'Single',
-            address: data.address || 'Barangay San Isidro, Bay, Laguna',
+            address: data.address || 'Barangay Santa Cruz, Bay, Laguna',
             citizenship: 'Filipino',
             residency_status: 'Permanent',
             voter_status: 'Registered Voter',
@@ -596,7 +599,7 @@ export const api = {
           message: 'Matagumpay na naayos ang account ng residente!',
           username: 'resident_user',
           email: data?.new_email || 'resident@barangay.gov',
-          new_password: data?.new_password || 'SanIsidro@2026',
+          new_password: data?.new_password || 'SantaCruz@2026',
         })
       ),
     update: (id: string, data: Partial<Resident>) =>
@@ -635,7 +638,7 @@ export const api = {
     get: (id: string) =>
       withFallback(
         () => client.get<Household>(`/households/${id}`).then(r => r.data),
-        () => mockState.households.find(h => h.id === id) || (mockState.households[0] || { id, household_number: 'HH-000', head_id: 'res-1', poverty_level: 'Non-Poor', address: 'Barangay San Isidro' } as Household)
+        () => mockState.households.find(h => h.id === id) || (mockState.households[0] || { id, household_number: 'HH-000', head_id: 'res-1', poverty_level: 'Non-Poor', address: 'Barangay Santa Cruz' } as Household)
       ),
     create: (data: Partial<Household>) =>
       withFallback(
@@ -647,7 +650,7 @@ export const api = {
             head_id: data.head_id || '',
             poverty_level: data.poverty_level || 'Non-Poor',
             purok: data.purok || '',
-            address: data.address || 'Barangay San Isidro, Bay, Laguna',
+            address: data.address || 'Barangay Santa Cruz, Bay, Laguna',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
@@ -866,7 +869,7 @@ export const api = {
       try {
         const groqSummary = await callGroqAI(
           `Summarize this barangay blotter incident (ID: ${id}) as a brief AI Case Digest in 2-3 sentences. Include recommended action.`,
-          'You are LingkodBrgyAI, an AI legal assistant for Barangay San Isidro. Generate concise blotter case digests with recommended actions like conciliation, hearing scheduling, or escalation.'
+          'You are LingkodBrgyAI, an AI legal assistant for Barangay Santa Cruz. Generate concise blotter case digests with recommended actions like conciliation, hearing scheduling, or escalation.'
         );
         if (groqSummary) return { summary: groqSummary };
       } catch {
@@ -1133,7 +1136,7 @@ export const api = {
 
       // Offline fallback mock responses
       const lower = prompt.toLowerCase();
-      let response = `Mabuhay! I am your Barangay San Isidro AI Operations Assistant. How may I assist you today?\n\n- **Resident Profiles**: Register, update, and search citizen profiles\n- **Certificates & Clearances**: Request Barangay Clearance, Indigency, Residency, and Cedulas online\n- **Queue & Scheduling**: Book counter pickup slots or view real-time queue status\n- **Blotters & Conciliation**: File incident reports and schedule Lupon peace hearings`;
+      let response = `Mabuhay! I am your Barangay Santa Cruz AI Operations Assistant. How may I assist you today?\n\n- **Resident Profiles**: Register, update, and search citizen profiles\n- **Certificates & Clearances**: Request Barangay Clearance, Indigency, Residency, and Cedulas online\n- **Queue & Scheduling**: Book counter pickup slots or view real-time queue status\n- **Blotters & Conciliation**: File incident reports and schedule Lupon peace hearings`;
 
       if (lower.includes('help') || lower.includes('can you help') || lower.includes('hello') || lower.includes('hi')) {
         response = `Mabuhay! I am glad to assist you. Here are the key services I can manage for you:\n- **Document Issuance**: Apply for Barangay Clearance, Certificate of Indigency, Certificate of Residency, and Business Permits.\n- **Queue Monitor**: Book appointment pickup slots and monitor live counter processing numbers.\n- **Blotter & Incident Registry**: Log public disputes, schedule peace hearings, and review AI dispute summaries.\n- **Demographics & Analytics**: Inspect resident statistics, indigent household counts, and senior citizen records.`;
@@ -1208,7 +1211,7 @@ export const api = {
           } catch { }
           return [
             { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
-            { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
+            { id: '2', title: 'Barangay Santa Cruz Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
             { id: '3', title: 'Barangay Health Center / RHU', number: '(049) 501-2750', desc: 'Doctor, Nurse & Ambulance', color: 'bg-emerald-600' },
             { id: '4', title: 'PNP Local Police Station', number: '(049) 501-1122', desc: 'Patrol & Law Enforcement', color: 'bg-indigo-600' },
             { id: '5', title: 'BFP Bureau of Fire Protection', number: '(049) 501-3473', desc: 'Fire Rescue & Disaster Unit', color: 'bg-amber-600' },

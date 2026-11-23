@@ -185,7 +185,7 @@ func (h *ResidentHandler) ResetResidentAccount(c *gin.Context) {
 
 	newPass := strings.TrimSpace(req.NewPassword)
 	if newPass == "" {
-		newPass = "SanIsidro@2026"
+		newPass = "SantaCruz@2026"
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)

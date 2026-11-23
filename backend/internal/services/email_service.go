@@ -61,7 +61,7 @@ func InitEmailService() *EmailService {
 
 	fromName := strings.TrimSpace(os.Getenv("SMTP_FROM_NAME"))
 	if fromName == "" {
-		fromName = "LingkodBrgy AI - Barangay San Isidro"
+		fromName = "LingkodBrgy AI - Barangay Santa Cruz"
 	}
 
 	svc := &EmailService{
@@ -110,7 +110,7 @@ func (s *EmailService) SendOTPEmail(recipientEmail, recipientName, otpCode, purp
 	}
 
 	textBody := fmt.Sprintf(
-`LingkodBrgy AI — Barangay San Isidro GovTech Portal
+`LingkodBrgy AI — Barangay Santa Cruz GovTech Portal
 
 Magandang araw, %s!
 
@@ -127,7 +127,7 @@ Huwag ibahagi ang iyong OTP kaninuman. Ang mga kawani ng barangay at system admi
 
 Kung hindi ikaw ang humiling nito, agad itong i-report sa opisyal na Barangay Information Desk.
 
-Barangay San Isidro, Bay, Laguna
+Barangay Santa Cruz, Bay, Laguna
 LingkodBrgy Secure GovTech System
 `, recipientName, purposeText, otpCode)
 
@@ -149,7 +149,7 @@ LingkodBrgy Secure GovTech System
             <td style="background: linear-gradient(135deg, #1e3a8a 0%%, #1e40af 100%%); padding: 36px 30px; text-align: center;">
               <p style="margin: 0; color: #bfdbfe; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;">Republika ng Pilipinas • Bayan ng Bay, Laguna</p>
               <h1 style="margin: 8px 0 0 0; color: #ffffff; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">LINGKODBRGY AI</h1>
-              <p style="margin: 4px 0 0 0; color: #93c5fd; font-size: 13px; font-weight: 600;">Barangay San Isidro Official GovTech Portal</p>
+              <p style="margin: 4px 0 0 0; color: #93c5fd; font-size: 13px; font-weight: 600;">Barangay Santa Cruz Official GovTech Portal</p>
             </td>
           </tr>
 
@@ -188,7 +188,7 @@ LingkodBrgy Secure GovTech System
                 Protektado sa ilalim ng <strong>Republic Act 10173 (Data Privacy Act of 2012)</strong>
               </p>
               <p style="margin: 6px 0 0 0; color: #94a3b8; font-size: 10px;">
-                Ipinadala ng LingkodBrgy Automated Authentication System • Barangay San Isidro, Bay, Laguna
+                Ipinadala ng LingkodBrgy Automated Authentication System • Barangay Santa Cruz, Bay, Laguna
               </p>
             </td>
           </tr>

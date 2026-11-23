@@ -382,7 +382,7 @@ export const Businesses: React.FC = () => {
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
                   required
-                  placeholder="e.g. San Isidro Bakery, San Isidro Hardware..."
+                  placeholder="e.g. Santa Cruz Bakery, Santa Cruz Hardware..."
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
                 />
               </div>
@@ -412,7 +412,7 @@ export const Businesses: React.FC = () => {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   required
-                  placeholder="Street name, Barangay San Isidro, Laguna..."
+                  placeholder="Street name, Barangay Santa Cruz, Laguna..."
                   className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-gov-blue-500 text-slate-900 dark:text-white"
                 />
               </div>

@@ -296,7 +296,7 @@ func (h *CertificateHandler) PublicRequest(c *gin.Context) {
 				FirstName:       firstNameClean,
 				LastName:        lastNameClean,
 				Birthdate:       time.Now().AddDate(-25, 0, 0),
-				Address:         "Barangay San Isidro, Laguna",
+				Address:         "Barangay Santa Cruz, Laguna",
 				ResidencyStatus: "Permanent",
 				VoterStatus:     "Registered",
 				CivilStatus:     "Single",
@@ -400,7 +400,7 @@ func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"valid":        true,
 			"account_type": "Certificate",
-			"message":      "Document is authentic and issued by Barangay San Isidro.",
+			"message":      "Document is authentic and issued by Barangay Santa Cruz.",
 			"document":     cert.DocumentNumber,
 			"type":         cert.Type,
 			"recipient":    cert.Resident.FirstName + " " + cert.Resident.LastName,
@@ -416,7 +416,7 @@ func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"valid":        true,
 			"account_type": "Resident",
-			"message":      "Resident Account is authentic and registered in Barangay San Isidro.",
+			"message":      "Resident Account is authentic and registered in Barangay Santa Cruz.",
 			"recipient":    res.FirstName + " " + res.LastName,
 			"qr_id":        res.QRID,
 			"address":      res.Address,
@@ -433,7 +433,7 @@ func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"valid":        true,
 			"account_type": "Resident",
-			"message":      "Resident Account is authentic and registered in Barangay San Isidro.",
+			"message":      "Resident Account is authentic and registered in Barangay Santa Cruz.",
 			"recipient":    user.Resident.FirstName + " " + user.Resident.LastName,
 			"qr_id":        user.Resident.QRID,
 			"address":      user.Resident.Address,
@@ -444,15 +444,15 @@ func (h *CertificateHandler) VerifyQR(c *gin.Context) {
 		return
 	}
 
-	// 3. Fallback: Check mock resident pattern if ID starts with QR-RES- or SANISIDRO- or res-
-	if strings.HasPrefix(hash, "QR-RES-") || strings.HasPrefix(hash, "res-") || strings.HasPrefix(hash, "SANISIDRO-") {
+	// 3. Fallback: Check mock resident pattern if ID starts with QR-RES- or SANTACRUZ- or res-
+	if strings.HasPrefix(hash, "QR-RES-") || strings.HasPrefix(hash, "res-") || strings.HasPrefix(hash, "SANTACRUZ-") {
 		c.JSON(http.StatusOK, gin.H{
 			"valid":        true,
 			"account_type": "Resident",
-			"message":      "Resident Account ID is authentic and registered in Barangay San Isidro.",
+			"message":      "Resident Account ID is authentic and registered in Barangay Santa Cruz.",
 			"recipient":    "Verified Barangay Resident",
 			"qr_id":        hash,
-			"address":      "Barangay San Isidro Main District",
+			"address":      "Barangay Santa Cruz Main District",
 			"voter_status": "Registered Voter",
 			"civil_status": "Single",
 		})
@@ -568,7 +568,7 @@ func (h *CertificateHandler) SeedSamples(c *gin.Context) {
 			FirstName:       "MARIA",
 			LastName:        "SANTOS",
 			Birthdate:       time.Now().AddDate(-30, 0, 0),
-			Address:         "Purok 3, Barangay San Isidro, Laguna",
+			Address:         "Purok 3, Barangay Santa Cruz, Laguna",
 			ResidencyStatus: "Permanent",
 			VoterStatus:     "Registered",
 			CivilStatus:     "Married",

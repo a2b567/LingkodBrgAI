@@ -43,7 +43,7 @@ export const Landing: React.FC = () => {
     {
       id: '1',
       title: 'Annual Dental & Medical Mission',
-      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the San Isidro Barangay Covered Court. Pediatric consults, dental extraction services, and free basic wellness check-ups are open for all residents.',
+      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the Santa Cruz Barangay Covered Court. Pediatric consults, dental extraction services, and free basic wellness check-ups are open for all residents.',
       category: 'Health Advisory',
       badge: 'Active',
       author: 'Barangay Health Council',
@@ -81,9 +81,9 @@ export const Landing: React.FC = () => {
     return defaultAnnouncements;
   });
 
-  const [contactAddress, setContactAddress] = useState(localStorage.getItem('brgy_address') || 'Brgy. Hall, Main Road, Laguna');
-  const [contactHotline, setContactHotline] = useState(localStorage.getItem('brgy_hotline') || '(049) 123-4567');
-  const [contactEmail, setContactEmail] = useState(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');
+  const [contactAddress, setContactAddress] = useState(localStorage.getItem('brgy_address') || 'F.T. San Luis Ave., Barangay Santa Cruz, Bay, Laguna 4033');
+  const [contactHotline, setContactHotline] = useState(localStorage.getItem('brgy_hotline') || '(049) 501-2749');
+  const [contactEmail, setContactEmail] = useState(localStorage.getItem('brgy_email') || 'info@brgysantacruz-bay.gov.ph');
   const [contactHours, setContactHours] = useState(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
   const [heroBg, setHeroBg] = useState<string | null>(localStorage.getItem('brgy_hero_bg') || null);
 
@@ -104,9 +104,9 @@ export const Landing: React.FC = () => {
         const savedAnn = localStorage.getItem('lingkod_landing_announcements');
         if (savedAnn) setAnnouncements(JSON.parse(savedAnn));
       } catch { }
-      setContactAddress(localStorage.getItem('brgy_address') || 'Brgy. Hall, Main Road, Laguna');
-      setContactHotline(localStorage.getItem('brgy_hotline') || '(049) 123-4567');
-      setContactEmail(localStorage.getItem('brgy_email') || 'info@barangay.gov.ph');
+      setContactAddress(localStorage.getItem('brgy_address') || 'F.T. San Luis Ave., Barangay Santa Cruz, Bay, Laguna 4033');
+      setContactHotline(localStorage.getItem('brgy_hotline') || '(049) 501-2749');
+      setContactEmail(localStorage.getItem('brgy_email') || 'info@brgysantacruz-bay.gov.ph');
       setContactHours(localStorage.getItem('brgy_hours') || 'Mon-Fri: 8:00 AM - 5:00 PM');
       setHeroBg(localStorage.getItem('brgy_hero_bg') || null);
     };
@@ -1098,7 +1098,7 @@ export const Landing: React.FC = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 xl:px-12 border-t border-slate-200/60 dark:border-slate-800/60 pt-8 mt-12 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest select-none">
-          <p>© 2026 Barangay San Isidro, Bay, Laguna. All Rights Reserved.</p>
+          <p>© 2026 Barangay Santa Cruz, Bay, Laguna. All Rights Reserved.</p>
           <div className="flex items-center gap-2">
             <span className="text-gov-blue-600 dark:text-gov-blue-400 font-black">System Version 2.0.4</span>
           </div>
@@ -1223,7 +1223,7 @@ export const Landing: React.FC = () => {
                   type="text"
                   value={verifyHash}
                   onChange={(e) => setVerifyHash(e.target.value)}
-                  placeholder="e.g. QR-RES-..., SANISIDRO-..., or hash"
+                  placeholder="e.g. QR-RES-..., SANTACRUZ-..., or hash"
                   className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 text-xs font-mono text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:border-gov-blue-500"
                 />
                 <button

@@ -174,7 +174,7 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 		return s.fallbackLocalAI(prompt, userRole, contextData)
 	}
 
-	systemInstruction := fmt.Sprintf("You are LingkodBrgAI, the official AI Assistant of Barangay San Isidro, Bay, Laguna. You help users query the community records. The user asking has the role: '%s'. Ensure you check role restrictions before displaying info. If data is missing from context, answer based on general knowledge or ask them to clarify.", userRole)
+	systemInstruction := fmt.Sprintf("You are LingkodBrgAI, the official AI Assistant of Barangay Santa Cruz, Bay, Laguna (ZIP Code 4033, located along F.T. San Luis Avenue, near Calo River and Mount Luyong, comprising Puroks 1-7, Sitio Calo, Sitio Luyong, Sitio Ilaya, and Sitio Ibaba). You help users query community records and barangay services. The user asking has the role: '%s'. Ensure you check role restrictions before displaying info. If data is missing from context, answer based on general knowledge or ask them to clarify.", userRole)
 	if contextData != "" {
 		systemInstruction += "\n\nUse the following real-time database query results to answer the user's question accurately:\n" + contextData
 	}
@@ -230,15 +230,20 @@ func (s *AIService) ProcessQuery(prompt string, userRole string, userID *uuid.UU
 
 func sanitizeBrgyText(text string) string {
 	r := strings.NewReplacer(
-		"Barangay Lawrence", "Barangay San Isidro",
-		"barangay lawrence", "barangay san isidro",
-		"BARANGAY LAWRENCE", "BARANGAY SAN ISIDRO",
-		"Brgy. Lawrence", "Brgy. San Isidro",
-		"brgy. lawrence", "brgy. san isidro",
-		"Lawrence Barangay", "San Isidro Barangay",
-		"lawrence barangay", "san isidro barangay",
+		"Barangay Lawrence", "Barangay Santa Cruz",
+		"barangay lawrence", "barangay santa cruz",
+		"BARANGAY LAWRENCE", "BARANGAY SANTA CRUZ",
+		"Brgy. Lawrence", "Brgy. Santa Cruz",
+		"brgy. lawrence", "brgy. santa cruz",
+		"Lawrence Barangay", "Santa Cruz Barangay",
+		"lawrence barangay", "santa cruz barangay",
 		"Municipality of Lawrence", "Municipality of Bay",
-		"Lawrence Covered Court", "San Isidro Covered Court",
+		"Lawrence Covered Court", "Santa Cruz Covered Court",
+		"Barangay San Isidro", "Barangay Santa Cruz",
+		"barangay san isidro", "barangay santa cruz",
+		"BARANGAY SAN ISIDRO", "BARANGAY SANTA CRUZ",
+		"Brgy. San Isidro", "Brgy. Santa Cruz",
+		"San Isidro Covered Court", "Santa Cruz Covered Court",
 	)
 	return r.Replace(text)
 }
@@ -247,12 +252,12 @@ func (s *AIService) fallbackLocalAI(prompt, role, contextData string) (string, i
 	lowerPrompt := strings.ToLower(prompt)
 	var sb strings.Builder
 
-	sb.WriteString("[Brgy. San Isidro Local AI Assistant - Offline Sandbox Mode]\n\n")
+	sb.WriteString("[Brgy. Santa Cruz Local AI Assistant - Offline Sandbox Mode]\n\n")
 
 	isStaff := role != "Resident"
 
 	if strings.Contains(lowerPrompt, "hello") || strings.Contains(lowerPrompt, "hi") {
-		sb.WriteString("Hello! I am your Barangay San Isidro Virtual Assistant. How can I help you manage community profiles, certificates, blotters, or appointments today?")
+		sb.WriteString("Hello! I am your Barangay Santa Cruz Virtual Assistant. How can I help you manage community profiles, certificates, blotters, or appointments today?")
 	} else if !isStaff && (strings.Contains(lowerPrompt, "unpaid") || strings.Contains(lowerPrompt, "fee") || strings.Contains(lowerPrompt, "blotter") || strings.Contains(lowerPrompt, "senior")) {
 		sb.WriteString("I am sorry, but as a Resident user, you do not have administrative privileges to view community-wide financial, incident, or senior citizen registries. You can request your own certificates or schedule appointments.")
 	} else if strings.Contains(lowerPrompt, "unpaid") || strings.Contains(lowerPrompt, "fee") {
@@ -267,7 +272,7 @@ func (s *AIService) fallbackLocalAI(prompt, role, contextData string) (string, i
 		if contextData == "" {
 			sb.WriteString("I couldn't find any residents aged 60 or older registered in the system.")
 		} else {
-			sb.WriteString("Here are the senior citizens currently registered in Barangay San Isidro:\n")
+			sb.WriteString("Here are the senior citizens currently registered in Barangay Santa Cruz:\n")
 			sb.WriteString(contextData)
 		}
 	} else if strings.Contains(lowerPrompt, "indigent") || strings.Contains(lowerPrompt, "poor") {

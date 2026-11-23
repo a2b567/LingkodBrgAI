@@ -63,7 +63,7 @@ export const ResidentTutorialModal: React.FC<ResidentTutorialModalProps> = ({
             <p className="text-xs font-black mt-1">Tap card to expand full QR</p>
           </div>
           <div className="px-2.5 py-1 bg-white/20 backdrop-blur-md rounded-xl text-[10px] font-mono font-bold border border-white/30">
-            SANISIDRO-2026
+            SANTACRUZ-2026
           </div>
         </div>
       )
@@ -133,7 +133,7 @@ export const ResidentTutorialModal: React.FC<ResidentTutorialModalProps> = ({
     {
       title: '24/7 Emergency SOS Hotlines',
       tagline: 'Mabilis na Saklolo sa Isang Pindot',
-      desc: 'I-click lamang ang pulang "SOS" button sa itaas ng screen anumang oras para sa direct dial sa National 911, Barangay San Isidro Desk, Health Center Ambulance, Local Police, at Bumbero (BFP).',
+      desc: 'I-click lamang ang pulang "SOS" button sa itaas ng screen anumang oras para sa direct dial sa National 911, Barangay Santa Cruz Desk, Health Center Ambulance, Local Police, at Bumbero (BFP).',
       icon: <PhoneCall size={26} />,
       iconColor: 'text-rose-600',
       badgeBg: 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-400',
@@ -204,7 +204,7 @@ export const ResidentTutorialModal: React.FC<ResidentTutorialModalProps> = ({
                 Welcome sa LingkodBrgy Resident Portal!
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 leading-relaxed font-medium">
-                Ito ang iyong opisyal na one-stop digital portal sa Barangay San Isidro. Nais mo ba ng mabilis na 1-minutong gabay (tutorial) para malaman ang lahat ng serbisyo at kung paano ito gamitin?
+                Ito ang iyong opisyal na one-stop digital portal sa Barangay Santa Cruz. Nais mo ba ng mabilis na 1-minutong gabay (tutorial) para malaman ang lahat ng serbisyo at kung paano ito gamitin?
               </p>
             </div>
 

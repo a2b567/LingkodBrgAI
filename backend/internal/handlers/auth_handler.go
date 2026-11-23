@@ -668,7 +668,7 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 					}
 					hhAddr := resident.Address
 					if hhAddr == "" {
-						hhAddr = "Barangay San Isidro"
+						hhAddr = "Barangay Santa Cruz"
 					}
 					household = models.Household{
 						Base:            models.Base{ID: uuid.New()},

@@ -38,12 +38,14 @@ const PUROK_OPTIONS = [
   'Purok 5',
   'Purok 6',
   'Purok 7',
-  'Sitio Maitim',
+  'Sitio Calo',
+  'Sitio Luyong',
   'Sitio Ilaya',
   'Sitio Ibaba',
+  'F.T. San Luis Avenue',
 ];
 
-const OFFICIAL_BARANGAY = 'Barangay San Isidro, Bay, Laguna';
+const OFFICIAL_BARANGAY = 'Barangay Santa Cruz, Bay, Laguna 4033';
 
 export const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -560,10 +562,10 @@ export const Register: React.FC = () => {
                     onChange={(e) => handlePurokSelect(e.target.value)}
                     className={inputCls}
                   >
-                    <option value="">-- Piliin ang Purok / Sitio sa Brgy. San Isidro, Bay, Laguna --</option>
+                    <option value="">-- Piliin ang Purok / Sitio sa Brgy. Santa Cruz, Bay, Laguna --</option>
                     {PUROK_OPTIONS.map((p) => (
                       <option key={p} value={p}>
-                        {p}, Brgy. San Isidro, Bay, Laguna
+                        {p}, Brgy. Santa Cruz, Bay, Laguna
                       </option>
                     ))}
                     <option value="custom">Iba pa / Custom Address sa Bay, Laguna</option>

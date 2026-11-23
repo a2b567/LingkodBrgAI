@@ -236,7 +236,7 @@ const StaffDashboard: React.FC = () => {
     setIsGeneratingInsight(true);
     setMessages([]);
     try {
-      const prompt = `Context: You are LingkodBrgAI, the official AI Operations Assistant of Barangay San Isidro, Bay, Laguna, Philippines. Based on the following statistics, write a 2-sentence actionable recommendation or summary insight for the Barangay Captain. Always refer strictly to Barangay San Isidro:\n` +
+      const prompt = `Context: You are LingkodBrgAI, the official AI Operations Assistant of Barangay Santa Cruz, Bay, Laguna, Philippines. Based on the following statistics, write a 2-sentence actionable recommendation or summary insight for the Barangay Captain. Always refer strictly to Barangay Santa Cruz:\n` +
         `- Total Residents: ${currentStats.total_residents}\n` +
         `- Active Incident Blotters: ${currentStats.active_incidents}\n` +
         `- Households below sustenance/Indigent: ${currentStats.indigent_households}\n` +
@@ -248,11 +248,11 @@ const StaffDashboard: React.FC = () => {
         sessionStorage.setItem('dashboard_ai_insight_v3', cleanResponse);
         streamMessage(cleanResponse, 'ai');
       } else {
-        streamMessage("Demographic distributions indicate stable residency trends in Barangay San Isidro. Outstanding blotter disputes require scheduled mediations.", 'ai');
+        streamMessage("Demographic distributions indicate stable residency trends in Barangay Santa Cruz. Outstanding blotter disputes require scheduled mediations.", 'ai');
       }
     } catch {
       setIsGeneratingInsight(false);
-      streamMessage("Demographic distributions indicate stable residency trends in Barangay San Isidro. Outstanding blotter disputes require scheduled mediations.", 'ai');
+      streamMessage("Demographic distributions indicate stable residency trends in Barangay Santa Cruz. Outstanding blotter disputes require scheduled mediations.", 'ai');
     }
   };
 
@@ -318,7 +318,7 @@ const StaffDashboard: React.FC = () => {
 
     try {
       // Build a contextual prompt for the AI including the dashboard stats
-      const statsContext = `Context: You are the AI Assistant for Barangay San Isidro. Current Stats:\n` +
+      const statsContext = `Context: You are the AI Assistant for Barangay Santa Cruz. Current Stats:\n` +
         `- Total Residents: ${stats.total_residents}\n` +
         `- Active Incident Blotters: ${stats.active_incidents}\n` +
         `- Households below sustenance/Indigent: ${stats.indigent_households}\n` +
@@ -600,7 +600,7 @@ const StaffDashboard: React.FC = () => {
                   Groq AI Active
                 </span>
               </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium truncate mt-0.5">Barangay San Isidro Smart Operations Officer • Fast Groq AI Engine</p>
+              <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium truncate mt-0.5">Barangay Santa Cruz Smart Operations Officer • Fast Groq AI Engine</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>

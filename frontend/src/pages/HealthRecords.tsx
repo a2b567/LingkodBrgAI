@@ -898,7 +898,7 @@ export const HealthRecords: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Barangay San Isidro Patient Records, Active Clinic Queue & Pharmacy Stock
+              Barangay Santa Cruz Patient Records, Active Clinic Queue & Pharmacy Stock
             </p>
           </div>
         </div>

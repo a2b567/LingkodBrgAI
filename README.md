@@ -1,6 +1,6 @@
 # 🏛️ LingkodBrgyAI
 **Enterprise Barangay Management Information System (BMIS) & Citizen e-Governance Platform**  
-*Official Digital Governance System for Barangay San Isidro, Bay, Laguna, Philippines*
+*Official Digital Governance System for Barangay Santa Cruz, Bay, Laguna, Philippines*
 
 [![Frontend](https://img.shields.io/badge/Frontend-React_19_%2B_TypeScript_5.8-2563eb?style=for-the-badge&logo=react)](https://lingkodbrgyai.vercel.app)
 [![Backend](https://img.shields.io/badge/Backend-Go_1.24_(Gin_%2B_GORM)-00ADD8?style=for-the-badge&logo=go)](https://lingkodbrgai.onrender.com/api/ping)
@@ -351,4 +351,4 @@ npx vercel --prod --yes
 ---
 
 ## 📄 License & Governance
-Developed for **Barangay San Isidro, Bay, Laguna**. Engineered with strict adherence to Philippine e-Governance standards and the **Data Privacy Act of 2012 (RA 10173)**.
+Developed for **Barangay Santa Cruz, Bay, Laguna**. Engineered with strict adherence to Philippine e-Governance standards and the **Data Privacy Act of 2012 (RA 10173)**.

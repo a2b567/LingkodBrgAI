@@ -108,7 +108,7 @@ func SeedDatabase(db *gorm.DB) error {
 			Birthdate:       time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 			Gender:          "Male",
 			CivilStatus:     "Single",
-			Address:         "Purok 1, Barangay San Isidro, Bay, Laguna",
+			Address:         "Purok 1, Barangay Santa Cruz, Bay, Laguna",
 			Citizenship:     "Filipino",
 			ResidencyStatus: "Permanent",
 			VoterStatus:     "Registered",

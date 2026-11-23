@@ -34,7 +34,7 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 	pdf.CellFormat(0, 5, "REPUBLIC OF THE PHILIPPINES", "0", 1, "C", false, 0, "")
 	pdf.CellFormat(0, 5, "PROVINCE OF LAGUNA", "0", 1, "C", false, 0, "")
 	pdf.CellFormat(0, 5, "MUNICIPALITY OF BAY", "0", 1, "C", false, 0, "")
-	pdf.CellFormat(0, 6, "BARANGAY SAN ISIDRO", "0", 1, "C", false, 0, "")
+	pdf.CellFormat(0, 6, "BARANGAY SANTA CRUZ", "0", 1, "C", false, 0, "")
 	
 	pdf.Ln(2)
 	pdf.SetLineWidth(1)
@@ -85,31 +85,31 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 
 	switch cert.Type {
 	case "Clearance":
-		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a bonafide resident of %s, Barangay San Isidro.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
+		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a bonafide resident of %s, Barangay Santa Cruz.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
 		bodyText += "\n\nBased on records available in this office, the aforementioned individual has no derogatory record and is a law-abiding citizen of this community."
 		bodyText += fmt.Sprintf("\n\nThis clearance is being issued upon request of the interested party for the purpose of: %s.", cert.Purpose)
 	case "Indigency":
-		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a resident of %s, Barangay San Isidro.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
+		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a resident of %s, Barangay Santa Cruz.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
 		bodyText += "\n\nIt is further certified that the family belongs to the low-income/indigent bracket of this Barangay, earning below the sustenance margin."
 		bodyText += fmt.Sprintf("\n\nThis certification is being issued upon request of the interested party for the purpose of: %s.", cert.Purpose)
 	case "Residency":
-		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a resident of %s, Barangay San Isidro.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
+		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a resident of %s, Barangay Santa Cruz.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
 		bodyText += fmt.Sprintf("\n\nIt is certified that the resident has lived in this barangay since %s.", cert.Resident.CreatedAt.Format("January 2006"))
 		bodyText += fmt.Sprintf("\n\nThis certificate is being issued upon request of the interested party for: %s.", cert.Purpose)
 	case "Business":
-		bodyText = fmt.Sprintf("This is to certify that the business owned by %s, located at %s, Barangay San Isidro, has cleared all standard barangay inspections.", residentName, cert.Resident.Address)
+		bodyText = fmt.Sprintf("This is to certify that the business owned by %s, located at %s, Barangay Santa Cruz, has cleared all standard barangay inspections.", residentName, cert.Resident.Address)
 		bodyText += "\n\nThis office poses no objection to the operation of the business provided standard public ordinances and laws are upheld."
 		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)
 	case "Barangay ID":
-		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, residing at %s, Barangay San Isidro, is an officially registered and verified resident.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
+		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, residing at %s, Barangay Santa Cruz, is an officially registered and verified resident.", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
 		bodyText += "\n\nThis certification validates the issuance of the Official Barangay Identification Card under QR Verification ID: " + cert.Resident.QRID + "."
 		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)
 	case "First Time Job Seeker":
-		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a bona fide resident of %s, Barangay San Isidro, Bay, Laguna, and is a qualified availee of Republic Act No. 11261 (First Time Jobseekers Assistance Act).", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
+		bodyText = fmt.Sprintf("This is to certify that %s, of legal age, %s, Filipino citizen, is a bona fide resident of %s, Barangay Santa Cruz, Bay, Laguna, and is a qualified availee of Republic Act No. 11261 (First Time Jobseekers Assistance Act).", residentName, cert.Resident.CivilStatus, cert.Resident.Address)
 		bodyText += "\n\nIt is further certified that the holder/bearer was informed of his/her rights, including the duties and responsibilities accorded by RA 11261 through the Oath of Undertaking he/she has signed and executed in the presence of a Barangay Official."
 		bodyText += fmt.Sprintf("\n\nThis certification is issued FREE OF CHARGE pursuant to RA 11261 for the purpose of: %s. Valid for one (1) year from the date of issuance.", cert.Purpose)
 	default:
-		bodyText = fmt.Sprintf("This is to certify that %s is a registered resident of Barangay San Isidro, located in Laguna Province.", residentName)
+		bodyText = fmt.Sprintf("This is to certify that %s is a registered resident of Barangay Santa Cruz, located in Laguna Province.", residentName)
 		bodyText += fmt.Sprintf("\n\nIssued for: %s.", cert.Purpose)
 	}
 
@@ -122,7 +122,7 @@ func (s *PDFService) GenerateCertificate(cert models.Certificate) (string, error
 		issueDate = *cert.IssueDate
 	}
 	pdf.SetFont("Arial", "", 11)
-	dateText := fmt.Sprintf("Given this %s day of %s, 2026, at the Office of the Barangay Captain, Barangay San Isidro, Laguna, Philippines.", 
+	dateText := fmt.Sprintf("Given this %s day of %s, 2026, at the Office of the Barangay Captain, Barangay Santa Cruz, Laguna, Philippines.", 
 		ordinal(issueDate.Day()), issueDate.Format("January"))
 	pdf.MultiCell(0, 6, dateText, "", "L", false)
 	pdf.Ln(25)

@@ -145,7 +145,7 @@ export const ResidentDashboard: React.FC = () => {
     ? `${(user as any).first_name} ${(user as any).last_name}`
     : user?.username || 'Resident';
 
-  const residentQrId = user?.resident?.qr_id || `SANISIDRO-${user?.id ? String(user.id).slice(0, 6) : '2026-889'}`;
+  const residentQrId = user?.resident?.qr_id || `SANTACRUZ-${user?.id ? String(user.id).slice(0, 6) : '2026-889'}`;
 
   const qrVerificationUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/verify/document/${residentQrId}`
@@ -153,7 +153,7 @@ export const ResidentDashboard: React.FC = () => {
 
   const defaultHotlinesList = [
     { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue', color: 'bg-rose-500' },
-    { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
+    { id: '2', title: 'Barangay Santa Cruz Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security', color: 'bg-blue-600' },
     { id: '3', title: 'Barangay Health Center / RHU', number: '(049) 501-2750', desc: 'Doctor, Nurse & Ambulance', color: 'bg-emerald-600' },
     { id: '4', title: 'PNP Local Police Station', number: '(049) 501-1122', desc: 'Patrol & Law Enforcement', color: 'bg-indigo-600' },
     { id: '5', title: 'BFP Bureau of Fire Protection', number: '(049) 501-3473', desc: 'Fire Rescue & Disaster Unit', color: 'bg-amber-600' },
@@ -263,7 +263,7 @@ export const ResidentDashboard: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-              Barangay San Isidro Resident Portal
+              Barangay Santa Cruz Resident Portal
             </p>
           </div>
         </div>
@@ -845,7 +845,7 @@ export const ResidentDashboard: React.FC = () => {
                           setEditableHotlines(updated);
                         }}
                         className="w-full text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
-                        placeholder="Hal. Barangay San Isidro Hall"
+                        placeholder="Hal. Barangay Santa Cruz Hall"
                       />
                     </div>
                     <div>

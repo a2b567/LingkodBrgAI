@@ -32,7 +32,7 @@ export const maskEmail = (email?: string): string => {
 };
 
 /**
- * Mask Full Address: e.g. "Block 12 Lot 5, Mabini St., Brgy. San Isidro" -> "Block 12 •••••••••••••"
+ * Mask Full Address: e.g. "Block 12 Lot 5, Mabini St., Brgy. Santa Cruz" -> "Block 12 •••••••••••••"
  */
 export const maskAddress = (address?: string): string => {
   if (!address || typeof address !== 'string') return '—';

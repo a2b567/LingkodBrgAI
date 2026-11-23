@@ -65,7 +65,7 @@ export const Certificates: React.FC = () => {
     const residentName = cert.resident 
       ? `${cert.resident.first_name} ${cert.resident.middle_name ? cert.resident.middle_name[0] + '.' : ''} ${cert.resident.last_name}` 
       : 'RESIDENT USER';
-    const residentAddress = cert.resident?.address || 'Barangay San Isidro, Bay, Laguna, Philippines';
+    const residentAddress = cert.resident?.address || 'Barangay Santa Cruz, Bay, Laguna, Philippines';
     const residentGender = cert.resident?.gender || 'Male';
     const residentCivilStatus = cert.resident?.civil_status || 'Single';
     const residentVoterStatus = cert.resident?.voter_status || 'Registered Voter';
@@ -127,7 +127,7 @@ export const Certificates: React.FC = () => {
     const residentName = cert.resident 
       ? `${cert.resident.first_name} ${cert.resident.middle_name ? cert.resident.middle_name[0] + '.' : ''} ${cert.resident.last_name}` 
       : 'RESIDENT USER';
-    const residentAddress = cert.resident?.address || 'Purok 3, Barangay San Isidro, Laguna';
+    const residentAddress = cert.resident?.address || 'Purok 3, Barangay Santa Cruz, Laguna';
     const residentCivilStatus = cert.resident?.gender ? `${cert.resident.gender} / ${cert.resident.civil_status || 'Single'}` : 'Single';
     const issueDateFormatted = cert.issue_date 
       ? new Date(cert.issue_date).toISOString().split('T')[0] 
@@ -1400,7 +1400,7 @@ export const Certificates: React.FC = () => {
                       LIVE EDITOR &amp; PREVIEW
                     </span>
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Standard CR80 ISO Security ID • Barangay San Isidro, Laguna</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Standard CR80 ISO Security ID • Barangay Santa Cruz, Laguna</p>
                 </div>
               </div>
 
@@ -1600,7 +1600,7 @@ export const Certificates: React.FC = () => {
                       <div className="flex items-center justify-between border-b border-gov-gold-500/40 pb-1.5 relative z-10">
                         <div className="leading-none">
                           <span className="text-[7px] font-extrabold uppercase tracking-widest text-gov-gold-400 block">REPUBLIC OF THE PHILIPPINES</span>
-                          <h4 className="text-[9.5px] font-black uppercase tracking-wide text-white mt-0.5">BARANGAY SAN ISIDRO • BAY, LAGUNA</h4>
+                          <h4 className="text-[9.5px] font-black uppercase tracking-wide text-white mt-0.5">BARANGAY SANTA CRUZ • BAY, LAGUNA</h4>
                           <span className="text-[6px] font-bold text-slate-400 uppercase tracking-wider block">RESIDENT IDENTIFICATION CARD</span>
                         </div>
                         <span className="px-2 py-0.5 rounded-full text-[7px] font-black uppercase tracking-widest bg-gov-gold-500/20 text-gov-gold-400 border border-gov-gold-500/50 shrink-0 ml-2">
@@ -1650,7 +1650,7 @@ export const Certificates: React.FC = () => {
                           <div className="mt-1">
                             <span className="text-[6px] font-bold text-slate-400 uppercase block leading-none mb-0.5">RESIDENTIAL ADDRESS</span>
                             <p className="text-[7.5px] font-bold text-slate-300 leading-tight line-clamp-2">
-                              {idForm.address || 'Barangay San Isidro, Laguna, Philippines'}
+                              {idForm.address || 'Barangay Santa Cruz, Laguna, Philippines'}
                             </p>
                           </div>
                         </div>
@@ -1686,7 +1686,7 @@ export const Certificates: React.FC = () => {
                           <span className="text-[7px] font-bold text-slate-500 uppercase">PHILIPPINES LGU</span>
                         </div>
                         <p className="text-[6.5px] text-slate-400 leading-tight pt-1">
-                          This official identification card certifies that the bearer is a recognized resident of Barangay San Isidro, Laguna. If found, please return to the Barangay Hall or the nearest police station.
+                          This official identification card certifies that the bearer is a recognized resident of Barangay Santa Cruz, Laguna. If found, please return to the Barangay Hall or the nearest police station.
                         </p>
                       </div>
 
@@ -1707,7 +1707,7 @@ export const Certificates: React.FC = () => {
                           </div>
                           <div>
                             <span className="text-[6px] uppercase font-bold text-slate-500 block">RESIDENTIAL ADDRESS</span>
-                            <span className="text-[7px] font-bold text-slate-300 leading-tight line-clamp-2 block">{idForm.address || 'Barangay San Isidro, Laguna'}</span>
+                            <span className="text-[7px] font-bold text-slate-300 leading-tight line-clamp-2 block">{idForm.address || 'Barangay Santa Cruz, Laguna'}</span>
                           </div>
                         </div>
 
@@ -1846,7 +1846,7 @@ export const Certificates: React.FC = () => {
                 <div className="sm:col-span-2">
                   <span className="text-[10px] font-bold text-slate-400 uppercase block">Tirahan (Address)</span>
                   <span className="font-bold text-slate-800 dark:text-slate-200">
-                    {cedulaCertToView.resident?.address || 'Barangay San Isidro, Bay, Laguna'}
+                    {cedulaCertToView.resident?.address || 'Barangay Santa Cruz, Bay, Laguna'}
                   </span>
                 </div>
 
@@ -2646,7 +2646,7 @@ Fee: ₱${cedulaCertToView.fee || 50}`;
                                 suppressContentEditableWarning 
                                 className={`text-xl font-black tracking-tight text-gov-blue-950 uppercase font-display mt-0.5 ${isDocsMode ? 'docs-editable' : ''}`}
                               >
-                                BARANGAY SAN ISIDRO
+                                BARANGAY SANTA CRUZ
                               </h2>
                               <span 
                                 contentEditable={isDocsMode} 
@@ -2710,7 +2710,7 @@ Fee: ₱${cedulaCertToView.fee || 50}`;
                           </p>
 
                           <p className="indent-8 pt-4">
-                            Given and issued this <strong>{new Date(printForm.issueDate).getDate()}th</strong> day of <strong>{new Date(printForm.issueDate).toLocaleString('default', { month: 'long' })}</strong>, <strong>{new Date(printForm.issueDate).getFullYear()}</strong> at Barangay San Isidro, Bay, Laguna, Republic of the Philippines.
+                            Given and issued this <strong>{new Date(printForm.issueDate).getDate()}th</strong> day of <strong>{new Date(printForm.issueDate).toLocaleString('default', { month: 'long' })}</strong>, <strong>{new Date(printForm.issueDate).getFullYear()}</strong> at Barangay Santa Cruz, Bay, Laguna, Republic of the Philippines.
                           </p>
                         </div>
 
@@ -2763,7 +2763,7 @@ Fee: ₱${cedulaCertToView.fee || 50}`;
                               suppressContentEditableWarning 
                               className={`text-[9px] font-bold text-slate-500 uppercase tracking-widest block pt-0.5 ${isDocsMode ? 'docs-editable' : ''}`}
                             >
-                              BARANGAY SAN ISIDRO, BAY, LAGUNA
+                              BARANGAY SANTA CRUZ, BAY, LAGUNA
                             </span>
                           </div>
                         </div>

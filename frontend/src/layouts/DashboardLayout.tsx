@@ -260,7 +260,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
                   </span>
                 </div>
                 <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  San Isidro Portal
+                  Santa Cruz Portal
                 </span>
               </div>
             )}
@@ -512,7 +512,7 @@ export const DashboardLayout: React.FC<LayoutProps> = ({ children }) => {
                 {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </p>
               <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                Brgy San Isidro
+                Brgy Santa Cruz
               </p>
             </div>
 

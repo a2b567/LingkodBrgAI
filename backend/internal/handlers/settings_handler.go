@@ -68,7 +68,7 @@ type HotlineItem struct {
 
 var defaultEmergencyHotlines = []HotlineItem{
 	{ID: "1", Title: "Emergency Response (National 911)", Number: "911", Desc: "Police, Medical & Rescue", Color: "bg-rose-500"},
-	{ID: "2", Title: "Barangay San Isidro Main Hall", Number: "(049) 501-2749", Desc: "Barangay Desk & Security", Color: "bg-blue-600"},
+	{ID: "2", Title: "Barangay Santa Cruz Main Hall", Number: "(049) 501-2749", Desc: "Barangay Desk & Security", Color: "bg-blue-600"},
 	{ID: "3", Title: "Barangay Health Center / RHU", Number: "(049) 501-2750", Desc: "Doctor, Nurse & Ambulance", Color: "bg-emerald-600"},
 	{ID: "4", Title: "PNP Local Police Station", Number: "(049) 501-1122", Desc: "Patrol & Law Enforcement", Color: "bg-indigo-600"},
 	{ID: "5", Title: "BFP Bureau of Fire Protection", Number: "(049) 501-3473", Desc: "Fire Rescue & Disaster Unit", Color: "bg-amber-600"},

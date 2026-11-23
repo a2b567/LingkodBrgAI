@@ -380,9 +380,9 @@ export const Households: React.FC = () => {
       'contact_number','email_address',
     ];
     const sample = [
-      'HH-2026-001','Block 1 Lot 2 San Isidro','Purok 1','Non-Poor',
+      'HH-2026-001','Block 1 Lot 2 Santa Cruz','Purok 1','Non-Poor',
       'Juan','Reyes','Dela Cruz',
-      '1980-05-15','San Isidro','Male','Married',
+      '1980-05-15','Santa Cruz','Male','Married',
       'Roman Catholic','College','Carpenter','15000',
       'Owned','Concrete','4',
       'Maynilad / Local Waterworks','Meralco / Local Electric Coop','Flush Toilet','Garbage Collection',
@@ -1501,7 +1501,7 @@ export const Households: React.FC = () => {
                       <option value="Purok 6">Purok 6</option>
                       <option value="Purok 7">Purok 7</option>
                       <option value="Purok 8">Purok 8</option>
-                      <option value="Sitio Maitim">Sitio Maitim</option>
+                      <option value="Sitio Calo">Sitio Calo</option>
                       <option value="Sitio Ilaya">Sitio Ilaya</option>
                       <option value="Sitio Ibaba">Sitio Ibaba</option>
                       <option value="Zone 1">Zone 1</option>
@@ -1520,7 +1520,7 @@ export const Households: React.FC = () => {
                     <input 
                       type="text" 
                       required 
-                      placeholder="House No., Street Name, Zone Location, Barangay San Isidro"
+                      placeholder="House No., Street Name, Zone Location, Barangay Santa Cruz"
                       value={form.address} 
                       onChange={(e) => setForm({...form, address: e.target.value})} 
                       className="w-full bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-gov-blue-500 text-slate-800 dark:text-white" 

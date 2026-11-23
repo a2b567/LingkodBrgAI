@@ -113,7 +113,7 @@ export const Settings: React.FC = () => {
   // Official Emergency SOS Hotlines (Captain Editable)
   const defaultPortalHotlines = [
     { id: '1', title: 'Emergency Response (National 911)', number: '911', desc: 'Police, Medical & Rescue' },
-    { id: '2', title: 'Barangay San Isidro Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security' },
+    { id: '2', title: 'Barangay Santa Cruz Main Hall', number: '(049) 501-2749', desc: 'Barangay Desk & Security' },
     { id: '3', title: 'Barangay Health Center / RHU', number: '(049) 501-2750', desc: 'Doctor, Nurse & Ambulance' },
     { id: '4', title: 'PNP Local Police Station', number: '(049) 501-1122', desc: 'Patrol & Law Enforcement' },
     { id: '5', title: 'BFP Bureau of Fire Protection', number: '(049) 501-3473', desc: 'Fire Rescue & Disaster Unit' },
@@ -228,7 +228,7 @@ export const Settings: React.FC = () => {
       desc: 'Standard minimal dark theme with subtle particle glow',
     },
     {
-      name: 'Barangay San Isidro Hall & Plaza',
+      name: 'Barangay Santa Cruz Hall & Plaza',
       url: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=1600&q=80',
       preview: 'https://images.unsplash.com/photo-1577495508048-b635879837f1?auto=format&fit=crop&w=400&q=80',
       desc: 'Modern civic architectural hall with warm welcoming lighting',
@@ -328,7 +328,7 @@ export const Settings: React.FC = () => {
     {
       id: '1',
       title: 'Annual Dental & Medical Mission',
-      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the San Isidro Barangay Covered Court.',
+      content: 'Join our health volunteers this Saturday, June 6th, starting from 8:00 AM at the Santa Cruz Barangay Covered Court.',
       category: 'Health Advisory',
       badge: 'Active',
       author: 'Barangay Health Council',
@@ -1004,7 +1004,7 @@ export const Settings: React.FC = () => {
                           onChange={(e) => setResidentAddress(e.target.value)}
                           isRequired
                           leftIcon={<MapPin size={15} />}
-                          placeholder="Hal. House #123, Purok 3, Barangay San Isidro, Bay, Laguna"
+                          placeholder="Hal. House #123, Purok 3, Barangay Santa Cruz, Bay, Laguna"
                         />
                       </div>
                     </div>
@@ -1169,6 +1169,11 @@ export const Settings: React.FC = () => {
                                   <option value="Purok 5">Purok 5</option>
                                   <option value="Purok 6">Purok 6</option>
                                   <option value="Purok 7">Purok 7</option>
+                                  <option value="Sitio Calo">Sitio Calo</option>
+                                  <option value="Sitio Luyong">Sitio Luyong</option>
+                                  <option value="Sitio Ilaya">Sitio Ilaya</option>
+                                  <option value="Sitio Ibaba">Sitio Ibaba</option>
+                                  <option value="F.T. San Luis Avenue">F.T. San Luis Avenue</option>
                                 </select>
                                 <span className="text-[10px] text-slate-400 mt-1 block">Purok kung saan nakatirik ang bahay</span>
                               </div>
@@ -1768,7 +1773,7 @@ export const Settings: React.FC = () => {
                       <div>
                         <CardTitle>Self-Service Kiosk Background Wallpaper & Display</CardTitle>
                         <CardDescription>
-                          I-customize ang opisyal na background wallpaper at tema ng touch-screen document kiosk ng Barangay San Isidro.
+                          I-customize ang opisyal na background wallpaper at tema ng touch-screen document kiosk ng Barangay Santa Cruz.
                         </CardDescription>
                       </div>
                     </div>
@@ -1851,7 +1856,7 @@ export const Settings: React.FC = () => {
                               SELF-SERVICE KIOSK
                             </span>
                             <span className="text-[7.5px] font-bold text-slate-300 uppercase tracking-widest block leading-tight">
-                              BARANGAY SAN ISIDRO
+                              BARANGAY SANTA CRUZ
                             </span>
                           </div>
                         </div>
@@ -1869,7 +1874,7 @@ export const Settings: React.FC = () => {
                           Tap Anywhere to Start
                         </h4>
                         <p className="text-[9px] text-slate-300 font-semibold max-w-xs drop-shadow">
-                          Welcome to Barangay San Isidro Document Self-Service Kiosk.
+                          Welcome to Barangay Santa Cruz Document Self-Service Kiosk.
                         </p>
                       </div>
 
