@@ -22,7 +22,6 @@ const STAFF_ROLES = [
   'Treasurer',
   'Health Worker',
   'Staff',
-  'Super Admin',
 ];
 
 
@@ -323,7 +322,14 @@ export const StaffAccounts: React.FC = () => {
     setLoading(true);
     try {
       const res = await api.staffAccounts.list();
-      setStaffList((res.data || []).filter((s: StaffUser) => s.role !== 'Developer'));
+      setStaffList(
+        (res.data || []).filter(
+          (s: StaffUser) =>
+            s.role !== 'Developer' &&
+            s.role !== 'Super Admin' &&
+            s.username?.toLowerCase() !== 'admin'
+        )
+      );
     } catch (err) {
       console.error('Failed to load staff accounts', err);
     } finally {
@@ -366,7 +372,7 @@ export const StaffAccounts: React.FC = () => {
       />
 
       {/* ── Role Overview Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {STAFF_ROLES.map(r => {
           const isActive = roleFilter === r;
           return (
