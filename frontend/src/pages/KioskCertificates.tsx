@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Signature, Loader2, Pointer, Maximize2, Minimize2, Languages,
   Award, HeartHandshake, Home, Building2, CreditCard, UserCheck, CheckCircle2,
-  Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool, Lock, Briefcase
+  Sparkles, ShieldCheck, Clock, ArrowRight, RotateCcw, PenTool, Lock, Briefcase,
+  Volume2, VolumeX
 } from 'lucide-react';
 import { api } from '../services/api';
 import { KioskAdminLockModal } from '../components/KioskAdminLockModal';
@@ -17,32 +18,69 @@ export const KioskCertificates: React.FC = () => {
   const [isAdminLockOpen, setIsAdminLockOpen] = useState(false);
 
   const [servingTicket, setServingTicket] = useState('---');
+  const [servingResident, setServingResident] = useState('');
   const [nextTicket, setNextTicket] = useState('---');
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [callingBanner, setCallingBanner] = useState<{ ticket: string; name: string; certType?: string } | null>(null);
+  const lastAnnouncedTicketRef = useRef<string | null>(null);
+  const voiceEnabledRef = useRef(voiceEnabled);
+  voiceEnabledRef.current = voiceEnabled;
 
   useEffect(() => {
+    const announceTicket = (ticketNumber: string, residentName: string, docType?: string) => {
+      setCallingBanner({ ticket: ticketNumber, name: residentName, certType: docType });
+      setTimeout(() => {
+        setCallingBanner(prev => (prev && prev.ticket === ticketNumber ? null : prev));
+      }, 9000);
+
+      if (voiceEnabledRef.current && 'speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.cancel();
+          const text = `Attention. Now serving ticket number ${ticketNumber}, ${residentName}. Please proceed to Counter 1 for document issuance.`;
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.9;
+          utterance.pitch = 1.0;
+          window.speechSynthesis.speak(utterance);
+        } catch {}
+      }
+    };
+
     const loadQueue = () => {
       try {
         const saved = localStorage.getItem('lingkod_queue_slots');
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const serving = parsed.find(s => s.status === 'Serving');
-            const next = parsed.find(s => s.status === 'Waiting');
+            const realSlots = parsed.filter((s: any) => !String(s.id || '').startsWith('q-sample-'));
+            const serving = realSlots.find((s: any) => s.status === 'Serving');
+            const next = realSlots.find((s: any) => s.status === 'Waiting');
             setServingTicket(serving ? serving.ticket_number : '---');
+            setServingResident(serving ? (serving.resident_name || '') : '');
             setNextTicket(next ? next.ticket_number : '---');
+
+            if (serving && serving.ticket_number && serving.ticket_number !== lastAnnouncedTicketRef.current) {
+              lastAnnouncedTicketRef.current = serving.ticket_number;
+              announceTicket(serving.ticket_number, serving.resident_name || 'Resident', serving.cert_type);
+            }
             return;
           }
         }
         setServingTicket('---');
+        setServingResident('');
         setNextTicket('---');
       } catch {
         setServingTicket('---');
+        setServingResident('');
         setNextTicket('---');
       }
     };
     loadQueue();
     const interval = setInterval(loadQueue, 1500);
-    return () => clearInterval(interval);
+    window.addEventListener('storage', loadQueue);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', loadQueue);
+    };
   }, []);
 
   const [firstName, setFirstName] = useState('');
@@ -599,7 +637,33 @@ export const KioskCertificates: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+          <button
+            onClick={() => {
+              const next = !voiceEnabled;
+              setVoiceEnabled(next);
+              if (!next && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+              } else if (next && servingTicket !== '---' && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(
+                  `AI Voice Announcement enabled. Now serving ticket number ${servingTicket}${servingResident ? `, ${servingResident}` : ''}.`
+                );
+                utterance.rate = 0.92;
+                window.speechSynthesis.speak(utterance);
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all active:scale-95 cursor-pointer ${
+              voiceEnabled
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-md shadow-emerald-500/10'
+                : 'bg-slate-900 text-slate-400 border border-slate-700/80'
+            }`}
+            title="Toggle AI Voice Queue Callout Announcements"
+          >
+            {voiceEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            <span>{voiceEnabled ? 'AI Voice ON' : 'AI Voice OFF'}</span>
+          </button>
+
           <button
             onClick={() => setLang(lang === 'en' ? 'tl' : 'en')}
             className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl text-xs font-black uppercase tracking-wider border border-slate-700/80 shadow-md transition-all active:scale-95 cursor-pointer"
@@ -612,6 +676,9 @@ export const KioskCertificates: React.FC = () => {
             <span className="text-slate-400 flex items-center gap-1.5">
               <Clock size={12} className="text-emerald-400 animate-spin" />
               NOW SERVING <strong className="text-emerald-400 font-mono text-xs ml-1">{servingTicket}</strong>
+              {servingResident && (
+                <span className="text-slate-200 font-bold normal-case ml-1 max-w-[120px] truncate">({servingResident})</span>
+              )}
             </span>
             <span className="text-slate-700">|</span>
             <span className="text-slate-400">NEXT UP <strong className="text-blue-400 font-mono text-xs ml-1">{nextTicket}</strong></span>
@@ -635,6 +702,36 @@ export const KioskCertificates: React.FC = () => {
           </button>
         </div>
       </header>
+
+      {/* Live Queue Callout Banner (Visible whenever a new ticket is called, even without Queue Monitor open) */}
+      {callingBanner && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-xl bg-gradient-to-r from-emerald-950/95 via-slate-900/95 to-blue-950/95 border-2 border-emerald-500/60 rounded-3xl px-6 py-4 shadow-[0_0_40px_rgba(16,185,129,0.35)] backdrop-blur-xl flex items-center justify-between gap-4 animate-in fade-in duration-300">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center shrink-0">
+              <Volume2 size={24} className="text-emerald-400 animate-pulse" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400 block">
+                {lang === 'tl' ? 'TINATAWAG NGAYON • COUNTER 1' : 'NOW CALLING • COUNTER 1'}
+              </span>
+              <div className="text-lg sm:text-xl font-black text-white truncate">
+                <span className="font-mono text-amber-300 mr-2">{callingBanner.ticket}</span>
+                <span>{callingBanner.name}</span>
+              </div>
+              {callingBanner.certType && (
+                <span className="text-xs font-semibold text-slate-300">{callingBanner.certType}</span>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCallingBanner(null)}
+            className="text-slate-400 hover:text-white text-xs font-bold px-2.5 py-1 rounded-xl bg-slate-800/80 border border-slate-700 cursor-pointer shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8 flex flex-col justify-center relative z-20">
         {step > 0 && step !== 4 && renderStepIndicator()}
