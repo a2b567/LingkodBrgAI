@@ -625,7 +625,7 @@ export const api = {
         () => client.post<{ photo_url: string }>('/residents/upload-photo', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         }).then(r => r.data),
-        () => ({ photo_url: '/assets/logo.png' })
+        () => ({ photo_url: '' })
       ),
   },
 
