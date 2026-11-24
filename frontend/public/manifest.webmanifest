@@ -8,5 +8,12 @@
   "background_color": "#090d16",
   "theme_color": "#1e3a8a",
   "orientation": "portrait-primary",
-  "icons": []
+  "icons": [
+    {
+      "src": "/favicon.svg?v=santacruz2026",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }

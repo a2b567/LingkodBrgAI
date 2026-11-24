@@ -1,9 +1,10 @@
 // LingkodBrgyAi Progressive Web App Service Worker
-const CACHE_NAME = 'lingkodbrgyai-v3';
+const CACHE_NAME = 'lingkodbrgyai-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/favicon.svg?v=santacruz2026'
 ];
 
 // Install Event - Cache Core App Shell
